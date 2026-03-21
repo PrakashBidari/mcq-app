@@ -1,5 +1,27 @@
 # Welcome to your Expo app 👋
 
+# TMBD API
+
+# npx expo install react-native-safe-area-context
+
+# npx expo install expo-linear-gradient
+
+# npx expo install expo-clipboard
+
+# npx expo install expo-linear-gradient react-native-animatable react-native-reanimated // Animation
+
+# npm install react-native-snap-carousel
+
+# npm install @types/react-native-snap-carousel --save-dev
+
+# npm install react-native-reanimated-carousel
+
+# npm install react-native-reanimated react-native-gesture-handler
+
+# npm install react-native-swiper
+
+# npx expo install @react-native-async-storage/async-storage
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

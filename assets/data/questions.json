@@ -1,0 +1,782 @@
+[
+  {
+    "id": 1,
+    "question": "What is the main principle of User-Centered Design?",
+    "options": [
+      "Making designs look beautiful",
+      "Focusing on users' needs throughout the design process",
+      "Using the latest design trends",
+      "Creating complex interfaces"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Easy",
+    "explanation": "User-Centered Design focuses on understanding and addressing users' needs at every stage of the design process.",
+    "questionSetIds": [1]
+  },
+  {
+    "id": 2,
+    "question": "What is the purpose of a persona in UX design?",
+    "options": [
+      "To represent the design team",
+      "To create fictional characters for testing",
+      "To represent typical users and their goals",
+      "To showcase design skills"
+    ],
+    "correctAnswer": 2,
+    "category": "Design",
+    "difficulty": "Medium",
+    "explanation": "Personas are fictional characters created to represent different user types and help designers understand user needs and behaviors.",
+    "questionSetIds": [1]
+  },
+  {
+    "id": 3,
+    "question": "What is a prototype in design?",
+    "options": [
+      "The final product",
+      "An early model to test concepts",
+      "A design specification",
+      "A user manual"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Easy",
+    "explanation": "A prototype is an early sample or model built to test a concept or process.",
+    "questionSetIds": [1]
+  },
+  {
+    "id": 4,
+    "question": "What is the golden ratio in design?",
+    "options": ["1.414", "1.618", "1.732", "2.000"],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Hard",
+    "explanation": "The golden ratio (φ) is approximately 1.618 and is often used in design for aesthetically pleasing proportions.",
+    "questionSetIds": [1]
+  },
+  {
+    "id": 5,
+    "question": "What is the 'F-pattern' in web design?",
+    "options": [
+      "A font style",
+      "How users typically scan web pages",
+      "A navigation structure",
+      "A color scheme"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Hard",
+    "explanation": "The F-pattern describes how users typically read web content: horizontally at the top, then down the left side, creating an F-shaped pattern.",
+    "questionSetIds": [1]
+  },
+  {
+    "id": 6,
+    "question": "What is whitespace in design?",
+    "options": [
+      "Empty space in a design",
+      "White colored backgrounds",
+      "Margins only",
+      "Text spacing"
+    ],
+    "correctAnswer": 0,
+    "category": "Design",
+    "difficulty": "Easy",
+    "explanation": "Whitespace (or negative space) is the empty space around design elements that helps create balance and focus.",
+    "questionSetIds": [2]
+  },
+  {
+    "id": 7,
+    "question": "What does CMYK stand for?",
+    "options": [
+      "Cyan, Magenta, Yellow, Black",
+      "Color Mix Yellow Key",
+      "Creative Media Year Kit",
+      "Computer Made Year Kit"
+    ],
+    "correctAnswer": 0,
+    "category": "Design",
+    "difficulty": "Medium",
+    "explanation": "CMYK is a color model used in color printing, standing for Cyan, Magenta, Yellow, and Key (Black).",
+    "questionSetIds": [2]
+  },
+  {
+    "id": 8,
+    "question": "What is a design system?",
+    "options": [
+      "A collection of design tools",
+      "A set of standards and reusable components",
+      "A design software",
+      "A project management tool"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Medium",
+    "explanation": "A design system is a collection of reusable components, guided by clear standards, that can be assembled to build applications.",
+    "questionSetIds": [2]
+  },
+  {
+    "id": 9,
+    "question": "What is accessibility in design?",
+    "options": [
+      "Making designs available online",
+      "Designing for all users including those with disabilities",
+      "Easy navigation",
+      "Mobile-friendly design"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Medium",
+    "explanation": "Accessibility in design means creating products that can be used by people with various disabilities.",
+    "questionSetIds": [2]
+  },
+  {
+    "id": 10,
+    "question": "What is typography hierarchy?",
+    "options": [
+      "Alphabetical order of fonts",
+      "Organization of text by importance",
+      "Font size measurements",
+      "List of available fonts"
+    ],
+    "correctAnswer": 1,
+    "category": "Design",
+    "difficulty": "Hard",
+    "explanation": "Typography hierarchy is the system of organizing type to establish order and guide readers through the content.",
+    "questionSetIds": [2]
+  },
+  {
+    "id": 11,
+    "question": "Which programming language is known as the 'language of the web'?",
+    "options": ["Python", "Java", "JavaScript", "C++"],
+    "correctAnswer": 2,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "JavaScript is the primary language for web development, running in browsers to create interactive web pages.",
+    "questionSetIds": [3]
+  },
+  {
+    "id": 12,
+    "question": "What does CSS stand for?",
+    "options": [
+      "Computer Style Sheets",
+      "Creative Style System",
+      "Cascading Style Sheets",
+      "Colorful Style Sheets"
+    ],
+    "correctAnswer": 2,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "CSS (Cascading Style Sheets) is used to style and layout web pages.",
+    "questionSetIds": [3]
+  },
+  {
+    "id": 13,
+    "question": "What does API stand for?",
+    "options": [
+      "Application Programming Interface",
+      "Advanced Programming Integration",
+      "Automated Program Interaction",
+      "Application Process Integration"
+    ],
+    "correctAnswer": 0,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "API (Application Programming Interface) allows different software applications to communicate with each other.",
+    "questionSetIds": [3]
+  },
+  {
+    "id": 14,
+    "question": "What is React Native used for?",
+    "options": [
+      "Building websites only",
+      "Building mobile apps for iOS and Android",
+      "Backend development",
+      "Database management"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "React Native is a framework for building native mobile applications using JavaScript and React.",
+    "questionSetIds": [3]
+  },
+  {
+    "id": 15,
+    "question": "What is HTML?",
+    "options": [
+      "HyperText Markup Language",
+      "High Tech Modern Language",
+      "Home Tool Markup Language",
+      "Hyperlinks and Text Markup Language"
+    ],
+    "correctAnswer": 0,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "HTML (HyperText Markup Language) is the standard markup language for creating web pages.",
+    "questionSetIds": [3]
+  },
+  {
+    "id": 16,
+    "question": "What is Node.js?",
+    "options": [
+      "A JavaScript framework",
+      "A JavaScript runtime environment",
+      "A database",
+      "A CSS preprocessor"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Medium",
+    "explanation": "Node.js is a JavaScript runtime built on Chrome's V8 engine that allows running JavaScript on the server.",
+    "questionSetIds": [4]
+  },
+  {
+    "id": 17,
+    "question": "What does 'git' stand for in version control?",
+    "options": [
+      "Global Information Tracker",
+      "It's not an acronym",
+      "General Integration Tool",
+      "Graphics Interface Terminal"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Hard",
+    "explanation": "Git is not an acronym. It's British slang for 'unpleasant person', which Linus Torvalds jokingly chose as the name.",
+    "questionSetIds": [4]
+  },
+  {
+    "id": 18,
+    "question": "What is a REST API?",
+    "options": [
+      "A sleeping interface",
+      "Representational State Transfer API",
+      "Remote System Transfer API",
+      "Reliable State Technology API"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Medium",
+    "explanation": "REST (Representational State Transfer) is an architectural style for building web APIs.",
+    "questionSetIds": [4]
+  },
+  {
+    "id": 19,
+    "question": "What is TypeScript?",
+    "options": [
+      "A JavaScript library",
+      "A superset of JavaScript with static typing",
+      "A backend framework",
+      "A database query language"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Medium",
+    "explanation": "TypeScript is a superset of JavaScript that adds optional static typing and other features.",
+    "questionSetIds": [4]
+  },
+  {
+    "id": 20,
+    "question": "What is asynchronous programming?",
+    "options": [
+      "Programming at different times",
+      "Code that runs without blocking",
+      "Synchronized code execution",
+      "Programming without functions"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Hard",
+    "explanation": "Asynchronous programming allows code to run without blocking the execution of other code.",
+    "questionSetIds": [4]
+  },
+  {
+    "id": 21,
+    "question": "What is Python primarily used for?",
+    "options": [
+      "Only web development",
+      "Data science, AI, web development, automation",
+      "Only mobile apps",
+      "Only game development"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "Python is a versatile language used in data science, AI, web development, automation, and more.",
+    "questionSetIds": [5]
+  },
+  {
+    "id": 22,
+    "question": "What does OOP stand for?",
+    "options": [
+      "Object-Oriented Programming",
+      "Online Operating Platform",
+      "Optimal Output Processing",
+      "Organized Object Platform"
+    ],
+    "correctAnswer": 0,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "OOP (Object-Oriented Programming) is a programming paradigm based on objects and classes.",
+    "questionSetIds": [5]
+  },
+  {
+    "id": 23,
+    "question": "What is a variable in programming?",
+    "options": [
+      "A constant value",
+      "A container for storing data",
+      "A function",
+      "A loop"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "A variable is a container that stores data values that can be referenced and manipulated.",
+    "questionSetIds": [5]
+  },
+  {
+    "id": 24,
+    "question": "What is a function in programming?",
+    "options": [
+      "A variable type",
+      "A reusable block of code",
+      "A data structure",
+      "A loop statement"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "A function is a reusable block of code that performs a specific task.",
+    "questionSetIds": [5]
+  },
+  {
+    "id": 25,
+    "question": "What is debugging?",
+    "options": [
+      "Writing new code",
+      "Finding and fixing errors in code",
+      "Deleting code",
+      "Compiling code"
+    ],
+    "correctAnswer": 1,
+    "category": "Development",
+    "difficulty": "Easy",
+    "explanation": "Debugging is the process of finding and fixing errors (bugs) in code.",
+    "questionSetIds": [5]
+  },
+  {
+    "id": 26,
+    "question": "What does MVP stand for in business?",
+    "options": [
+      "Most Valuable Player",
+      "Minimum Viable Product",
+      "Maximum Value Proposition",
+      "Managed Value Process"
+    ],
+    "correctAnswer": 1,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "MVP (Minimum Viable Product) is a product with minimum features to satisfy early customers and gather feedback.",
+    "questionSetIds": [6]
+  },
+  {
+    "id": 27,
+    "question": "What does SaaS stand for in business?",
+    "options": [
+      "Software as a Service",
+      "Sales as a Strategy",
+      "Security and Safety System",
+      "Subscription and Sales Service"
+    ],
+    "correctAnswer": 0,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "SaaS (Software as a Service) is a software distribution model where applications are hosted by a vendor and made available to customers over the internet.",
+    "questionSetIds": [6]
+  },
+  {
+    "id": 28,
+    "question": "What is ROI?",
+    "options": [
+      "Return on Investment",
+      "Rate of Interest",
+      "Revenue Output Index",
+      "Regional Operating Income"
+    ],
+    "correctAnswer": 0,
+    "category": "Business",
+    "difficulty": "Easy",
+    "explanation": "ROI (Return on Investment) measures the profitability of an investment.",
+    "questionSetIds": [6]
+  },
+  {
+    "id": 29,
+    "question": "What is a business model?",
+    "options": [
+      "A physical model of a business",
+      "A plan for making profit",
+      "A building design",
+      "A management structure"
+    ],
+    "correctAnswer": 1,
+    "category": "Business",
+    "difficulty": "Easy",
+    "explanation": "A business model is a plan for how a company creates, delivers, and captures value.",
+    "questionSetIds": [6]
+  },
+  {
+    "id": 30,
+    "question": "What is market segmentation?",
+    "options": [
+      "Dividing a market into distinct groups",
+      "Selling in different markets",
+      "Market research",
+      "Price comparison"
+    ],
+    "correctAnswer": 0,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "Market segmentation divides a broad target market into subsets with common needs or characteristics.",
+    "questionSetIds": [6]
+  },
+  {
+    "id": 31,
+    "question": "What is KPI?",
+    "options": [
+      "Key Performance Indicator",
+      "Knowledge Process Integration",
+      "Keep Profit Increasing",
+      "Key Product Information"
+    ],
+    "correctAnswer": 0,
+    "category": "Business",
+    "difficulty": "Easy",
+    "explanation": "KPI (Key Performance Indicator) is a measurable value that demonstrates effectiveness in achieving objectives.",
+    "questionSetIds": [7]
+  },
+  {
+    "id": 32,
+    "question": "What is cash flow?",
+    "options": [
+      "Money in a bank account",
+      "Movement of money in and out of business",
+      "Profit margin",
+      "Revenue"
+    ],
+    "correctAnswer": 1,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "Cash flow is the net amount of cash moving in and out of a business.",
+    "questionSetIds": [7]
+  },
+  {
+    "id": 33,
+    "question": "What is equity in business?",
+    "options": [
+      "Fairness",
+      "Ownership value in a company",
+      "Equal pay",
+      "Company rules"
+    ],
+    "correctAnswer": 1,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "Equity represents the ownership value in a company, calculated as assets minus liabilities.",
+    "questionSetIds": [7]
+  },
+  {
+    "id": 34,
+    "question": "What is B2B?",
+    "options": [
+      "Business to Business",
+      "Back to Basics",
+      "Better to Buy",
+      "Brand to Brand"
+    ],
+    "correctAnswer": 0,
+    "category": "Business",
+    "difficulty": "Easy",
+    "explanation": "B2B (Business to Business) refers to transactions between businesses.",
+    "questionSetIds": [7]
+  },
+  {
+    "id": 35,
+    "question": "What is a stakeholder?",
+    "options": [
+      "A company owner",
+      "Anyone with interest in the business",
+      "A shareholder only",
+      "A manager"
+    ],
+    "correctAnswer": 1,
+    "category": "Business",
+    "difficulty": "Medium",
+    "explanation": "A stakeholder is anyone who has an interest or concern in a business.",
+    "questionSetIds": [7]
+  },
+  {
+    "id": 36,
+    "question": "What is SEO?",
+    "options": [
+      "Social Engine Optimization",
+      "Search Engine Optimization",
+      "Site Enhancement Operation",
+      "Secure Email Option"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "SEO (Search Engine Optimization) is the practice of optimizing websites to rank higher in search engine results.",
+    "questionSetIds": [8]
+  },
+  {
+    "id": 37,
+    "question": "What is a 'call to action' (CTA) in marketing?",
+    "options": [
+      "A phone number to call",
+      "A prompt to encourage immediate response",
+      "A meeting request",
+      "A customer service hotline"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "A CTA is a marketing term for prompts that encourage users to take a specific action, like 'Buy Now' or 'Sign Up'.",
+    "questionSetIds": [8]
+  },
+  {
+    "id": 38,
+    "question": "What is influencer marketing?",
+    "options": [
+      "Marketing to influence stock prices",
+      "Using social media personalities to promote products",
+      "Influencing government policies",
+      "Training marketing teams"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "Influencer marketing involves collaborating with social media influencers to promote products or services to their followers.",
+    "questionSetIds": [8]
+  },
+  {
+    "id": 39,
+    "question": "What is A/B testing in marketing?",
+    "options": [
+      "Testing two different products",
+      "Comparing two versions to see which performs better",
+      "Grading marketing campaigns",
+      "Testing ads on two platforms"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Medium",
+    "explanation": "A/B testing compares two versions of a webpage, email, or ad to determine which one performs better.",
+    "questionSetIds": [8]
+  },
+  {
+    "id": 40,
+    "question": "What is conversion rate?",
+    "options": [
+      "Money exchange rate",
+      "Percentage of visitors who take desired action",
+      "Sales growth rate",
+      "Customer satisfaction rate"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Medium",
+    "explanation": "Conversion rate is the percentage of users who complete a desired action (purchase, signup, etc.).",
+    "questionSetIds": [8]
+  },
+  {
+    "id": 41,
+    "question": "What is content marketing?",
+    "options": [
+      "Creating ads",
+      "Creating valuable content to attract audience",
+      "Email marketing",
+      "Social media posting"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "Content marketing involves creating and distributing valuable content to attract and engage a target audience.",
+    "questionSetIds": [9]
+  },
+  {
+    "id": 42,
+    "question": "What is email marketing?",
+    "options": [
+      "Sending spam",
+      "Using email to promote products/services",
+      "Internal communication",
+      "Newsletter only"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "Email marketing uses email to promote products, services, or build relationships with customers.",
+    "questionSetIds": [9]
+  },
+  {
+    "id": 43,
+    "question": "What is viral marketing?",
+    "options": [
+      "Marketing viruses",
+      "Content that spreads rapidly through sharing",
+      "Email campaigns",
+      "TV advertising"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Medium",
+    "explanation": "Viral marketing creates content designed to spread rapidly through social sharing.",
+    "questionSetIds": [9]
+  },
+  {
+    "id": 44,
+    "question": "What is brand awareness?",
+    "options": [
+      "Knowing your brand name",
+      "How familiar consumers are with a brand",
+      "Brand logo",
+      "Company knowledge"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "Brand awareness measures how familiar consumers are with a brand and its products.",
+    "questionSetIds": [9]
+  },
+  {
+    "id": 45,
+    "question": "What is target audience?",
+    "options": [
+      "Everyone who buys products",
+      "Specific group most likely to buy",
+      "Shooting target",
+      "Sales team"
+    ],
+    "correctAnswer": 1,
+    "category": "Marketing",
+    "difficulty": "Easy",
+    "explanation": "Target audience is the specific group of people most likely to be interested in your product or service.",
+    "questionSetIds": [9]
+  },
+  {
+    "id": 46,
+    "question": "What is the rule of thirds in photography?",
+    "options": [
+      "Dividing the frame into three equal sections",
+      "Taking three photos of the same subject",
+      "Using three different camera angles",
+      "Dividing the frame into a 3x3 grid for composition"
+    ],
+    "correctAnswer": 3,
+    "category": "Photography",
+    "difficulty": "Easy",
+    "explanation": "The rule of thirds involves dividing your frame into a 3x3 grid and placing important elements along the lines or intersections.",
+    "questionSetIds": [10]
+  },
+  {
+    "id": 47,
+    "question": "What is the ISO setting in photography?",
+    "options": [
+      "Image Size Option",
+      "International Standard Organization",
+      "Camera's sensitivity to light",
+      "Lens aperture size"
+    ],
+    "correctAnswer": 2,
+    "category": "Photography",
+    "difficulty": "Medium",
+    "explanation": "ISO controls the camera sensor's sensitivity to light. Higher ISO = more sensitive but more noise.",
+    "questionSetIds": [10]
+  },
+  {
+    "id": 48,
+    "question": "What is aperture in photography?",
+    "options": [
+      "The opening in the lens that controls light",
+      "The camera's shutter speed",
+      "The memory card size",
+      "The zoom level"
+    ],
+    "correctAnswer": 0,
+    "category": "Photography",
+    "difficulty": "Medium",
+    "explanation": "Aperture is the opening in a lens through which light passes. It's measured in f-stops and affects depth of field.",
+    "questionSetIds": [10]
+  },
+  {
+    "id": 49,
+    "question": "What is shutter speed?",
+    "options": [
+      "How fast the camera takes photos",
+      "How long the camera sensor is exposed to light",
+      "Camera processing speed",
+      "Autofocus speed"
+    ],
+    "correctAnswer": 1,
+    "category": "Photography",
+    "difficulty": "Easy",
+    "explanation": "Shutter speed is the length of time the camera sensor is exposed to light.",
+    "questionSetIds": [10]
+  },
+  {
+    "id": 50,
+    "question": "What is depth of field?",
+    "options": [
+      "How deep you can zoom",
+      "Distance between nearest and farthest sharp objects",
+      "Camera weight",
+      "Lens quality"
+    ],
+    "correctAnswer": 1,
+    "category": "Photography",
+    "difficulty": "Medium",
+    "explanation": "Depth of field is the distance between the nearest and farthest objects that appear sharp in a photo.",
+    "questionSetIds": [10]
+  },
+  {
+    "id": 51,
+    "question": "In music theory, how many notes are in an octave?",
+    "options": ["6", "8", "10", "12"],
+    "correctAnswer": 3,
+    "category": "Music",
+    "difficulty": "Medium",
+    "explanation": "An octave contains 12 semitones (notes) in Western music theory.",
+    "questionSetIds": []
+  },
+  {
+    "id": 52,
+    "question": "What is a chord?",
+    "options": [
+      "A single note",
+      "Three or more notes played together",
+      "A rhythm pattern",
+      "A music genre"
+    ],
+    "correctAnswer": 1,
+    "category": "Music",
+    "difficulty": "Easy",
+    "explanation": "A chord is a combination of three or more notes played simultaneously.",
+    "questionSetIds": []
+  },
+  {
+    "id": 53,
+    "question": "What does BPM stand for in music?",
+    "options": [
+      "Beats Per Minute",
+      "Best Performance Music",
+      "Band Practice Method",
+      "Bass Piano Mix"
+    ],
+    "correctAnswer": 0,
+    "category": "Music",
+    "difficulty": "Easy",
+    "explanation": "BPM (Beats Per Minute) measures the tempo of music.",
+    "questionSetIds": []
+  }
+]

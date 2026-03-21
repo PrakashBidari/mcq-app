@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apply Inter font globally */
+* {
+  font-family:
+    "Inter_400Regular",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+/* Font weight classes */
+.font-normal {
+  font-family: "Inter_400Regular";
+}
+
+.font-medium {
+  font-family: "Inter_500Medium";
+}
+
+.font-semibold {
+  font-family: "Inter_600SemiBold";
+}
+
+.font-bold {
+  font-family: "Inter_700Bold";
+}
+
+/* Increase Base Font Sizes */
+.text-xs {
+  font-size: 13px !important;
+}
+
+.text-sm {
+  font-size: 15px !important;
+}
+
+.text-base {
+  font-size: 17px !important;
+}
+
+.text-lg {
+  font-size: 19px !important;
+}
+
+.text-xl {
+  font-size: 21px !important;
+}
+
+.text-2xl {
+  font-size: 25px !important;
+}
+
+.text-3xl {
+  font-size: 31px !important;
+}
+
+.text-4xl {
+  font-size: 37px !important;
+}
