@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -32,24 +33,25 @@ export default function BookReader() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View className="bg-white px-6 pt-12 pb-4">
-        <View className="flex-row items-center justify-between mb-4">
+      {/* ─── Header ─── */}
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-gray-100 w-10 h-10 rounded-full items-center justify-center"
+            style={styles.iconButton}
           >
             <Ionicons name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
 
-          <View className="flex-row gap-2">
-            <TouchableOpacity className="bg-gray-100 w-10 h-10 rounded-full items-center justify-center">
+          {/* FIX: gap → marginLeft on second button */}
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.iconButton}>
               <Ionicons name="share-outline" size={22} color="#1F2937" />
             </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-100 w-10 h-10 rounded-full items-center justify-center">
+            <TouchableOpacity style={[styles.iconButton, styles.iconButtonML]}>
               <Ionicons name="bookmark-outline" size={22} color="#1F2937" />
             </TouchableOpacity>
           </View>
@@ -58,41 +60,35 @@ export default function BookReader() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Book Cover & Info */}
-        <Animatable.View animation="fadeIn" className="bg-white px-6 pb-6">
-          <View className="flex-row gap-4">
+        {/* ─── Book Cover & Info ─── */}
+        {/* FIX: className on Animatable.View → style prop */}
+        <Animatable.View animation="fadeIn" style={styles.bookInfoSection}>
+          {/* FIX: gap → marginRight on cover wrapper */}
+          <View style={styles.bookInfoRow}>
             {/* Book Cover */}
-            <View
-              className="rounded-2xl overflow-hidden"
-              style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.2,
-                shadowRadius: 12,
-                elevation: 8,
-              }}
-            >
-              <Image source={{ uri: cover as string }} className="w-32 h-48" />
+            {/* FIX: Image rounded corners need overflow:hidden on wrapping View */}
+            {/* FIX: Image dimensions via style, not className (w-32 h-48) */}
+            <View style={styles.coverWrapper}>
+              <Image
+                source={{ uri: cover as string }}
+                style={styles.coverImage}
+              />
             </View>
 
             {/* Book Details */}
-            <View className="flex-1 justify-between py-2">
+            <View style={styles.bookDetails}>
               <View>
-                <Text
-                  className="text-gray-800 text-xl font-black leading-6 mb-2"
-                  numberOfLines={3}
-                >
+                <Text style={styles.bookTitle} numberOfLines={3}>
                   {title}
                 </Text>
-                <Text className="text-gray-500 text-sm font-semibold mb-3">
-                  by {author}
-                </Text>
+                <Text style={styles.bookAuthor}>by {author}</Text>
 
-                {/* Rating & Reviews */}
-                <View className="flex-row items-center gap-2 mb-3">
-                  <View className="flex-row items-center">
+                {/* Rating */}
+                {/* FIX: gap → marginLeft on rating text */}
+                <View style={styles.ratingRow}>
+                  <View style={styles.starsRow}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Ionicons
                         key={star}
@@ -106,31 +102,28 @@ export default function BookReader() {
                       />
                     ))}
                   </View>
-                  <Text className="text-gray-700 text-xs font-bold">
+                  <Text style={styles.ratingText}>
                     {rating ? parseFloat(rating as string).toFixed(1) : "N/A"}
                   </Text>
                 </View>
 
-                {/* 2-line Description */}
                 {description ? (
-                  <Text
-                    className="text-gray-500 text-xs leading-5"
-                    numberOfLines={2}
-                  >
+                  <Text style={styles.bookDescription} numberOfLines={2}>
                     {description}
                   </Text>
                 ) : null}
               </View>
 
               {/* Quick Stats */}
-              <View className="flex-row gap-2 mt-3">
-                <View className="bg-purple-50 px-3 py-1.5 rounded-lg">
-                  <Text className="text-purple-600 text-xs font-bold">
+              {/* FIX: gap → marginRight on first badge */}
+              <View style={styles.statsRow}>
+                <View style={[styles.statBadge, styles.statBadgePurple]}>
+                  <Text style={styles.statBadgePurpleText}>
                     {pages ? `${pages} Pages` : "No Pages Info"}
                   </Text>
                 </View>
-                <View className="bg-green-50 px-3 py-1.5 rounded-lg">
-                  <Text className="text-green-600 text-xs font-bold">
+                <View style={[styles.statBadge, styles.statBadgeGreen]}>
+                  <Text style={styles.statBadgeGreenText}>
                     {duration ? duration : "No Duration"}
                   </Text>
                 </View>
@@ -139,8 +132,8 @@ export default function BookReader() {
           </View>
         </Animatable.View>
 
-        {/* Continue/Start Reading Button */}
-        <View className="px-6 mb-6">
+        {/* ─── Start Reading Button ─── */}
+        <View style={styles.ctaSection}>
           <TouchableOpacity
             onPress={() => {
               router.push({
@@ -148,62 +141,72 @@ export default function BookReader() {
                 params: {
                   bookId: id,
                   chapterId: 1,
-                  rating: rating,
-                  title: title,
-                  duration: duration,
-                  difficulty: difficulty,
-                  description: description,
+                  rating,
+                  title,
+                  duration,
+                  difficulty,
+                  description,
                 },
               });
             }}
           >
+            {/* FIX: layout className on LinearGradient → style prop */}
             <LinearGradient
               colors={["#667eea", "#764ba2"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              className="py-4 rounded-2xl flex-row items-center justify-center"
-              style={{
-                shadowColor: "#667eea",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.4,
-                shadowRadius: 12,
-                elevation: 8,
-              }}
+              style={styles.ctaGradient}
             >
               <Ionicons name="book-outline" size={24} color="white" />
-              <Text className="text-white font-black text-lg ml-2">
-                Start Reading
-              </Text>
+              <Text style={styles.ctaText}>Start Reading</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* Tabs */}
-        <View className="px-6 mb-4">
-          <View className="bg-gray-100 p-1 rounded-2xl flex-row">
+        {/* ─── Tabs ─── */}
+        <View style={styles.tabsSection}>
+          <View style={styles.tabBar}>
             <TouchableOpacity
               onPress={() => setActiveTab("chapters")}
-              className="flex-1"
+              style={styles.tabItem}
             >
+              {/* FIX: conditional className → conditional style array */}
               <View
-                className={`py-3 rounded-xl ${activeTab === "chapters" ? "bg-white" : ""}`}
+                style={[
+                  styles.tabInner,
+                  activeTab === "chapters" && styles.tabInnerActive,
+                ]}
               >
                 <Text
-                  className={`text-center font-bold text-sm ${activeTab === "chapters" ? "text-purple-600" : "text-gray-500"}`}
+                  style={[
+                    styles.tabText,
+                    activeTab === "chapters"
+                      ? styles.tabTextActive
+                      : styles.tabTextInactive,
+                  ]}
                 >
                   Chapters
                 </Text>
               </View>
             </TouchableOpacity>
+
             <TouchableOpacity
               onPress={() => setActiveTab("details")}
-              className="flex-1"
+              style={styles.tabItem}
             >
               <View
-                className={`py-3 rounded-xl ${activeTab === "details" ? "bg-white" : ""}`}
+                style={[
+                  styles.tabInner,
+                  activeTab === "details" && styles.tabInnerActive,
+                ]}
               >
                 <Text
-                  className={`text-center font-bold text-sm ${activeTab === "details" ? "text-purple-600" : "text-gray-500"}`}
+                  style={[
+                    styles.tabText,
+                    activeTab === "details"
+                      ? styles.tabTextActive
+                      : styles.tabTextInactive,
+                  ]}
                 >
                   Details
                 </Text>
@@ -212,68 +215,49 @@ export default function BookReader() {
           </View>
         </View>
 
-        {/* Chapters Tab — empty state since chapters come from API */}
+        {/* ─── Chapters Tab ─── */}
         {activeTab === "chapters" && (
-          <View className="px-6 py-10 items-center">
+          <View style={styles.emptyChapters}>
             <Ionicons name="book-outline" size={48} color="#D1D5DB" />
-            <Text className="text-gray-400 text-base font-bold mt-4">
-              No chapters available
-            </Text>
+            <Text style={styles.emptyChaptersText}>No chapters available</Text>
           </View>
         )}
 
-        {/* Details Tab */}
+        {/* ─── Details Tab ─── */}
         {activeTab === "details" && (
-          <View className="px-6">
-            <Animatable.View
-              animation="fadeIn"
-              className="bg-white rounded-2xl p-5 mb-4"
-            >
-              <Text className="text-gray-800 font-bold text-lg mb-4">
-                About this book
-              </Text>
-              <Text className="text-gray-600 text-sm leading-6">
+          <View style={styles.detailsSection}>
+            {/* FIX: className on Animatable.View → style prop */}
+            <Animatable.View animation="fadeIn" style={styles.detailsCard}>
+              <Text style={styles.detailsCardTitle}>About this book</Text>
+              <Text style={styles.detailsCardBody}>
                 {description || "No description available for this book."}
               </Text>
             </Animatable.View>
 
-            {/* Additional Info */}
             <Animatable.View
               animation="fadeIn"
               delay={100}
-              className="bg-white rounded-2xl p-5"
+              style={styles.detailsCard}
             >
-              <Text className="text-gray-800 font-bold text-lg mb-4">
-                Book Information
-              </Text>
+              <Text style={styles.detailsCardTitle}>Book Information</Text>
 
-              <View className="space-y-3">
-                <View className="flex-row justify-between py-2 border-b border-gray-100">
-                  <Text className="text-gray-500 font-semibold">Category</Text>
-                  <Text className="text-gray-800 font-bold">
-                    {category || "N/A"}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between py-2 border-b border-gray-100">
-                  <Text className="text-gray-500 font-semibold">
-                    Difficulty
-                  </Text>
-                  <Text className="text-gray-800 font-bold">
-                    {difficulty || "N/A"}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between py-2 border-b border-gray-100">
-                  <Text className="text-gray-500 font-semibold">Pages</Text>
-                  <Text className="text-gray-800 font-bold">
-                    {pages || "N/A"}
-                  </Text>
-                </View>
-                <View className="flex-row justify-between py-2">
-                  <Text className="text-gray-500 font-semibold">Duration</Text>
-                  <Text className="text-gray-800 font-bold">
-                    {duration || "N/A"}
-                  </Text>
-                </View>
+              {/* FIX: space-y-3 (unsupported) → marginBottom on each row */}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Category</Text>
+                <Text style={styles.infoValue}>{category || "N/A"}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Difficulty</Text>
+                <Text style={styles.infoValue}>{difficulty || "N/A"}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Pages</Text>
+                <Text style={styles.infoValue}>{pages || "N/A"}</Text>
+              </View>
+              {/* Last row — no border */}
+              <View style={styles.infoRowLast}>
+                <Text style={styles.infoLabel}>Duration</Text>
+                <Text style={styles.infoValue}>{duration || "N/A"}</Text>
               </View>
             </Animatable.View>
           </View>
@@ -282,3 +266,259 @@ export default function BookReader() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+
+  // ── Header ──
+  header: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 16,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconButton: {
+    backgroundColor: "#f3f4f6",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // FIX: gap → explicit marginLeft
+  iconButtonML: {
+    marginLeft: 8,
+  },
+
+  // ── Book info ──
+  bookInfoSection: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  // FIX: gap → marginRight on cover
+  bookInfoRow: {
+    flexDirection: "row",
+  },
+  // FIX: borderRadius + overflow:hidden on wrapping View for Image
+  coverWrapper: {
+    borderRadius: 16,
+    overflow: "hidden",
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  // FIX: Image size via style (w-32 h-48 → 128×192)
+  coverImage: {
+    width: 128,
+    height: 192,
+  },
+  bookDetails: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  bookTitle: {
+    color: "#1f2937",
+    fontSize: 20,
+    // FIX: font-black → "900"
+    fontWeight: "900",
+    lineHeight: 26,
+    marginBottom: 8,
+  },
+  bookAuthor: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  // FIX: gap → marginLeft on rating value text
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  starsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ratingText: {
+    color: "#374151",
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
+  bookDescription: {
+    color: "#6b7280",
+    fontSize: 12,
+    lineHeight: 20,
+  },
+  // FIX: gap → marginRight on first badge
+  statsRow: {
+    flexDirection: "row",
+    marginTop: 12,
+  },
+  statBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statBadgePurple: {
+    backgroundColor: "#f5f3ff",
+    marginRight: 8,
+  },
+  statBadgePurpleText: {
+    color: "#7c3aed",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  statBadgeGreen: {
+    backgroundColor: "#f0fdf4",
+  },
+  statBadgeGreenText: {
+    color: "#16a34a",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // ── CTA ──
+  ctaSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  // FIX: layout className on LinearGradient → style prop
+  ctaGradient: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#667eea",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  ctaText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 18,
+    marginLeft: 8,
+  },
+
+  // ── Tabs ──
+  tabsSection: {
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  tabBar: {
+    backgroundColor: "#f3f4f6",
+    padding: 4,
+    borderRadius: 16,
+    flexDirection: "row",
+  },
+  tabItem: {
+    flex: 1,
+  },
+  tabInner: {
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  // FIX: conditional bg-white via style object
+  tabInnerActive: {
+    backgroundColor: "#ffffff",
+  },
+  tabText: {
+    textAlign: "center",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  // FIX: conditional text-purple-600 / text-gray-500 via style objects
+  tabTextActive: {
+    color: "#7c3aed",
+  },
+  tabTextInactive: {
+    color: "#6b7280",
+  },
+
+  // ── Empty Chapters ──
+  emptyChapters: {
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyChaptersText: {
+    color: "#9ca3af",
+    fontSize: 16,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+
+  // ── Details Tab ──
+  detailsSection: {
+    paddingHorizontal: 24,
+  },
+  // FIX: className on Animatable.View → style prop
+  detailsCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+  },
+  detailsCardTitle: {
+    color: "#1f2937",
+    fontWeight: "700",
+    fontSize: 18,
+    marginBottom: 16,
+  },
+  detailsCardBody: {
+    color: "#4b5563",
+    fontSize: 14,
+    lineHeight: 24,
+  },
+
+  // FIX: space-y-3 is not supported in RN — use marginBottom on rows
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    marginBottom: 4,
+  },
+  infoRowLast: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  infoLabel: {
+    color: "#6b7280",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  infoValue: {
+    color: "#1f2937",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+});
