@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -39,8 +40,16 @@ export default function Index() {
   // ─── Add this state + fetch at the top of your Index component ───
   const [topCategories, setTopCategories] = useState<any[]>([]);
   const [allBooks, setAllBooks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {}, []);
 
   useEffect(() => {
+    fetchCategoryData(); // Pass categoryId if needed, or remove parameter
+  }, []);
+
+  const fetchCategoryData = () => {
     // Fetch categories
     fetch(`${API_URL}/categories`)
       .then((r) => r.json())
@@ -56,19 +65,7 @@ export default function Index() {
         if (data.success) setAllBooks(data.data);
       })
       .catch((e) => console.error("Failed to load books", e));
-  }, []);
-
-  useEffect(() => {
-    fetch(`${API_URL}/categories`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) {
-          // Take only first 2 real categories (skip "All" if present)
-          setTopCategories(data.data.slice(0, 2));
-        }
-      })
-      .catch((e) => console.error("Failed to load categories", e));
-  }, []);
+  };
 
   // const allBooks = [
   //   {
@@ -215,12 +212,36 @@ export default function Index() {
     )
     .slice(0, 4);
 
+  const fetchData = async () => {
+    try {
+      fetchCategoryData();
+      // Simulate an API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.flex1}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#7c3aed"]}
+            tintColor="#7c3aed"
+          />
+        }
       >
         {/* ─── Header ─── */}
         <View style={styles.header}>
