@@ -16,8 +16,20 @@ import {
 } from "react-native";
 import Swiper from "react-native-swiper";
 
+// Map category names → icon & accent color
+const CATEGORY_META: Record<string, { icon: string; color: string }> = {
+  Design: { icon: "color-palette-outline", color: "#7c3aed" },
+  Development: { icon: "code-slash-outline", color: "#2563eb" },
+  Business: { icon: "briefcase-outline", color: "#059669" },
+  Marketing: { icon: "megaphone-outline", color: "#dc2626" },
+  Photography: { icon: "camera-outline", color: "#ea580c" },
+  Music: { icon: "musical-notes-outline", color: "#0891b2" },
+};
+const DEFAULT_META = { icon: "grid-outline", color: "#6b7280" };
+
 export default function Index() {
   const { colors } = useTheme();
+  const router = useRouter();
 
   const allBooks = [
     {
@@ -77,6 +89,23 @@ export default function Index() {
     },
   ];
 
+  // ── Derive unique categories from allBooks, take only 2 ──
+  const topCategories = Object.values(
+    allBooks.reduce((acc: Record<number, any>, book) => {
+      if (!acc[book.categoryId]) {
+        acc[book.categoryId] = {
+          id: book.categoryId,
+          name: book.category,
+          count: 1,
+          ...(CATEGORY_META[book.category] ?? DEFAULT_META),
+        };
+      } else {
+        acc[book.categoryId].count++;
+      }
+      return acc;
+    }, {}),
+  ).slice(0, 2);
+
   const heroSlides = [
     {
       id: 1,
@@ -101,37 +130,6 @@ export default function Index() {
       image:
         "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
       type: "learning",
-    },
-  ];
-
-  const categories = [
-    {
-      id: 1,
-      name: "Design",
-      icon: "color-palette-outline",
-      courses: 24,
-      color: "#7c3aed",
-    },
-    {
-      id: 2,
-      name: "Development",
-      icon: "code-slash-outline",
-      courses: 35,
-      color: "#2563eb",
-    },
-    {
-      id: 3,
-      name: "Business",
-      icon: "briefcase-outline",
-      courses: 18,
-      color: "#059669",
-    },
-    {
-      id: 4,
-      name: "Marketing",
-      icon: "megaphone-outline",
-      courses: 22,
-      color: "#dc2626",
     },
   ];
 
@@ -178,8 +176,6 @@ export default function Index() {
     )
     .slice(0, 4);
 
-  const router = useRouter();
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
@@ -195,7 +191,6 @@ export default function Index() {
               <Text style={styles.nameText}>Alex Martinez</Text>
             </View>
             <View style={styles.headerActions}>
-              {/* Notification bell */}
               <TouchableOpacity style={styles.notifButton}>
                 <Ionicons
                   name="notifications-outline"
@@ -206,10 +201,7 @@ export default function Index() {
                   <Text style={styles.notifBadgeText}>3</Text>
                 </View>
               </TouchableOpacity>
-
-              {/* Avatar */}
               <TouchableOpacity style={styles.avatarWrapper}>
-                {/* FIX: borderRadius on Image needs overflow:hidden on a wrapping View */}
                 <View style={styles.avatarImageWrapper}>
                   <Image
                     source={{ uri: "https://i.pravatar.cc/150?img=12" }}
@@ -221,7 +213,6 @@ export default function Index() {
             </View>
           </View>
 
-          {/* Search Bar */}
           <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={20} color="#9CA3AF" />
             <TextInput
@@ -248,7 +239,6 @@ export default function Index() {
           >
             {heroSlides.map((slide) => (
               <View key={slide.id} style={styles.heroSlideWrapper}>
-                {/* FIX: overflow:hidden on a wrapping View (not ImageBackground directly) */}
                 <View style={styles.heroSlideInner}>
                   <ImageBackground
                     source={{ uri: slide.image }}
@@ -257,12 +247,9 @@ export default function Index() {
                   >
                     <LinearGradient
                       colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.8)"]}
-                      // FIX: layout styles via style prop, NOT className on LinearGradient
                       style={styles.heroGradient}
                     >
                       <View style={styles.heroContent}>
-                        {/* FIX: backdrop-blur-md removed (not supported in RN) — use semi-transparent bg */}
-                        {/* FIX: alignSelf via style prop, not self-start className */}
                         <View style={styles.heroBadge}>
                           <Text style={styles.heroBadgeText}>
                             {slide.type === "quiz"
@@ -276,13 +263,11 @@ export default function Index() {
                         </Text>
                         <TouchableOpacity
                           style={styles.heroButton}
-                          onPress={() => {
-                            if (slide.type === "quiz") {
-                              router.push("/(tabs)/quiz");
-                            } else {
-                              router.push("/(tabs)/study");
-                            }
-                          }}
+                          onPress={() =>
+                            slide.type === "quiz"
+                              ? router.push("/(tabs)/quiz")
+                              : router.push("/(tabs)/study")
+                          }
                         >
                           <Text style={styles.heroButtonText}>
                             {slide.type === "quiz" ? "Start Now" : "Explore"}
@@ -302,67 +287,74 @@ export default function Index() {
           </Swiper>
         </View>
 
-        {/* ─── Categories ─── */}
+        {/* ─── Top Categories (2, derived from books) ─── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Categories</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={() => router.push("/(tabs)/study")}
+            >
               <Text style={styles.seeAllText}>View All</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </View>
 
-          {/* FIX: gap with flexWrap is unreliable — use explicit margins instead */}
-          <View style={styles.grid2col}>
-            {categories.map((category, index) => (
-              <View
-                key={category.id}
+          <View style={styles.categoryRow}>
+            {topCategories.map((cat: any, index: number) => (
+              <TouchableOpacity
+                key={cat.id}
+                activeOpacity={0.85}
                 style={[
-                  styles.grid2colItem,
-                  // Add right margin only to left column items
-                  index % 2 === 0 ? styles.gridItemLeft : styles.gridItemRight,
-                  // Add bottom margin to all but last row
-                  index < categories.length - 2 ? styles.gridItemBottom : null,
+                  styles.categoryCardWrapper,
+                  index === 0
+                    ? styles.categoryCardLeft
+                    : styles.categoryCardRight,
                 ]}
+                // ── Navigate to study, passing categoryId + name so the list pre-filters ──
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/study",
+                    params: { categoryId: cat.id, categoryName: cat.name },
+                  })
+                }
               >
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/category/[id]",
-                      params: { id: category.id, name: category.name },
-                    })
-                  }
+                <LinearGradient
+                  colors={[cat.color, cat.color + "cc"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[
+                    styles.categoryCard,
+                    {
+                      shadowColor: cat.color,
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 10,
+                      elevation: 6,
+                    },
+                  ]}
                 >
-                  <LinearGradient
-                    colors={[category.color, category.color + "dd"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[
-                      styles.categoryCard,
-                      {
-                        shadowColor: category.color,
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 8,
-                        elevation: 4,
-                      },
-                    ]}
-                  >
-                    <View style={styles.categoryIcon}>
-                      <Ionicons
-                        name={category.icon as any}
-                        size={24}
-                        color="white"
-                      />
-                    </View>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                    <Text style={styles.categoryCourses}>
-                      {category.courses} courses
-                    </Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
+                  {/* Top-right arrow pill */}
+                  <View style={styles.categoryArrow}>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={14}
+                      color="rgba(255,255,255,0.9)"
+                    />
+                  </View>
+
+                  {/* Icon */}
+                  <View style={styles.categoryIconCircle}>
+                    <Ionicons name={cat.icon as any} size={28} color="white" />
+                  </View>
+
+                  {/* Name + count */}
+                  <Text style={styles.categoryName}>{cat.name}</Text>
+                  <Text style={styles.categoryCount}>
+                    {cat.count} {cat.count === 1 ? "book" : "books"}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -370,12 +362,10 @@ export default function Index() {
         {/* ─── Popular Courses Slider ─── */}
         <View style={styles.sectionNoHPad}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, styles.hPad]}>
-              Popular Courses
-            </Text>
+            <Text style={styles.sectionTitle}>Popular Courses</Text>
             <TouchableOpacity
-              style={[styles.seeAllButton, styles.hPad]}
-              onPress={() => router.push("/study")}
+              style={styles.seeAllButton}
+              onPress={() => router.push("/(tabs)/study")}
             >
               <Text style={styles.seeAllText}>See All</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
@@ -398,9 +388,9 @@ export default function Index() {
                 { length: Math.ceil(allBooks.length / 2) },
                 (_, i) => (
                   <View key={i} style={styles.coursesSlide}>
-                    {allBooks.slice(i * 2, i * 2 + 2).map((book, index) => (
-                      <View key={book.id || index} style={styles.flex1}>
-                        <BookCard book={book} index={i * 2 + index} />
+                    {allBooks.slice(i * 2, i * 2 + 2).map((book, idx) => (
+                      <View key={book.id || idx} style={styles.flex1}>
+                        <BookCard book={book} index={i * 2 + idx} />
                       </View>
                     ))}
                   </View>
@@ -420,16 +410,15 @@ export default function Index() {
             </TouchableOpacity>
           </View>
 
-          {/* FIX: negative margin via style prop — className -mx-6 is unreliable */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.achievementsScroll}
             contentContainerStyle={styles.achievementsScrollContent}
           >
-            {achievements.map((achievement) => (
+            {achievements.map((a) => (
               <View
-                key={achievement.id}
+                key={a.id}
                 style={[
                   styles.achievementCard,
                   {
@@ -444,45 +433,36 @@ export default function Index() {
                 <View
                   style={[
                     styles.achievementIcon,
-                    { backgroundColor: achievement.color + "15" },
+                    { backgroundColor: a.color + "15" },
                   ]}
                 >
-                  <Ionicons
-                    name={achievement.icon as any}
-                    size={24}
-                    color={achievement.color}
-                  />
+                  <Ionicons name={a.icon as any} size={24} color={a.color} />
                 </View>
-                <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                <Text style={styles.achievementDesc}>
-                  {achievement.description}
-                </Text>
+                <Text style={styles.achievementTitle}>{a.title}</Text>
+                <Text style={styles.achievementDesc}>{a.description}</Text>
                 <View style={styles.progressBar}>
                   <View
                     style={[
                       styles.progressFill,
                       {
-                        width: `${achievement.progress}%` as any,
-                        backgroundColor: achievement.color,
+                        width: `${a.progress}%` as any,
+                        backgroundColor: a.color,
                       },
                     ]}
                   />
                 </View>
-                <Text style={styles.progressLabel}>
-                  {achievement.progress}% Complete
-                </Text>
+                <Text style={styles.progressLabel}>{a.progress}% Complete</Text>
               </View>
             ))}
           </ScrollView>
         </View>
 
-        {/* ─── Quiz CTA Banner ─── */}
+        {/* ─── Quiz CTA ─── */}
         <View style={styles.section}>
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => router.push("/quiz")}
+            onPress={() => router.push("/(tabs)/quiz")}
           >
-            {/* FIX: overflow:hidden via wrapping View, not on ImageBackground className */}
             <View style={styles.quizBannerWrapper}>
               <ImageBackground
                 source={{
@@ -492,17 +472,13 @@ export default function Index() {
                 resizeMode="cover"
               >
                 <LinearGradient
-                  colors={[
-                    "rgba(124, 58, 237, 0.95)",
-                    "rgba(37, 99, 235, 0.95)",
-                  ]}
+                  colors={["rgba(124,58,237,0.95)", "rgba(37,99,235,0.95)"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.quizGradient}
                 >
                   <View style={styles.quizContent}>
                     <View style={styles.quizTextBlock}>
-                      {/* FIX: alignSelf via style */}
                       <View style={styles.quizBadge}>
                         <Text style={styles.quizBadgeText}>
                           🎯 TRENDING NOW
@@ -535,7 +511,7 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        {/* ─── Blog Section ─── */}
+        {/* ─── Blog ─── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Latest from Blog</Text>
@@ -548,7 +524,6 @@ export default function Index() {
             </TouchableOpacity>
           </View>
 
-          {/* FIX: Same grid fix as categories — no gap, use margins */}
           <View style={styles.grid2col}>
             {latestBlogs.map((blog, index) => (
               <View
@@ -573,8 +548,6 @@ export default function Index() {
                     },
                   ]}
                 >
-                  {/* FIX: Image needs explicit style width/height, not className */}
-                  {/* FIX: overflow:hidden on wrapping View, not on TouchableOpacity */}
                   <View style={styles.blogImageWrapper}>
                     <Image
                       source={{ uri: blog.image }}
@@ -614,20 +587,10 @@ export default function Index() {
 const GRID_GAP = 12;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  flex1: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  hPad: {
-    // helper used inline
-  },
+  container: { flex: 1 },
+  flex1: { flex: 1 },
+  scrollContent: { paddingBottom: 100 },
 
-  // ── Header ──
   header: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 24,
@@ -640,23 +603,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  welcomeText: {
-    color: "#6b7280",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  nameText: {
-    color: "#111827",
-    fontSize: 24,
-    // FIX: fontWeight must be a string
-    fontWeight: "700",
-    marginTop: 4,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  welcomeText: { color: "#6b7280", fontSize: 14, fontWeight: "500" },
+  nameText: { color: "#111827", fontSize: 24, fontWeight: "700", marginTop: 4 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
   notifButton: {
     width: 44,
     height: 44,
@@ -676,25 +625,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  notifBadgeText: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  avatarWrapper: {
-    position: "relative",
-  },
-  // FIX: wrap Image in a View with borderRadius + overflow:hidden
+  notifBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
+  avatarWrapper: { position: "relative" },
   avatarImageWrapper: {
     width: 44,
     height: 44,
     borderRadius: 22,
     overflow: "hidden",
   },
-  avatarImage: {
-    width: 44,
-    height: 44,
-  },
+  avatarImage: { width: 44, height: 44 },
   onlineDot: {
     position: "absolute",
     bottom: -2,
@@ -714,12 +653,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: "#111827",
-  },
+  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: "#111827" },
   searchButton: {
     width: 36,
     height: 36,
@@ -729,32 +663,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Hero Carousel ──
-  heroCarousel: {
-    height: 260,
-    marginBottom: 24,
-  },
-  heroSlideWrapper: {
-    flex: 1,
-    paddingHorizontal: 24,
-  },
-  // FIX: overflow:hidden on a View, not on ImageBackground/className
-  heroSlideInner: {
-    flex: 1,
-    borderRadius: 24,
-    overflow: "hidden",
-  },
-  // FIX: LinearGradient layout via style, not className
-  heroGradient: {
-    flex: 1,
-    justifyContent: "flex-end",
-    padding: 24,
-  },
-  heroContent: {
-    marginBottom: 8,
-  },
-  // FIX: alignSelf via style, not self-start className
-  // FIX: backdrop-blur removed — use rgba background
+  heroCarousel: { height: 260, marginBottom: 24 },
+  heroSlideWrapper: { flex: 1, paddingHorizontal: 24 },
+  heroSlideInner: { flex: 1, borderRadius: 24, overflow: "hidden" },
+  heroGradient: { flex: 1, justifyContent: "flex-end", padding: 24 },
+  heroContent: { marginBottom: 8 },
   heroBadge: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 12,
@@ -763,11 +676,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 12,
   },
-  heroBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  heroBadgeText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
   heroTitle: {
     color: "#ffffff",
     fontSize: 22,
@@ -794,9 +703,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginRight: 8,
   },
-  heroPagination: {
-    bottom: 15,
-  },
+  heroPagination: { bottom: 15 },
   heroDot: {
     backgroundColor: "rgba(255,255,255,.3)",
     width: 8,
@@ -814,14 +721,8 @@ const styles = StyleSheet.create({
     marginRight: 3,
   },
 
-  // ── Shared section layout ──
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  sectionNoHPad: {
-    marginBottom: 24,
-  },
+  section: { paddingHorizontal: 24, marginBottom: 24 },
+  sectionNoHPad: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -829,15 +730,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 24,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  seeAllButton: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
+  seeAllButton: { flexDirection: "row", alignItems: "center" },
   seeAllText: {
     color: "#7c3aed",
     fontWeight: "600",
@@ -845,37 +739,32 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
 
-  // ── 2-column grid (FIX: no gap, use explicit margins) ──
-  grid2col: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  grid2colItem: {
-    width: "50%",
-  },
-  gridItemLeft: {
-    paddingRight: GRID_GAP / 2,
-  },
-  gridItemRight: {
-    paddingLeft: GRID_GAP / 2,
-  },
-  gridItemBottom: {
-    marginBottom: GRID_GAP,
-  },
-
-  // ── Category cards ──
-  categoryCard: {
-    borderRadius: 16,
-    padding: 20,
-  },
-  categoryIcon: {
-    width: 48,
-    height: 48,
+  // ── 2 dynamic category cards ──
+  categoryRow: { flexDirection: "row" },
+  categoryCardWrapper: { flex: 1 },
+  categoryCardLeft: { marginRight: GRID_GAP / 2 },
+  categoryCardRight: { marginLeft: GRID_GAP / 2 },
+  categoryCard: { borderRadius: 20, padding: 20, minHeight: 148 },
+  categoryArrow: {
+    position: "absolute",
+    top: 14,
+    right: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryIconCircle: {
+    width: 52,
+    height: 52,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
+    marginTop: 8,
   },
   categoryName: {
     fontWeight: "700",
@@ -883,25 +772,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 4,
   },
-  categoryCourses: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
-  },
+  categoryCount: { color: "rgba(255,255,255,0.75)", fontSize: 12 },
 
-  // ── Courses swiper ──
-  coursesSwiper: {
-    height: 260,
-    marginTop: 0,
-  },
+  coursesSwiper: { height: 260 },
   coursesSlide: {
     flexDirection: "row",
     paddingHorizontal: 24,
     gap: 12,
     width: "100%",
   },
-  coursesPagination: {
-    bottom: -10,
-  },
+  coursesPagination: { bottom: -10 },
   coursesDot: {
     backgroundColor: "rgba(0,0,0,.15)",
     width: 8,
@@ -919,14 +799,8 @@ const styles = StyleSheet.create({
     marginRight: 3,
   },
 
-  // ── Achievements ──
-  // FIX: negative margins via style prop instead of className -mx-6
-  achievementsScroll: {
-    marginHorizontal: -24,
-  },
-  achievementsScrollContent: {
-    paddingHorizontal: 24,
-  },
+  achievementsScroll: { marginHorizontal: -24 },
+  achievementsScrollContent: { paddingHorizontal: 24 },
   achievementCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -950,47 +824,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 4,
   },
-  achievementDesc: {
-    color: "#6b7280",
-    fontSize: 12,
-    marginBottom: 12,
-  },
+  achievementDesc: { color: "#6b7280", fontSize: 12, marginBottom: 12 },
   progressBar: {
     backgroundColor: "#f3f4f6",
     height: 8,
     borderRadius: 4,
     overflow: "hidden",
   },
-  progressFill: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  progressLabel: {
-    color: "#9ca3af",
-    fontSize: 12,
-    marginTop: 8,
-  },
+  progressFill: { height: "100%", borderRadius: 4 },
+  progressLabel: { color: "#9ca3af", fontSize: 12, marginTop: 8 },
 
-  // ── Quiz CTA ──
-  quizBannerWrapper: {
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  quizBannerBg: {
-    width: "100%",
-  },
-  quizGradient: {
-    padding: 24,
-  },
+  quizBannerWrapper: { borderRadius: 16, overflow: "hidden" },
+  quizBannerBg: { width: "100%" },
+  quizGradient: { padding: 24 },
   quizContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  quizTextBlock: {
-    flex: 1,
-    marginRight: 16,
-  },
+  quizTextBlock: { flex: 1, marginRight: 16 },
   quizBadge: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 12,
@@ -999,11 +851,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 8,
   },
-  quizBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  quizBadgeText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
   quizTitle: {
     color: "#ffffff",
     fontSize: 20,
@@ -1039,29 +887,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ── Blog cards ──
+  grid2col: { flexDirection: "row", flexWrap: "wrap" },
+  grid2colItem: { width: "50%" },
+  gridItemLeft: { paddingRight: GRID_GAP / 2 },
+  gridItemRight: { paddingLeft: GRID_GAP / 2 },
+  gridItemBottom: { marginBottom: GRID_GAP },
+
   blogCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#f3f4f6",
-    // FIX: overflow:hidden here would clip the shadow on iOS,
-    // so we use a separate wrapper for the image overflow instead
   },
-  // FIX: Image rounded corners need overflow:hidden on a wrapping View
   blogImageWrapper: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     overflow: "hidden",
   },
-  // FIX: Image dimensions via style, not className (w-full h-32)
-  blogImage: {
-    width: "100%",
-    height: 128,
-  },
-  blogBody: {
-    padding: 12,
-  },
+  blogImage: { width: "100%", height: 128 },
+  blogBody: { padding: 12 },
   blogCategoryBadge: {
     backgroundColor: "#f5f3ff",
     paddingHorizontal: 8,
@@ -1070,11 +914,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: 8,
   },
-  blogCategoryText: {
-    color: "#7c3aed",
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  blogCategoryText: { color: "#7c3aed", fontSize: 12, fontWeight: "600" },
   blogTitle: {
     color: "#111827",
     fontWeight: "700",
@@ -1095,8 +935,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f9fafb",
   },
-  blogMetaText: {
-    color: "#9ca3af",
-    fontSize: 12,
-  },
+  blogMetaText: { color: "#9ca3af", fontSize: 12 },
 });
