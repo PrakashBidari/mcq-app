@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -28,7 +29,6 @@ export default function Study() {
     "popular",
   );
 
-  // Fetch categories and books
   useEffect(() => {
     fetchData();
   }, []);
@@ -36,8 +36,6 @@ export default function Study() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-
-      // Fetch categories
       const categoriesResponse = await fetch(`${API_URL}/categories`);
       const categoriesData = await categoriesResponse.json();
 
@@ -59,13 +57,9 @@ export default function Study() {
         setCategories(formattedCategories);
       }
 
-      // Fetch books
       const booksResponse = await fetch(`${API_URL}/books`);
       const booksData = await booksResponse.json();
-
-      if (booksData.success) {
-        setAllBooks(booksData.data);
-      }
+      if (booksData.success) setAllBooks(booksData.data);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -73,14 +67,12 @@ export default function Study() {
     }
   };
 
-  // Pull to refresh
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
   };
 
-  // Filter books by category and search
   const filteredBooks = allBooks.filter((book: any) => {
     const matchesCategory =
       selectedCategory === 0 || book.categoryId === selectedCategory;
@@ -91,58 +83,46 @@ export default function Study() {
     return matchesCategory && matchesSearch;
   });
 
-  // Sort books
   const sortedBooks = [...filteredBooks].sort((a: any, b: any) => {
     if (sortBy === "rating") return b.rating - a.rating;
     if (sortBy === "popular") return b.students - a.students;
-    return 0; // newest - would need date field
+    return 0;
   });
 
   const selectedCategoryInfo = categories.find(
     (cat: any) => cat.id === selectedCategory,
-  );
+  ) as any;
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#667eea" />
-        <Text className="text-gray-600 mt-4 text-base">Loading books...</Text>
+        <Text style={styles.loadingText}>Loading books...</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View className="bg-white px-6 pt-12 pb-6">
-        <Text className="text-gray-800 text-3xl font-black mb-2">
-          Study Library
-        </Text>
-        <Text className="text-gray-500 text-sm font-medium">
+      {/* ─── Header ─── */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Study Library</Text>
+        <Text style={styles.headerSubtitle}>
           {filteredBooks.length} books available
         </Text>
       </View>
 
-      {/* Search and Filter Section */}
-      <View className="bg-white px-6 pb-4">
+      {/* ─── Search & Filter ─── */}
+      <View style={styles.searchSection}>
         {/* Search Bar */}
-        <View
-          className="bg-gray-50 rounded-2xl flex-row items-center px-4 py-3 mb-4"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.05,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
-        >
+        <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color="#9CA3AF" />
           <TextInput
             placeholder="Search books, authors, categories..."
             placeholderTextColor="#9CA3AF"
-            className="flex-1 ml-3 text-base text-gray-800"
+            style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -153,32 +133,30 @@ export default function Study() {
           )}
         </View>
 
-        {/* Category Selector and Sort */}
-        <View className="flex-row gap-3">
+        {/* FIX: gap → explicit marginRight on first child */}
+        <View style={styles.filterRow}>
           {/* Category Dropdown */}
           <TouchableOpacity
             onPress={() => setShowCategoryModal(true)}
-            className="flex-1 bg-purple-50 rounded-2xl px-4 py-3 flex-row items-center justify-between"
-            style={{
-              borderWidth: 1,
-              borderColor: "#E9D5FF",
-            }}
+            style={styles.categoryDropdown}
           >
-            <View className="flex-row items-center flex-1">
+            <View style={styles.categoryDropdownInner}>
               <View
-                className="w-8 h-8 rounded-lg items-center justify-center mr-2"
-                style={{ backgroundColor: selectedCategoryInfo?.color + "20" }}
+                style={[
+                  styles.categoryIconBox,
+                  {
+                    backgroundColor:
+                      (selectedCategoryInfo?.color ?? "#667eea") + "20",
+                  },
+                ]}
               >
                 <Ionicons
                   name={selectedCategoryInfo?.icon as any}
                   size={18}
-                  color={selectedCategoryInfo?.color}
+                  color={selectedCategoryInfo?.color ?? "#667eea"}
                 />
               </View>
-              <Text
-                className="text-purple-700 font-bold text-sm flex-1"
-                numberOfLines={1}
-              >
+              <Text style={styles.categoryDropdownText} numberOfLines={1}>
                 {selectedCategoryInfo?.name}
               </Text>
             </View>
@@ -192,7 +170,7 @@ export default function Study() {
               else if (sortBy === "rating") setSortBy("newest");
               else setSortBy("popular");
             }}
-            className="bg-gray-100 rounded-2xl px-4 py-3 items-center justify-center"
+            style={styles.sortButton}
           >
             <Ionicons
               name={
@@ -209,10 +187,10 @@ export default function Study() {
         </View>
       </View>
 
-      {/* Books List */}
+      {/* ─── Books List ─── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={styles.booksScrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -223,13 +201,10 @@ export default function Study() {
         }
       >
         {sortedBooks.length === 0 ? (
-          // Empty State
-          <View className="items-center justify-center py-20">
+          <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-            <Text className="text-gray-400 text-lg font-bold mt-4">
-              No books found
-            </Text>
-            <Text className="text-gray-400 text-sm mt-2 text-center px-8">
+            <Text style={styles.emptyTitle}>No books found</Text>
+            <Text style={styles.emptySubtitle}>
               Try adjusting your search or filter criteria
             </Text>
             <TouchableOpacity
@@ -237,16 +212,17 @@ export default function Study() {
                 setSearchQuery("");
                 setSelectedCategory(0);
               }}
-              className="bg-purple-600 px-6 py-3 rounded-2xl mt-6"
+              style={styles.clearButton}
             >
-              <Text className="text-white font-bold">Clear Filters</Text>
+              <Text style={styles.clearButtonText}>Clear Filters</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          // Books Grid
-          <View className="flex-row flex-wrap justify-between">
+          // FIX: w-[48%] → calculated width using BOOK_CARD_WIDTH constant
+          // FIX: flex-wrap gap → use justifyContent: "space-between" with marginBottom
+          <View style={styles.booksGrid}>
             {sortedBooks.map((book: any, index: number) => (
-              <View key={book.id || index} className="w-[48%] mb-4">
+              <View key={book.id || index} style={styles.bookCardWrapper}>
                 <BookCard book={book} index={index} categories={categories} />
               </View>
             ))}
@@ -254,109 +230,105 @@ export default function Study() {
         )}
       </ScrollView>
 
-      {/* Category Selection Modal */}
+      {/* ─── Category Modal ─── */}
       <Modal
         visible={showCategoryModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowCategoryModal(false)}
       >
-        <View className="flex-1 bg-black/50 justify-end">
+        {/* FIX: bg-black/50 → rgba via style prop */}
+        <View style={styles.modalOverlay}>
           <TouchableOpacity
-            className="flex-1"
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowCategoryModal(false)}
           />
 
+          {/* FIX: rounded-t-3xl on Animatable.View → style prop */}
           <Animatable.View
             animation="slideInUp"
             duration={300}
-            className="bg-white rounded-t-3xl"
+            style={styles.modalSheet}
           >
             {/* Modal Header */}
-            <View className="px-6 pt-6 pb-4 border-b border-gray-100">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-gray-800 text-xl font-black">
-                  Select Category
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowCategoryModal(false)}
-                  className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center"
-                >
-                  <Ionicons name="close" size={20} color="#1F2937" />
-                </TouchableOpacity>
-              </View>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Category</Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={20} color="#1F2937" />
+              </TouchableOpacity>
             </View>
 
             {/* Categories List */}
             <ScrollView
-              className="px-6 py-4"
-              style={{ maxHeight: 400 }}
+              style={styles.modalList}
+              contentContainerStyle={styles.modalListContent}
               showsVerticalScrollIndicator={false}
             >
-              {categories.map((category: any, index: number) => (
-                <Animatable.View
-                  key={category.id}
-                  animation="fadeInRight"
-                  delay={index * 50}
-                >
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedCategory(category.id);
-                      setShowCategoryModal(false);
-                    }}
-                    className={`flex-row items-center p-4 rounded-2xl mb-3 ${
-                      selectedCategory === category.id
-                        ? "bg-purple-50"
-                        : "bg-gray-50"
-                    }`}
-                    style={
-                      selectedCategory === category.id
-                        ? {
-                            borderWidth: 2,
-                            borderColor: "#667eea",
-                          }
-                        : {}
-                    }
+              {categories.map((category: any, index: number) => {
+                const isSelected = selectedCategory === category.id;
+                return (
+                  <Animatable.View
+                    key={category.id}
+                    animation="fadeInRight"
+                    delay={index * 50}
                   >
-                    <View
-                      className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
-                      style={{ backgroundColor: category.color + "20" }}
+                    {/* FIX: conditional className strings → conditional style arrays */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedCategory(category.id);
+                        setShowCategoryModal(false);
+                      }}
+                      style={[
+                        styles.categoryItem,
+                        isSelected
+                          ? styles.categoryItemSelected
+                          : styles.categoryItemDefault,
+                      ]}
                     >
-                      <Ionicons
-                        name={category.icon as any}
-                        size={24}
-                        color={category.color}
-                      />
-                    </View>
-
-                    <View className="flex-1">
-                      <Text
-                        className={`font-bold text-base ${
-                          selectedCategory === category.id
-                            ? "text-purple-700"
-                            : "text-gray-800"
-                        }`}
+                      <View
+                        style={[
+                          styles.categoryItemIcon,
+                          { backgroundColor: category.color + "20" },
+                        ]}
                       >
-                        {category.name}
-                      </Text>
-                      <Text className="text-gray-500 text-xs">
-                        {category.id === 0
-                          ? `${allBooks.length} books`
-                          : `${allBooks.filter((b: any) => b.categoryId === category.id).length} books`}
-                      </Text>
-                    </View>
+                        <Ionicons
+                          name={category.icon as any}
+                          size={24}
+                          color={category.color}
+                        />
+                      </View>
 
-                    {selectedCategory === category.id && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color="#667eea"
-                      />
-                    )}
-                  </TouchableOpacity>
-                </Animatable.View>
-              ))}
+                      <View style={styles.flex1}>
+                        <Text
+                          style={[
+                            styles.categoryItemName,
+                            isSelected && styles.categoryItemNameSelected,
+                          ]}
+                        >
+                          {category.name}
+                        </Text>
+                        <Text style={styles.categoryItemCount}>
+                          {category.id === 0
+                            ? `${allBooks.length} books`
+                            : `${allBooks.filter((b: any) => b.categoryId === category.id).length} books`}
+                        </Text>
+                      </View>
+
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color="#667eea"
+                        />
+                      )}
+                    </TouchableOpacity>
+                  </Animatable.View>
+                );
+              })}
             </ScrollView>
           </Animatable.View>
         </View>
@@ -364,3 +336,257 @@ export default function Study() {
     </View>
   );
 }
+
+const GRID_GAP = 12;
+
+const styles = StyleSheet.create({
+  // ── Loading ──
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "#4b5563",
+    marginTop: 16,
+    fontSize: 16,
+  },
+
+  // ── Page ──
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  flex1: {
+    flex: 1,
+  },
+
+  // ── Header ──
+  header: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    paddingBottom: 24,
+  },
+  headerTitle: {
+    color: "#1f2937",
+    fontSize: 30,
+    // FIX: font-black → fontWeight string '900'
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  // ── Search & Filter ──
+  searchSection: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
+  searchBar: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: "#1f2937",
+  },
+  // FIX: gap → marginRight on category button
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryDropdown: {
+    flex: 1,
+    backgroundColor: "#faf5ff",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#e9d5ff",
+    marginRight: GRID_GAP,
+  },
+  categoryDropdownInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  categoryIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  categoryDropdownText: {
+    color: "#6d28d9",
+    fontWeight: "700",
+    fontSize: 14,
+    flex: 1,
+  },
+  sortButton: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Books grid ──
+  booksScrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  // FIX: flex-row + flex-wrap + justify-between instead of gap
+  booksGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  // FIX: w-[48%] className → explicit 48% width with marginBottom
+  bookCardWrapper: {
+    width: "48%",
+    marginBottom: GRID_GAP,
+  },
+
+  // ── Empty state ──
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyTitle: {
+    color: "#9ca3af",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    color: "#9ca3af",
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  clearButton: {
+    backgroundColor: "#7c3aed",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginTop: 24,
+  },
+  clearButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  // ── Modal ──
+  modalOverlay: {
+    flex: 1,
+    // FIX: bg-black/50 → rgba via style
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    flex: 1,
+  },
+  // FIX: rounded-t-3xl on Animatable.View → style prop
+  modalSheet: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  modalHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTitle: {
+    color: "#1f2937",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  modalCloseButton: {
+    backgroundColor: "#f3f4f6",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalList: {
+    maxHeight: 400,
+  },
+  modalListContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+
+  // ── Category list items ──
+  categoryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  // FIX: conditional className bg-purple-50 / bg-gray-50 → style objects
+  categoryItemDefault: {
+    backgroundColor: "#f9fafb",
+  },
+  categoryItemSelected: {
+    backgroundColor: "#faf5ff",
+    borderWidth: 2,
+    borderColor: "#667eea",
+  },
+  categoryItemIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  categoryItemName: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#1f2937",
+  },
+  // FIX: conditional text-purple-700 / text-gray-800 → style objects
+  categoryItemNameSelected: {
+    color: "#6d28d9",
+  },
+  categoryItemCount: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginTop: 2,
+  },
+});
