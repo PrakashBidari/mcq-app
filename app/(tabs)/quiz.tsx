@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -32,15 +33,6 @@ interface QuestionSet {
   description: string;
   questions_count: number;
 }
-
-// const categoryIcons: { [key: string]: string } = {
-//   Design: "color-palette",
-//   Development: "code-slash",
-//   Business: "briefcase",
-//   Marketing: "megaphone",
-//   Photography: "camera",
-//   Music: "musical-notes",
-// };
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty) {
@@ -64,7 +56,7 @@ export default function QuizScreen() {
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [numberOfQuestions, setNumberOfQuestions] = useState("10");
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // ← Add this
+  const [refreshing, setRefreshing] = useState(false);
   const [totalQuestionsInCategory, setTotalQuestionsInCategory] = useState(0);
 
   useEffect(() => {
@@ -76,12 +68,8 @@ export default function QuizScreen() {
     try {
       const response = await fetch(`${API_URL}/categories`);
       const data = await response.json();
-
-      if (data.success) {
-        setCategories(data.data);
-      } else {
-        Alert.alert("Error", "Failed to load categories");
-      }
+      if (data.success) setCategories(data.data);
+      else Alert.alert("Error", "Failed to load categories");
     } catch (error) {
       console.error("Error fetching categories:", error);
       Alert.alert("Error", "Something went wrong");
@@ -97,11 +85,8 @@ export default function QuizScreen() {
         `${API_URL}/categories/${categoryId}/question-sets`,
       );
       const data = await response.json();
-
       if (data.success) {
         setQuestionSets(data.data.question_sets);
-
-        // Calculate total questions in category
         const total = data.data.question_sets.reduce(
           (sum: number, set: QuestionSet) => sum + set.questions_count,
           0,
@@ -120,15 +105,8 @@ export default function QuizScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-
-    if (selectedCategory) {
-      // Refresh question sets if category is selected
-      await fetchQuestionSets(selectedCategory.id);
-    } else {
-      // Refresh categories if on category list
-      await fetchCategories();
-    }
-
+    if (selectedCategory) await fetchQuestionSets(selectedCategory.id);
+    else await fetchCategories();
     setRefreshing(false);
   };
 
@@ -145,27 +123,19 @@ export default function QuizScreen() {
 
   const startFullCategoryQuiz = async () => {
     if (!selectedCategory) return;
-
     const numQuestions = parseInt(numberOfQuestions) || 10;
     setShowQuestionModal(false);
     setIsLoading(true);
-
     try {
       const response = await fetch(
         `${API_URL}/categories/${selectedCategory.id}/random-questions`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            count: numQuestions,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ count: numQuestions }),
         },
       );
-
       const data = await response.json();
-
       if (data.success && data.data.length > 0) {
         router.push({
           pathname: "/quiz/play",
@@ -187,11 +157,9 @@ export default function QuizScreen() {
 
   const startQuestionSetQuiz = async (setId: number) => {
     setIsLoading(true);
-
     try {
       const response = await fetch(`${API_URL}/question-set/${setId}`);
       const data = await response.json();
-
       if (data.success && data.data.questions.length > 0) {
         router.push({
           pathname: "/quiz/play",
@@ -211,75 +179,67 @@ export default function QuizScreen() {
     }
   };
 
+  // ─── Loading screen ───
   if (isLoading && categories.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text className="text-gray-600 mt-4">Loading categories...</Text>
+        <Text style={styles.loadingText}>Loading categories...</Text>
       </View>
     );
   }
 
-  // Category List View
+  // ─── Category List ───
   if (!selectedCategory) {
     return (
-      <View className="flex-1 bg-gray-50">
+      <View style={styles.container}>
         <StatusBar barStyle="light-content" />
 
+        {/* FIX: layout className on LinearGradient → style prop */}
         <LinearGradient
           colors={["#7c3aed", "#a855f7"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          className="pt-14 pb-6 px-6"
+          style={styles.gradientHeader}
         >
-          <View>
-            <Text className="text-white/90 text-sm font-semibold mb-1">
-              QUIZ TIME
-            </Text>
-            <Text className="text-white text-3xl font-black mb-2">
-              Choose Category
-            </Text>
-            <Text className="text-white/80 text-sm">
-              Select a category to start your quiz
-            </Text>
-          </View>
+          <Text style={styles.gradientLabel}>QUIZ TIME</Text>
+          <Text style={styles.gradientTitle}>Choose Category</Text>
+          <Text style={styles.gradientSubtitle}>
+            Select a category to start your quiz
+          </Text>
         </LinearGradient>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={["#7c3aed"]} // Android
-              tintColor="#7c3aed" // iOS
+              colors={["#7c3aed"]}
+              tintColor="#7c3aed"
             />
           }
         >
-          <View className="gap-3">
+          {/* FIX: gap → marginBottom on each card */}
+          <View>
             {categories.map((category) => {
-              // const icon = categoryIcons[category.name] || "help-circle";
               const icon = category.icon || "help-circle";
-
               return (
                 <TouchableOpacity
                   key={category.id}
                   activeOpacity={0.8}
                   onPress={() => handleCategorySelect(category)}
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
+                  style={styles.categoryCard}
                 >
-                  <View className="flex-row items-center p-5">
+                  {/* FIX: overflow:hidden on TouchableOpacity clips shadow on iOS
+                       → move overflow to inner View only around content that needs clipping */}
+                  <View style={styles.categoryCardRow}>
                     <View
-                      className="w-16 h-16 rounded-xl items-center justify-center mr-4"
-                      style={{ backgroundColor: category.color + "15" }}
+                      style={[
+                        styles.categoryIconBox,
+                        { backgroundColor: category.color + "15" },
+                      ]}
                     >
                       <Ionicons
                         name={icon as any}
@@ -288,17 +248,15 @@ export default function QuizScreen() {
                       />
                     </View>
 
-                    <View className="flex-1">
-                      <Text className="text-gray-900 text-lg font-bold mb-1">
-                        {category.name}
-                      </Text>
-                      <View className="flex-row items-center">
+                    <View style={styles.flex1}>
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                      <View style={styles.categoryMeta}>
                         <Ionicons
                           name="folder-outline"
                           size={16}
                           color="#6b7280"
                         />
-                        <Text className="text-gray-600 text-sm ml-1">
+                        <Text style={styles.categoryMetaText}>
                           {category.question_sets_count} question sets
                         </Text>
                       </View>
@@ -319,44 +277,39 @@ export default function QuizScreen() {
     );
   }
 
-  // Question Sets View
-  // const categoryIcon = categoryIcons[selectedCategory.name] || "help-circle";
+  // ─── Question Sets View ───
   const categoryIcon = selectedCategory.icon || "help-circle";
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
+      {/* FIX: layout className on LinearGradient → style prop */}
       <LinearGradient
         colors={[selectedCategory.color, selectedCategory.color + "dd"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="pt-14 pb-6 px-6"
+        style={styles.gradientHeader}
       >
         <TouchableOpacity
           onPress={() => setSelectedCategory(null)}
-          className="flex-row items-center mb-4"
+          style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
-          <Text className="text-white font-semibold text-base ml-2">
-            Back to Categories
-          </Text>
+          <Text style={styles.backButtonText}>Back to Categories</Text>
         </TouchableOpacity>
 
-        <View className="flex-row items-center mb-2">
-          <View className="w-12 h-12 bg-white/20 rounded-xl items-center justify-center mr-3">
+        {/* FIX: gap → marginRight on icon box */}
+        <View style={styles.gradientCategoryRow}>
+          <View style={styles.gradientCategoryIcon}>
             <Ionicons name={categoryIcon as any} size={24} color="white" />
           </View>
           <View>
-            <Text className="text-white/90 text-sm font-semibold">
-              CATEGORY
-            </Text>
-            <Text className="text-white text-2xl font-black">
-              {selectedCategory.name}
-            </Text>
+            <Text style={styles.gradientLabel}>CATEGORY</Text>
+            <Text style={styles.gradientTitle}>{selectedCategory.name}</Text>
           </View>
         </View>
-        <Text className="text-white/80 text-sm">
+        <Text style={styles.gradientSubtitle}>
           {questionSets.length} question sets • {totalQuestionsInCategory} total
           questions
         </Text>
@@ -364,35 +317,33 @@ export default function QuizScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#7c3aed"]} // Android
-            tintColor="#7c3aed" // iOS
+            colors={["#7c3aed"]}
+            tintColor="#7c3aed"
           />
         }
       >
-        {/* Full Category Quiz Button */}
-        <View className="mb-6">
+        {/* Full Category Quiz Card */}
+        <View style={styles.fullQuizSection}>
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={openFullCategoryModal}
-            className="bg-white rounded-2xl p-5 border-2"
-            style={{
-              borderColor: selectedCategory.color,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.1,
-              shadowRadius: 12,
-              elevation: 4,
-            }}
+            style={[
+              styles.fullQuizCard,
+              { borderColor: selectedCategory.color },
+            ]}
           >
-            <View className="flex-row items-center mb-3">
+            {/* FIX: gap → marginLeft on text block */}
+            <View style={styles.fullQuizCardTop}>
               <View
-                className="w-14 h-14 rounded-xl items-center justify-center"
-                style={{ backgroundColor: selectedCategory.color + "15" }}
+                style={[
+                  styles.fullQuizIcon,
+                  { backgroundColor: selectedCategory.color + "15" },
+                ]}
               >
                 <Ionicons
                   name="flash"
@@ -400,85 +351,67 @@ export default function QuizScreen() {
                   color={selectedCategory.color}
                 />
               </View>
-              <View className="flex-1 ml-3">
-                <Text className="text-gray-900 font-bold text-lg mb-1">
-                  Full Category Quiz
-                </Text>
-                <Text className="text-gray-600 text-sm">
+              <View style={styles.fullQuizText}>
+                <Text style={styles.fullQuizTitle}>Full Category Quiz</Text>
+                <Text style={styles.fullQuizSubtitle}>
                   Random questions from all sets
                 </Text>
               </View>
             </View>
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="help-circle-outline"
-                  size={16}
-                  color="#6b7280"
-                />
-                <Text className="text-gray-600 text-sm ml-1">
-                  {totalQuestionsInCategory} questions available
-                </Text>
-              </View>
+
+            <View style={styles.fullQuizMeta}>
+              <Ionicons name="help-circle-outline" size={16} color="#6b7280" />
+              <Text style={styles.fullQuizMetaText}>
+                {totalQuestionsInCategory} questions available
+              </Text>
             </View>
+
             <View
-              className="py-3 rounded-xl flex-row items-center justify-center"
-              style={{ backgroundColor: selectedCategory.color }}
+              style={[
+                styles.fullQuizStartButton,
+                { backgroundColor: selectedCategory.color },
+              ]}
             >
               <Ionicons name="play-circle" size={20} color="white" />
-              <Text className="text-white font-bold text-base ml-2">
-                Start Full Quiz
-              </Text>
+              <Text style={styles.fullQuizStartText}>Start Full Quiz</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Question Sets */}
-        <Text className="text-gray-900 font-bold text-lg mb-4">
-          Question Sets
-        </Text>
+        <Text style={styles.sectionTitle}>Question Sets</Text>
 
-        <View className="gap-3">
+        {/* FIX: gap → marginBottom on each set card */}
+        <View>
           {questionSets.map((set) => (
             <TouchableOpacity
               key={set.id}
               activeOpacity={0.8}
               onPress={() => startQuestionSetQuiz(set.id)}
-              className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-              style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.05,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
+              style={styles.setCard}
             >
-              <View className="p-4">
-                <View className="mb-3">
-                  <Text className="text-gray-900 font-bold text-base mb-2">
-                    {set.name}
+              <View style={styles.setCardInner}>
+                <Text style={styles.setName}>{set.name}</Text>
+                {set.description && (
+                  <Text style={styles.setDesc}>{set.description}</Text>
+                )}
+                <View style={styles.setMeta}>
+                  <Ionicons
+                    name="help-circle-outline"
+                    size={14}
+                    color="#6b7280"
+                  />
+                  <Text style={styles.setMetaText}>
+                    {set.questions_count} questions
                   </Text>
-                  {set.description && (
-                    <Text className="text-gray-600 text-sm mb-2">
-                      {set.description}
-                    </Text>
-                  )}
-                  <View className="flex-row items-center">
-                    <Ionicons
-                      name="help-circle-outline"
-                      size={14}
-                      color="#6b7280"
-                    />
-                    <Text className="text-gray-600 text-xs ml-1">
-                      {set.questions_count} questions
-                    </Text>
-                  </View>
                 </View>
 
                 <TouchableOpacity
                   onPress={() => startQuestionSetQuiz(set.id)}
-                  className="py-2.5 rounded-lg flex-row items-center justify-center"
-                  style={{ backgroundColor: selectedCategory.color + "15" }}
+                  style={[
+                    styles.setStartButton,
+                    { backgroundColor: selectedCategory.color + "15" },
+                  ]}
                 >
                   <Ionicons
                     name="play-circle-outline"
@@ -486,8 +419,10 @@ export default function QuizScreen() {
                     color={selectedCategory.color}
                   />
                   <Text
-                    className="font-bold text-sm ml-2"
-                    style={{ color: selectedCategory.color }}
+                    style={[
+                      styles.setStartText,
+                      { color: selectedCategory.color },
+                    ]}
                   >
                     Start This Set
                   </Text>
@@ -498,19 +433,23 @@ export default function QuizScreen() {
         </View>
       </ScrollView>
 
-      {/* Question Count Modal - Full Category */}
+      {/* ─── Question Count Modal ─── */}
       <Modal
         visible={showQuestionModal}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={() => setShowQuestionModal(false)}
       >
-        <View className="flex-1 bg-black/50 items-center justify-center px-6">
-          <View className="bg-white rounded-3xl p-6 w-full max-w-sm">
-            <View className="items-center mb-6">
+        {/* FIX: bg-black/50 → rgba; items-center/justify-center → style */}
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            {/* Icon + Title */}
+            <View style={styles.modalHeader}>
               <View
-                className="w-16 h-16 rounded-2xl items-center justify-center mb-3"
-                style={{ backgroundColor: selectedCategory.color + "15" }}
+                style={[
+                  styles.modalIcon,
+                  { backgroundColor: selectedCategory.color + "15" },
+                ]}
               >
                 <Ionicons
                   name="help-circle"
@@ -518,23 +457,24 @@ export default function QuizScreen() {
                   color={selectedCategory.color}
                 />
               </View>
-              <Text className="text-gray-900 text-xl font-bold text-center">
-                How many questions?
-              </Text>
-              <Text className="text-gray-500 text-sm text-center mt-1">
+              <Text style={styles.modalTitle}>How many questions?</Text>
+              <Text style={styles.modalSubtitle}>
                 Max: {totalQuestionsInCategory} questions available
               </Text>
             </View>
 
-            {/* Number Input */}
-            <View className="flex-row items-center gap-3 mb-6">
+            {/* Stepper */}
+            {/* FIX: gap → marginHorizontal on input */}
+            <View style={styles.stepper}>
               <TouchableOpacity
                 onPress={() => {
                   const num = parseInt(numberOfQuestions) || 0;
                   if (num > 1) setNumberOfQuestions((num - 1).toString());
                 }}
-                className="w-12 h-12 rounded-xl items-center justify-center"
-                style={{ backgroundColor: selectedCategory.color + "15" }}
+                style={[
+                  styles.stepperButton,
+                  { backgroundColor: selectedCategory.color + "15" },
+                ]}
               >
                 <Ionicons
                   name="remove"
@@ -547,16 +487,17 @@ export default function QuizScreen() {
                 value={numberOfQuestions}
                 onChangeText={(text) => {
                   const num = parseInt(text) || 0;
-                  if (num <= totalQuestionsInCategory) {
+                  if (num <= totalQuestionsInCategory)
                     setNumberOfQuestions(text);
-                  }
                 }}
                 keyboardType="numeric"
-                className="flex-1 text-center text-4xl font-black py-3 rounded-2xl"
-                style={{
-                  backgroundColor: selectedCategory.color + "10",
-                  color: selectedCategory.color,
-                }}
+                style={[
+                  styles.stepperInput,
+                  {
+                    backgroundColor: selectedCategory.color + "10",
+                    color: selectedCategory.color,
+                  },
+                ]}
                 maxLength={3}
               />
 
@@ -566,19 +507,21 @@ export default function QuizScreen() {
                   if (num < totalQuestionsInCategory)
                     setNumberOfQuestions((num + 1).toString());
                 }}
-                className="w-12 h-12 rounded-xl items-center justify-center"
-                style={{ backgroundColor: selectedCategory.color + "15" }}
+                style={[
+                  styles.stepperButton,
+                  { backgroundColor: selectedCategory.color + "15" },
+                ]}
               >
                 <Ionicons name="add" size={24} color={selectedCategory.color} />
               </TouchableOpacity>
             </View>
 
             {/* Quick Select */}
-            <View className="flex-row gap-2 mb-6">
-              {[5, 10, 15, 20].map((num) => {
+            {/* FIX: gap → marginRight on all but last */}
+            <View style={styles.quickSelect}>
+              {[5, 10, 15, 20].map((num, index) => {
                 const isDisabled = num > totalQuestionsInCategory;
                 const isSelected = numberOfQuestions === num.toString();
-
                 return (
                   <TouchableOpacity
                     key={num}
@@ -586,24 +529,29 @@ export default function QuizScreen() {
                       !isDisabled && setNumberOfQuestions(num.toString())
                     }
                     disabled={isDisabled}
-                    className="flex-1 py-2 rounded-xl"
-                    style={{
-                      backgroundColor: isSelected
-                        ? selectedCategory.color
-                        : isDisabled
-                          ? "#f3f4f6"
-                          : selectedCategory.color + "15",
-                    }}
+                    style={[
+                      styles.quickSelectItem,
+                      index < 3 && styles.quickSelectItemMR,
+                      {
+                        backgroundColor: isSelected
+                          ? selectedCategory.color
+                          : isDisabled
+                            ? "#f3f4f6"
+                            : selectedCategory.color + "15",
+                      },
+                    ]}
                   >
                     <Text
-                      className="text-center font-bold text-sm"
-                      style={{
-                        color: isSelected
-                          ? "#fff"
-                          : isDisabled
-                            ? "#9ca3af"
-                            : selectedCategory.color,
-                      }}
+                      style={[
+                        styles.quickSelectText,
+                        {
+                          color: isSelected
+                            ? "#fff"
+                            : isDisabled
+                              ? "#9ca3af"
+                              : selectedCategory.color,
+                        },
+                      ]}
                     >
                       {num}
                     </Text>
@@ -612,56 +560,409 @@ export default function QuizScreen() {
               })}
             </View>
 
-            {/* Buttons */}
-            <View className="gap-3">
-              <TouchableOpacity
-                onPress={startFullCategoryQuiz}
-                disabled={isLoading}
-                className="py-3.5 rounded-xl"
-                style={{
+            {/* Action buttons */}
+            {/* FIX: gap → marginBottom on start button */}
+            <TouchableOpacity
+              onPress={startFullCategoryQuiz}
+              disabled={isLoading}
+              style={[
+                styles.modalStartButton,
+                {
                   backgroundColor: selectedCategory.color,
                   opacity: isLoading ? 0.6 : 1,
-                }}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="text-white font-bold text-base text-center">
-                    Start Quiz
-                  </Text>
-                )}
-              </TouchableOpacity>
+                },
+              ]}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.modalStartText}>Start Quiz</Text>
+              )}
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => setShowQuestionModal(false)}
-                className="py-3.5 rounded-xl bg-gray-100"
-              >
-                <Text className="text-gray-700 font-bold text-base text-center">
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={() => setShowQuestionModal(false)}
+              style={styles.modalCancelButton}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
       {/* Loading Overlay */}
       {isLoading && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.3)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
+        <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // ── Shared ──
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  flex1: { flex: 1 },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+
+  // ── Loading ──
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    color: "#4b5563",
+    marginTop: 16,
+    fontSize: 16,
+  },
+
+  // ── Gradient header (FIX: was className on LinearGradient) ──
+  gradientHeader: {
+    paddingTop: 56,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  gradientLabel: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  gradientTitle: {
+    color: "#ffffff",
+    fontSize: 28,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  gradientSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+  },
+
+  // ── Back button ──
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  backButtonText: {
+    color: "#ffffff",
+    fontWeight: "600",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+
+  // ── Category header row (FIX: gap → marginRight) ──
+  gradientCategoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  gradientCategoryIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  // ── Category list cards (FIX: overflow:hidden clips shadow on iOS) ──
+  categoryCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  categoryCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+  },
+  categoryIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  categoryName: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  categoryMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryMetaText: {
+    color: "#4b5563",
+    fontSize: 14,
+    marginLeft: 4,
+  },
+
+  // ── Full quiz card ──
+  fullQuizSection: {
+    marginBottom: 24,
+  },
+  fullQuizCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  fullQuizCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  fullQuizIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // FIX: gap → marginLeft
+  fullQuizText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  fullQuizTitle: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  fullQuizSubtitle: {
+    color: "#4b5563",
+    fontSize: 14,
+  },
+  fullQuizMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  fullQuizMetaText: {
+    color: "#4b5563",
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  fullQuizStartButton: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fullQuizStartText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
+    marginLeft: 8,
+  },
+
+  // ── Section title ──
+  sectionTitle: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 18,
+    marginBottom: 16,
+  },
+
+  // ── Question set cards ──
+  setCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  setCardInner: {
+    padding: 16,
+  },
+  setName: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  setDesc: {
+    color: "#4b5563",
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  setMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  setMetaText: {
+    color: "#4b5563",
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  setStartButton: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  setStartText: {
+    fontWeight: "700",
+    fontSize: 14,
+    marginLeft: 8,
+  },
+
+  // ── Modal ──
+  // FIX: bg-black/50 + centering → style prop
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  // FIX: rounded-3xl, w-full, max-w-sm → style prop (max-w not supported, use width)
+  modalSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+  },
+  modalHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  modalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    color: "#111827",
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    color: "#6b7280",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 4,
+  },
+
+  // ── Stepper (FIX: gap → marginHorizontal on input) ──
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  stepperButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperInput: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 36,
+    fontWeight: "900",
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginHorizontal: 12,
+  },
+
+  // ── Quick select (FIX: gap → marginRight on items) ──
+  quickSelect: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
+  quickSelectItem: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickSelectItemMR: {
+    marginRight: 8,
+  },
+  quickSelectText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  // ── Modal buttons (FIX: gap → marginBottom on start button) ──
+  modalStartButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  modalStartText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  modalCancelButton: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelText: {
+    color: "#374151",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  // ── Loading overlay ──
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

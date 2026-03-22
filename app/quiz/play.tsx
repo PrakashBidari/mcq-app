@@ -7,6 +7,7 @@ import {
   Dimensions,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -16,6 +17,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 const QUESTIONS_PER_PAGE = 10;
+
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case "Easy":
+      return "#10b981";
+    case "Medium":
+      return "#f59e0b";
+    case "Hard":
+      return "#ef4444";
+    default:
+      return "#6b7280";
+  }
+};
 
 export default function QuizPlay() {
   const params = useLocalSearchParams();
@@ -29,7 +43,6 @@ export default function QuizPlay() {
   const [showExplanations, setShowExplanations] = useState<boolean[]>([]);
   const [score, setScore] = useState(0);
 
-  // Calculate pagination
   const totalPages = Math.ceil(totalQuestions / QUESTIONS_PER_PAGE);
   const startIndex = currentPage * QUESTIONS_PER_PAGE;
   const endIndex = Math.min(startIndex + QUESTIONS_PER_PAGE, totalQuestions);
@@ -41,35 +54,24 @@ export default function QuizPlay() {
     const wasCorrect =
       newAnswers[questionIndex] === allQuestions[questionIndex].correctAnswer;
     const isCorrect = answerIndex === allQuestions[questionIndex].correctAnswer;
-
-    // Update score
-    if (!wasCorrect && isCorrect) {
-      setScore(score + 1);
-    } else if (wasCorrect && !isCorrect) {
-      setScore(score - 1);
-    }
-
+    if (!wasCorrect && isCorrect) setScore(score + 1);
+    else if (wasCorrect && !isCorrect) setScore(score - 1);
     newAnswers[questionIndex] = answerIndex;
     setUserAnswers(newAnswers);
   };
 
   const toggleExplanation = (index: number) => {
-    const newShowExplanations = [...showExplanations];
-    newShowExplanations[index] = !newShowExplanations[index];
-    setShowExplanations(newShowExplanations);
+    const next = [...showExplanations];
+    next[index] = !next[index];
+    setShowExplanations(next);
   };
 
   const handleNextPage = () => {
     if (isLastPage) {
-      // Calculate final score
       let finalScore = 0;
       allQuestions.forEach((question: any, index: number) => {
-        if (userAnswers[index] === question.correctAnswer) {
-          finalScore++;
-        }
+        if (userAnswers[index] === question.correctAnswer) finalScore++;
       });
-
-      // Navigate to results
       router.replace({
         pathname: "/quiz/results",
         params: {
@@ -85,80 +87,67 @@ export default function QuizPlay() {
   };
 
   const handlePreviousPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
+    if (currentPage > 0) setCurrentPage(currentPage - 1);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Easy":
-        return "#10b981";
-      case "Medium":
-        return "#f59e0b";
-      case "Hard":
-        return "#ef4444";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  // Check if all questions on current page are answered
   const allPageQuestionsAnswered = currentPageQuestions.every(
     (_: any, idx: number) => userAnswers[startIndex + idx] !== undefined,
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header with Progress */}
+      {/* ─── Header ─── */}
+      {/* FIX: layout className on LinearGradient → style prop */}
       <LinearGradient
         colors={["#667eea", "#764ba2"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        className="pt-12 pb-6 px-6"
+        style={styles.gradientHeader}
       >
-        <View className="flex-row items-center justify-between mb-4">
+        {/* FIX: gap → marginLeft on badge group */}
+        <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => router.back()}
-            className="bg-white/20 w-10 h-10 rounded-full items-center justify-center"
+            style={styles.closeButton}
           >
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
 
-          <View className="flex-row items-center gap-2">
-            <View className="bg-white/20 px-3 py-1.5 rounded-full">
-              <Text className="text-white font-bold text-sm">
+          <View style={styles.headerBadges}>
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeText}>
                 {startIndex + 1}-{endIndex}/{totalQuestions}
               </Text>
             </View>
-            <View className="bg-white/20 px-3 py-1.5 rounded-full">
-              <Text className="text-white font-bold text-sm">
-                Score: {score}
-              </Text>
+            {/* FIX: gap → marginLeft on second badge */}
+            <View style={[styles.headerBadge, styles.headerBadgeML]}>
+              <Text style={styles.headerBadgeText}>Score: {score}</Text>
             </View>
           </View>
         </View>
 
-        {/* Overall Progress Bar */}
-        <View className="bg-white/20 h-2 rounded-full overflow-hidden mb-2">
+        {/* Progress Bar */}
+        {/* FIX: overflow:hidden on wrapping View for progress bar clip */}
+        <View style={styles.progressTrack}>
           <View
-            className="bg-white h-full rounded-full"
-            style={{ width: `${((currentPage + 1) / totalPages) * 100}%` }}
+            style={[
+              styles.progressFill,
+              { width: `${((currentPage + 1) / totalPages) * 100}%` as any },
+            ]}
           />
         </View>
 
-        {/* Page Indicator */}
-        <Text className="text-white/80 text-xs text-center">
+        <Text style={styles.pageIndicator}>
           Page {currentPage + 1} of {totalPages}
         </Text>
       </LinearGradient>
 
-      {/* Questions List */}
+      {/* ─── Questions ─── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+        contentContainerStyle={styles.scrollContent}
       >
         {currentPageQuestions.map((question: any, pageIndex: number) => {
           const globalIndex = startIndex + pageIndex;
@@ -166,48 +155,45 @@ export default function QuizPlay() {
           const showExplanation = showExplanations[globalIndex];
 
           return (
+            // FIX: className on Animatable.View → style prop
             <Animatable.View
               key={globalIndex}
               animation="fadeInUp"
               delay={pageIndex * 50}
-              className="mb-6"
+              style={styles.questionWrapper}
             >
-              <View
-                className="bg-white rounded-3xl p-5"
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 12,
-                  elevation: 8,
-                }}
-              >
-                {/* Question Number and Tags */}
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center gap-2">
-                    <View className="bg-purple-600 w-8 h-8 rounded-full items-center justify-center">
-                      <Text className="text-white font-bold text-sm">
+              <View style={styles.questionCard}>
+                {/* Question header row */}
+                {/* FIX: gap → marginLeft on category badge */}
+                <View style={styles.questionMeta}>
+                  <View style={styles.questionMetaLeft}>
+                    <View style={styles.questionNumber}>
+                      <Text style={styles.questionNumberText}>
                         {globalIndex + 1}
                       </Text>
                     </View>
-                    <View className="bg-purple-100 px-3 py-1 rounded-full">
-                      <Text className="text-purple-700 font-bold text-xs">
+                    <View
+                      style={[styles.categoryBadge, styles.categoryBadgeML]}
+                    >
+                      <Text style={styles.categoryBadgeText}>
                         {question.category}
                       </Text>
                     </View>
                   </View>
                   <View
-                    className="px-3 py-1 rounded-full"
-                    style={{
-                      backgroundColor:
-                        getDifficultyColor(question.difficulty) + "20",
-                    }}
+                    style={[
+                      styles.difficultyBadge,
+                      {
+                        backgroundColor:
+                          getDifficultyColor(question.difficulty) + "20",
+                      },
+                    ]}
                   >
                     <Text
-                      className="font-bold text-xs"
-                      style={{
-                        color: getDifficultyColor(question.difficulty),
-                      }}
+                      style={[
+                        styles.difficultyText,
+                        { color: getDifficultyColor(question.difficulty) },
+                      ]}
                     >
                       {question.difficulty}
                     </Text>
@@ -215,12 +201,11 @@ export default function QuizPlay() {
                 </View>
 
                 {/* Question Text */}
-                <Text className="text-gray-800 text-base font-bold leading-6 mb-4">
-                  {question.question}
-                </Text>
+                <Text style={styles.questionText}>{question.question}</Text>
 
                 {/* Options */}
-                <View className="gap-2">
+                {/* FIX: gap → marginBottom on each option */}
+                <View>
                   {question.options.map(
                     (option: string, optionIndex: number) => {
                       const isSelected = selectedAnswer === optionIndex;
@@ -228,6 +213,37 @@ export default function QuizPlay() {
                       const showCorrect = showExplanation && isCorrect;
                       const showWrong =
                         showExplanation && isSelected && !isCorrect;
+
+                      // FIX: complex conditional className → style arrays
+                      const optionRowStyle = [
+                        styles.optionRow,
+                        showCorrect
+                          ? styles.optionCorrect
+                          : showWrong
+                            ? styles.optionWrong
+                            : isSelected
+                              ? styles.optionSelected
+                              : styles.optionDefault,
+                      ];
+
+                      const radioBorderStyle = showCorrect
+                        ? styles.radioCorrect
+                        : showWrong
+                          ? styles.radioWrong
+                          : isSelected
+                            ? styles.radioSelected
+                            : styles.radioDefault;
+
+                      const optionTextStyle = [
+                        styles.optionText,
+                        showCorrect
+                          ? styles.optionTextCorrect
+                          : showWrong
+                            ? styles.optionTextWrong
+                            : isSelected
+                              ? styles.optionTextSelected
+                              : styles.optionTextDefault,
+                      ];
 
                       return (
                         <TouchableOpacity
@@ -238,63 +254,26 @@ export default function QuizPlay() {
                           }
                           disabled={showExplanation}
                           activeOpacity={0.7}
+                          style={styles.optionTouchable}
                         >
-                          <View
-                            className={`flex-row items-center p-3 rounded-xl ${
-                              showCorrect
-                                ? "bg-green-50 border-2 border-green-500"
-                                : showWrong
-                                  ? "bg-red-50 border-2 border-red-500"
-                                  : isSelected
-                                    ? "bg-purple-50 border-2 border-purple-500"
-                                    : "bg-gray-50 border border-gray-200"
-                            }`}
-                          >
-                            {/* Radio/Check Icon */}
-                            <View
-                              className={`w-5 h-5 rounded-full border-2 items-center justify-center mr-3 ${
-                                showCorrect
-                                  ? "border-green-500 bg-green-500"
-                                  : showWrong
-                                    ? "border-red-500 bg-red-500"
-                                    : isSelected
-                                      ? "border-purple-500 bg-purple-500"
-                                      : "border-gray-300"
-                              }`}
-                            >
+                          <View style={optionRowStyle}>
+                            {/* Radio */}
+                            <View style={[styles.radio, radioBorderStyle]}>
                               {(isSelected || showCorrect) && (
                                 <Ionicons
-                                  name={
-                                    showCorrect
-                                      ? "checkmark"
-                                      : showWrong
-                                        ? "close"
-                                        : "checkmark"
-                                  }
+                                  name={showWrong ? "close" : "checkmark"}
                                   size={14}
                                   color="white"
                                 />
                               )}
                             </View>
 
-                            {/* Option Text */}
-                            <Text
-                              className={`flex-1 font-medium text-sm ${
-                                showCorrect
-                                  ? "text-green-700"
-                                  : showWrong
-                                    ? "text-red-700"
-                                    : isSelected
-                                      ? "text-purple-700"
-                                      : "text-gray-700"
-                              }`}
-                            >
-                              {option}
-                            </Text>
+                            {/* Text */}
+                            <Text style={optionTextStyle}>{option}</Text>
 
-                            {/* Result Icon */}
+                            {/* Result icon */}
                             {showCorrect && (
-                              <View className="bg-green-500 w-6 h-6 rounded-full items-center justify-center">
+                              <View style={styles.resultIconGreen}>
                                 <Ionicons
                                   name="checkmark"
                                   size={16}
@@ -303,7 +282,7 @@ export default function QuizPlay() {
                               </View>
                             )}
                             {showWrong && (
-                              <View className="bg-red-500 w-6 h-6 rounded-full items-center justify-center">
+                              <View style={styles.resultIconRed}>
                                 <Ionicons
                                   name="close"
                                   size={16}
@@ -318,24 +297,23 @@ export default function QuizPlay() {
                   )}
                 </View>
 
-                {/* Explanation Section */}
+                {/* Explanation */}
                 {showExplanation && (
+                  // FIX: className on Animatable.View → style prop
                   <Animatable.View
                     animation="fadeInUp"
                     duration={300}
-                    className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200"
+                    style={styles.explanationBox}
                   >
-                    <View className="flex-row items-start">
+                    <View style={styles.explanationRow}>
                       <Ionicons
                         name="information-circle"
                         size={20}
                         color="#3b82f6"
                       />
-                      <View className="flex-1 ml-2">
-                        <Text className="text-blue-800 font-bold text-xs mb-1">
-                          Explanation
-                        </Text>
-                        <Text className="text-blue-700 text-xs leading-4">
+                      <View style={styles.explanationText}>
+                        <Text style={styles.explanationLabel}>Explanation</Text>
+                        <Text style={styles.explanationBody}>
                           {question.explanation}
                         </Text>
                       </View>
@@ -347,9 +325,9 @@ export default function QuizPlay() {
                 {selectedAnswer !== undefined && !showExplanation && (
                   <TouchableOpacity
                     onPress={() => toggleExplanation(globalIndex)}
-                    className="mt-3 bg-blue-100 py-2 rounded-xl"
+                    style={styles.showExplanationButton}
                   >
-                    <Text className="text-blue-700 text-center font-semibold text-sm">
+                    <Text style={styles.showExplanationText}>
                       Show Explanation
                     </Text>
                   </TouchableOpacity>
@@ -360,17 +338,19 @@ export default function QuizPlay() {
         })}
       </ScrollView>
 
-      {/* Navigation Buttons */}
-      <View
-        className="px-6 py-4 bg-white border-t border-gray-100 flex-row gap-3"
-        style={{ paddingBottom: insets.bottom + 16 }}
-      >
+      {/* ─── Navigation Bar ─── */}
+      {/* FIX: gap → marginRight on Previous button */}
+      <View style={[styles.navBar, { paddingBottom: insets.bottom + 16 }]}>
+        {/* Previous */}
         <TouchableOpacity
           onPress={handlePreviousPage}
           disabled={currentPage === 0}
-          className={`px-6 py-3 rounded-2xl flex-row items-center ${
-            currentPage === 0 ? "bg-gray-100" : "bg-purple-100"
-          }`}
+          style={[
+            styles.prevButton,
+            currentPage === 0
+              ? styles.prevButtonDisabled
+              : styles.prevButtonEnabled,
+          ]}
         >
           <Ionicons
             name="chevron-back"
@@ -378,19 +358,24 @@ export default function QuizPlay() {
             color={currentPage === 0 ? "#9CA3AF" : "#667eea"}
           />
           <Text
-            className={`font-bold ml-2 ${
-              currentPage === 0 ? "text-gray-400" : "text-purple-600"
-            }`}
+            style={[
+              styles.prevButtonText,
+              currentPage === 0
+                ? styles.prevButtonTextDisabled
+                : styles.prevButtonTextEnabled,
+            ]}
           >
             Previous
           </Text>
         </TouchableOpacity>
 
+        {/* Next / Finish */}
         <TouchableOpacity
           onPress={handleNextPage}
           disabled={!allPageQuestionsAnswered}
-          className="flex-1"
+          style={styles.nextButton}
         >
+          {/* FIX: layout className on LinearGradient → style prop */}
           <LinearGradient
             colors={
               !allPageQuestionsAnswered
@@ -399,16 +384,18 @@ export default function QuizPlay() {
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="py-3 rounded-2xl flex-row items-center justify-center"
-            style={{
-              shadowColor: !allPageQuestionsAnswered ? "#9CA3AF" : "#667eea",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 6,
-            }}
+            style={[
+              styles.nextGradient,
+              {
+                shadowColor: !allPageQuestionsAnswered ? "#9CA3AF" : "#667eea",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 6,
+              },
+            ]}
           >
-            <Text className="text-white font-bold text-base mr-2">
+            <Text style={styles.nextButtonText}>
               {isLastPage ? "Finish Quiz" : "Next Page"}
             </Text>
             <Ionicons
@@ -422,3 +409,330 @@ export default function QuizPlay() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+
+  // ── Gradient header ──
+  // FIX: layout from className → style
+  gradientHeader: {
+    paddingTop: 48,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  closeButton: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // FIX: gap → marginLeft on second badge
+  headerBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+  },
+  headerBadgeML: {
+    marginLeft: 8,
+  },
+  headerBadgeText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  // Progress bar
+  // FIX: overflow:hidden on wrapping View to clip fill
+  progressTrack: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressFill: {
+    backgroundColor: "#ffffff",
+    height: "100%",
+    borderRadius: 4,
+  },
+  pageIndicator: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 12,
+    textAlign: "center",
+  },
+
+  // ── Question card ──
+  // FIX: className on Animatable.View → style prop
+  questionWrapper: {
+    marginBottom: 24,
+  },
+  questionCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  // Question meta row
+  // FIX: gap → marginLeft on category badge
+  questionMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  questionMetaLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  questionNumber: {
+    backgroundColor: "#7c3aed",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  questionNumberText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  categoryBadge: {
+    backgroundColor: "#ede9fe",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  // FIX: gap → marginLeft
+  categoryBadgeML: {
+    marginLeft: 8,
+  },
+  categoryBadgeText: {
+    color: "#6d28d9",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  difficultyText: {
+    fontWeight: "700",
+    fontSize: 12,
+  },
+
+  questionText: {
+    color: "#1f2937",
+    fontSize: 16,
+    fontWeight: "700",
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+
+  // ── Options ──
+  // FIX: gap → marginBottom on each option touchable
+  optionTouchable: {
+    marginBottom: 8,
+  },
+  // FIX: complex conditional className → named style objects
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+  },
+  optionDefault: {
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  optionSelected: {
+    backgroundColor: "#faf5ff",
+    borderWidth: 2,
+    borderColor: "#7c3aed",
+  },
+  optionCorrect: {
+    backgroundColor: "#f0fdf4",
+    borderWidth: 2,
+    borderColor: "#22c55e",
+  },
+  optionWrong: {
+    backgroundColor: "#fef2f2",
+    borderWidth: 2,
+    borderColor: "#ef4444",
+  },
+
+  // Radio button
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  radioDefault: {
+    borderColor: "#d1d5db",
+    backgroundColor: "transparent",
+  },
+  radioSelected: {
+    borderColor: "#7c3aed",
+    backgroundColor: "#7c3aed",
+  },
+  radioCorrect: {
+    borderColor: "#22c55e",
+    backgroundColor: "#22c55e",
+  },
+  radioWrong: {
+    borderColor: "#ef4444",
+    backgroundColor: "#ef4444",
+  },
+
+  // Option text
+  optionText: {
+    flex: 1,
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  optionTextDefault: { color: "#374151" },
+  optionTextSelected: { color: "#6d28d9" },
+  optionTextCorrect: { color: "#15803d" },
+  optionTextWrong: { color: "#dc2626" },
+
+  // Result icons
+  resultIconGreen: {
+    backgroundColor: "#22c55e",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resultIconRed: {
+    backgroundColor: "#ef4444",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Explanation ──
+  // FIX: className on Animatable.View → style prop
+  explanationBox: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#eff6ff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  explanationRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  explanationText: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  explanationLabel: {
+    color: "#1e40af",
+    fontWeight: "700",
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  explanationBody: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+
+  showExplanationButton: {
+    marginTop: 12,
+    backgroundColor: "#dbeafe",
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  showExplanationText: {
+    color: "#1d4ed8",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  // ── Nav bar ──
+  navBar: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    flexDirection: "row",
+    // FIX: gap → marginRight on prev button
+  },
+  prevButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  prevButtonDisabled: {
+    backgroundColor: "#f3f4f6",
+  },
+  prevButtonEnabled: {
+    backgroundColor: "#ede9fe",
+  },
+  prevButtonText: {
+    fontWeight: "700",
+    marginLeft: 8,
+  },
+  prevButtonTextDisabled: { color: "#9ca3af" },
+  prevButtonTextEnabled: { color: "#7c3aed" },
+
+  nextButton: {
+    flex: 1,
+  },
+  // FIX: layout className on LinearGradient → style prop
+  nextGradient: {
+    paddingVertical: 12,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nextButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 16,
+    marginRight: 8,
+  },
+});
