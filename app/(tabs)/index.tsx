@@ -1,9 +1,12 @@
 import blogsData from "@/assets/data/blogs.json";
 import BookCard from "@/components/BookCard";
+import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -30,6 +33,23 @@ const DEFAULT_META = { icon: "grid-outline", color: "#6b7280" };
 export default function Index() {
   const { colors } = useTheme();
   const router = useRouter();
+  // Add this at the top of your component (you likely already import useAuth)
+  const { user } = useAuth();
+
+  // ─── Add this state + fetch at the top of your Index component ───
+  const [topCategories, setTopCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/categories`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          // Take only first 2 real categories (skip "All" if present)
+          setTopCategories(data.data.slice(0, 2));
+        }
+      })
+      .catch((e) => console.error("Failed to load categories", e));
+  }, []);
 
   const allBooks = [
     {
@@ -90,21 +110,21 @@ export default function Index() {
   ];
 
   // ── Derive unique categories from allBooks, take only 2 ──
-  const topCategories = Object.values(
-    allBooks.reduce((acc: Record<number, any>, book) => {
-      if (!acc[book.categoryId]) {
-        acc[book.categoryId] = {
-          id: book.categoryId,
-          name: book.category,
-          count: 1,
-          ...(CATEGORY_META[book.category] ?? DEFAULT_META),
-        };
-      } else {
-        acc[book.categoryId].count++;
-      }
-      return acc;
-    }, {}),
-  ).slice(0, 2);
+  // const topCategories = Object.values(
+  //   allBooks.reduce((acc: Record<number, any>, book) => {
+  //     if (!acc[book.categoryId]) {
+  //       acc[book.categoryId] = {
+  //         id: book.categoryId,
+  //         name: book.category,
+  //         count: 1,
+  //         ...(CATEGORY_META[book.category] ?? DEFAULT_META),
+  //       };
+  //     } else {
+  //       acc[book.categoryId].count++;
+  //     }
+  //     return acc;
+  //   }, {}),
+  // ).slice(0, 2);
 
   const heroSlides = [
     {
@@ -188,7 +208,9 @@ export default function Index() {
           <View style={styles.headerTop}>
             <View style={styles.flex1}>
               <Text style={styles.welcomeText}>Welcome back</Text>
-              <Text style={styles.nameText}>Alex Martinez</Text>
+              <Text style={styles.nameText}>
+                {user?.name ?? user?.email ?? "Welcome"}
+              </Text>
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.notifButton}>
@@ -287,7 +309,7 @@ export default function Index() {
           </Swiper>
         </View>
 
-        {/* ─── Top Categories (2, derived from books) ─── */}
+        {/* ─── Top Categories (dynamic, 2 from API) ─── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Top Categories</Text>
@@ -311,7 +333,6 @@ export default function Index() {
                     ? styles.categoryCardLeft
                     : styles.categoryCardRight,
                 ]}
-                // ── Navigate to study, passing categoryId + name so the list pre-filters ──
                 onPress={() =>
                   router.push({
                     pathname: "/(tabs)/study",
@@ -334,7 +355,6 @@ export default function Index() {
                     },
                   ]}
                 >
-                  {/* Top-right arrow pill */}
                   <View style={styles.categoryArrow}>
                     <Ionicons
                       name="arrow-forward"
@@ -342,16 +362,12 @@ export default function Index() {
                       color="rgba(255,255,255,0.9)"
                     />
                   </View>
-
-                  {/* Icon */}
                   <View style={styles.categoryIconCircle}>
                     <Ionicons name={cat.icon as any} size={28} color="white" />
                   </View>
-
-                  {/* Name + count */}
                   <Text style={styles.categoryName}>{cat.name}</Text>
                   <Text style={styles.categoryCount}>
-                    {cat.count} {cat.count === 1 ? "book" : "books"}
+                    {cat.question_sets_count ?? 0} sets
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
