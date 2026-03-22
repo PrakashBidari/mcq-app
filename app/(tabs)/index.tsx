@@ -367,7 +367,11 @@ export default function Index() {
                   </View>
                   <Text style={styles.categoryName}>{cat.name}</Text>
                   <Text style={styles.categoryCount}>
-                    {cat.question_sets_count ?? 0} sets
+                    {
+                      allBooks.filter((b: any) => b.categoryId === cat.id)
+                        .length
+                    }{" "}
+                    books
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
