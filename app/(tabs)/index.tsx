@@ -8,6 +8,7 @@ import {
   Image,
   ImageBackground,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -16,7 +17,6 @@ import {
 import Swiper from "react-native-swiper";
 
 export default function Index() {
-  // const colors = useColors();
   const { colors } = useTheme();
 
   const allBooks = [
@@ -170,89 +170,6 @@ export default function Index() {
     },
   ];
 
-  const learningStats = [
-    {
-      id: 1,
-      label: "Courses Enrolled",
-      value: "12",
-      icon: "book-outline",
-      change: "+2",
-      color: "#7c3aed",
-    },
-    {
-      id: 2,
-      label: "Hours Learned",
-      value: "148",
-      icon: "time-outline",
-      change: "+12",
-      color: "#2563eb",
-    },
-    {
-      id: 3,
-      label: "Quizzes Passed",
-      value: "45",
-      icon: "checkmark-circle-outline",
-      change: "+8",
-      color: "#059669",
-    },
-    {
-      id: 4,
-      label: "Certificates",
-      value: "8",
-      icon: "trophy-outline",
-      change: "+1",
-      color: "#f59e0b",
-    },
-  ];
-
-  const blogs = [
-    {
-      id: 1,
-      title: "10 Tips for Effective Learning",
-      excerpt: "Discover proven strategies to enhance your learning",
-      image:
-        "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400",
-      author: "Sarah Johnson",
-      date: "Feb 10, 2026",
-      readTime: "5 min",
-      category: "Education",
-    },
-    {
-      id: 2,
-      title: "Future of Online Education",
-      excerpt: "How technology transforms learning worldwide",
-      image:
-        "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400",
-      author: "Mike Chen",
-      date: "Feb 8, 2026",
-      readTime: "7 min",
-      category: "Trends",
-    },
-    {
-      id: 3,
-      title: "Future of Online Education",
-      excerpt: "How technology transforms learning worldwide",
-      image:
-        "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400",
-      author: "Mike Chen",
-      date: "Feb 8, 2026",
-      readTime: "7 min",
-      category: "Trends",
-    },
-    {
-      id: 4,
-      title: "Future of Online Education",
-      excerpt: "How technology transforms learning worldwide",
-      image:
-        "https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400",
-      author: "Mike Chen",
-      date: "Feb 8, 2026",
-      readTime: "7 min",
-      category: "Trends",
-    },
-  ];
-
-  // Inside the component, get the latest 2 blogs:
   const latestBlogs = blogsData
     .sort(
       (a, b) =>
@@ -264,118 +181,101 @@ export default function Index() {
   const router = useRouter();
 
   return (
-    <View
-      className="flex-1 bg-red-500"
-      style={{ backgroundColor: colors.background }}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView
-        className="flex-1"
+        style={styles.flex1}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        <View
-          className="bg-white px-6 pt-14 pb-4"
-          // style={{ backgroundColor: colors.card }}
-        >
-          <View className="flex-row justify-between items-center mb-4">
-            <View className="flex-1">
-              <Text className="text-gray-500 text-sm font-medium">
-                Welcome back
-              </Text>
-              <Text className="text-gray-900 text-2xl font-bold mt-1">
-                Alex Martinez
-              </Text>
+        {/* ─── Header ─── */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.flex1}>
+              <Text style={styles.welcomeText}>Welcome back</Text>
+              <Text style={styles.nameText}>Alex Martinez</Text>
             </View>
-            <View className="flex-row items-center gap-3">
-              <TouchableOpacity className="relative w-11 h-11 bg-gray-50 rounded-full items-center justify-center">
+            <View style={styles.headerActions}>
+              {/* Notification bell */}
+              <TouchableOpacity style={styles.notifButton}>
                 <Ionicons
                   name="notifications-outline"
                   size={22}
                   color="#374151"
                 />
-                <View className="absolute -top-1 -right-1 bg-purple-600 w-5 h-5 rounded-full items-center justify-center">
-                  <Text className="text-white text-xs font-bold">3</Text>
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>3</Text>
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity className="relative">
-                <Image
-                  source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-                  className="w-11 h-11 rounded-full"
-                />
-                <View className="absolute -bottom-0.5 -right-0.5 bg-green-500 w-3.5 h-3.5 rounded-full border-2 border-white" />
+              {/* Avatar */}
+              <TouchableOpacity style={styles.avatarWrapper}>
+                {/* FIX: borderRadius on Image needs overflow:hidden on a wrapping View */}
+                <View style={styles.avatarImageWrapper}>
+                  <Image
+                    source={{ uri: "https://i.pravatar.cc/150?img=12" }}
+                    style={styles.avatarImage}
+                  />
+                </View>
+                <View style={styles.onlineDot} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Search Bar */}
-          <View className="bg-gray-50 rounded-xl flex-row items-center px-4 py-3">
+          <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={20} color="#9CA3AF" />
             <TextInput
               placeholder="Search courses, books, quizzes..."
               placeholderTextColor="#9CA3AF"
-              className="flex-1 ml-3 text-base text-gray-900"
+              style={styles.searchInput}
             />
-            <TouchableOpacity className="w-9 h-9 bg-purple-600 rounded-lg items-center justify-center">
+            <TouchableOpacity style={styles.searchButton}>
               <Ionicons name="options-outline" size={18} color="white" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Hero Carousel - Reduced height */}
-        <View style={{ height: 260 }} className="mb-6">
+        {/* ─── Hero Carousel ─── */}
+        <View style={styles.heroCarousel}>
           <Swiper
-            autoplay={true}
+            autoplay
             autoplayTimeout={5}
-            loop={true}
-            showsPagination={true}
-            paginationStyle={{ bottom: 15 }}
-            dotStyle={{
-              backgroundColor: "rgba(255,255,255,.3)",
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              marginLeft: 3,
-              marginRight: 3,
-            }}
-            activeDotStyle={{
-              backgroundColor: "#fff",
-              width: 24,
-              height: 8,
-              borderRadius: 4,
-              marginLeft: 3,
-              marginRight: 3,
-            }}
+            loop
+            showsPagination
+            paginationStyle={styles.heroPagination}
+            dotStyle={styles.heroDot}
+            activeDotStyle={styles.heroActiveDot}
           >
             {heroSlides.map((slide) => (
-              <View key={slide.id} className="flex-1 px-6">
-                <View className="flex-1 rounded-3xl overflow-hidden">
+              <View key={slide.id} style={styles.heroSlideWrapper}>
+                {/* FIX: overflow:hidden on a wrapping View (not ImageBackground directly) */}
+                <View style={styles.heroSlideInner}>
                   <ImageBackground
                     source={{ uri: slide.image }}
-                    className="flex-1"
+                    style={styles.flex1}
                     resizeMode="cover"
                   >
                     <LinearGradient
                       colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.8)"]}
-                      className="flex-1 justify-end p-6"
+                      // FIX: layout styles via style prop, NOT className on LinearGradient
+                      style={styles.heroGradient}
                     >
-                      <View className="mb-2">
-                        <View className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full self-start mb-3">
-                          <Text className="text-white text-xs font-semibold">
+                      <View style={styles.heroContent}>
+                        {/* FIX: backdrop-blur-md removed (not supported in RN) — use semi-transparent bg */}
+                        {/* FIX: alignSelf via style prop, not self-start className */}
+                        <View style={styles.heroBadge}>
+                          <Text style={styles.heroBadgeText}>
                             {slide.type === "quiz"
                               ? "🎯 Quiz Mode"
                               : "📚 Learning Path"}
                           </Text>
                         </View>
-                        <Text className="text-white text-2xl font-bold mb-2">
-                          {slide.title}
-                        </Text>
-                        <Text className="text-white/90 text-sm mb-4">
+                        <Text style={styles.heroTitle}>{slide.title}</Text>
+                        <Text style={styles.heroSubtitle}>
                           {slide.subtitle}
                         </Text>
                         <TouchableOpacity
-                          className="bg-white py-3 px-5 rounded-xl flex-row items-center self-start"
+                          style={styles.heroButton}
                           onPress={() => {
                             if (slide.type === "quiz") {
                               router.push("/(tabs)/quiz");
@@ -384,7 +284,7 @@ export default function Index() {
                             }
                           }}
                         >
-                          <Text className="text-purple-600 font-bold text-sm mr-2">
+                          <Text style={styles.heroButtonText}>
                             {slide.type === "quiz" ? "Start Now" : "Explore"}
                           </Text>
                           <Ionicons
@@ -402,23 +302,29 @@ export default function Index() {
           </Swiper>
         </View>
 
-        {/* Categories */}
-        <View className="px-6 mb-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-gray-900">
-              Top Categories
-            </Text>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-purple-600 font-semibold text-sm mr-1">
-                View All
-              </Text>
+        {/* ─── Categories ─── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Top Categories</Text>
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={styles.seeAllText}>View All</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </View>
 
-          <View className="flex-row flex-wrap gap-3">
-            {categories.map((category) => (
-              <View key={category.id} style={{ width: "48%" }}>
+          {/* FIX: gap with flexWrap is unreliable — use explicit margins instead */}
+          <View style={styles.grid2col}>
+            {categories.map((category, index) => (
+              <View
+                key={category.id}
+                style={[
+                  styles.grid2colItem,
+                  // Add right margin only to left column items
+                  index % 2 === 0 ? styles.gridItemLeft : styles.gridItemRight,
+                  // Add bottom margin to all but last row
+                  index < categories.length - 2 ? styles.gridItemBottom : null,
+                ]}
+              >
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() =>
@@ -432,26 +338,26 @@ export default function Index() {
                     colors={[category.color, category.color + "dd"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    className="rounded-2xl p-5"
-                    style={{
-                      shadowColor: category.color,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 8,
-                      elevation: 4,
-                    }}
+                    style={[
+                      styles.categoryCard,
+                      {
+                        shadowColor: category.color,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      },
+                    ]}
                   >
-                    <View className="w-12 h-12 bg-white/20 rounded-xl items-center justify-center mb-3">
+                    <View style={styles.categoryIcon}>
                       <Ionicons
                         name={category.icon as any}
                         size={24}
                         color="white"
                       />
                     </View>
-                    <Text className="font-bold text-white text-base mb-1">
-                      {category.name}
-                    </Text>
-                    <Text className="text-white/80 text-xs">
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                    <Text style={styles.categoryCourses}>
                       {category.courses} courses
                     </Text>
                   </LinearGradient>
@@ -461,57 +367,39 @@ export default function Index() {
           </View>
         </View>
 
-        {/* Popular Courses Slider - Enhanced */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center px-6 mb-0">
-            <Text className="text-lg font-bold text-gray-900">
+        {/* ─── Popular Courses Slider ─── */}
+        <View style={styles.sectionNoHPad}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, styles.hPad]}>
               Popular Courses
             </Text>
             <TouchableOpacity
-              className="flex-row items-center"
+              style={[styles.seeAllButton, styles.hPad]}
               onPress={() => router.push("/study")}
             >
-              <Text className="text-purple-600 font-semibold text-sm mr-1">
-                See All
-              </Text>
+              <Text style={styles.seeAllText}>See All</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 260, marginTop: 16 }}>
+          <View style={styles.coursesSwiper}>
             <Swiper
-              autoplay={true}
+              autoplay
               autoplayTimeout={5}
-              loop={true}
-              showsPagination={true}
-              horizontal={true}
+              loop
+              showsPagination
+              horizontal
               removeClippedSubviews={false}
-              paginationStyle={{
-                bottom: -10,
-              }}
-              dotStyle={{
-                backgroundColor: "rgba(0,0,0,.15)",
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                marginLeft: 3,
-                marginRight: 3,
-              }}
-              activeDotStyle={{
-                backgroundColor: "#7c3aed",
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                marginLeft: 3,
-                marginRight: 3,
-              }}
+              paginationStyle={styles.coursesPagination}
+              dotStyle={styles.coursesDot}
+              activeDotStyle={styles.coursesActiveDot}
             >
               {Array.from(
                 { length: Math.ceil(allBooks.length / 2) },
                 (_, i) => (
-                  <View key={i} className="flex-row px-6 gap-3 w-full">
+                  <View key={i} style={styles.coursesSlide}>
                     {allBooks.slice(i * 2, i * 2 + 2).map((book, index) => (
-                      <View key={book.id || index} style={{ flex: 1 }}>
+                      <View key={book.id || index} style={styles.flex1}>
                         <BookCard book={book} index={i * 2 + index} />
                       </View>
                     ))}
@@ -522,41 +410,42 @@ export default function Index() {
           </View>
         </View>
 
-        {/* Achievements Section */}
-        <View className="px-6 mb-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-gray-900">
-              Your Achievements
-            </Text>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-purple-600 font-semibold text-sm mr-1">
-                View All
-              </Text>
+        {/* ─── Achievements ─── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Achievements</Text>
+            <TouchableOpacity style={styles.seeAllButton}>
+              <Text style={styles.seeAllText}>View All</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </View>
 
+          {/* FIX: negative margin via style prop — className -mx-6 is unreliable */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="-mx-6 px-6"
+            style={styles.achievementsScroll}
+            contentContainerStyle={styles.achievementsScrollContent}
           >
             {achievements.map((achievement) => (
               <View
                 key={achievement.id}
-                className="bg-white rounded-2xl p-4 mr-3 border border-gray-100"
-                style={{
-                  width: 200,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 8,
-                  elevation: 2,
-                }}
+                style={[
+                  styles.achievementCard,
+                  {
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                    elevation: 2,
+                  },
+                ]}
               >
                 <View
-                  className="w-12 h-12 rounded-xl items-center justify-center mb-3"
-                  style={{ backgroundColor: achievement.color + "15" }}
+                  style={[
+                    styles.achievementIcon,
+                    { backgroundColor: achievement.color + "15" },
+                  ]}
                 >
                   <Ionicons
                     name={achievement.icon as any}
@@ -564,22 +453,22 @@ export default function Index() {
                     color={achievement.color}
                   />
                 </View>
-                <Text className="text-gray-900 font-bold text-base mb-1">
-                  {achievement.title}
-                </Text>
-                <Text className="text-gray-500 text-xs mb-3">
+                <Text style={styles.achievementTitle}>{achievement.title}</Text>
+                <Text style={styles.achievementDesc}>
                   {achievement.description}
                 </Text>
-                <View className="bg-gray-100 h-2 rounded-full overflow-hidden">
+                <View style={styles.progressBar}>
                   <View
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${achievement.progress}%`,
-                      backgroundColor: achievement.color,
-                    }}
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${achievement.progress}%` as any,
+                        backgroundColor: achievement.color,
+                      },
+                    ]}
                   />
                 </View>
-                <Text className="text-gray-400 text-xs mt-2">
+                <Text style={styles.progressLabel}>
                   {achievement.progress}% Complete
                 </Text>
               </View>
@@ -587,120 +476,127 @@ export default function Index() {
           </ScrollView>
         </View>
 
-        {/* Quiz CTA Banner */}
-        <View className="px-6 mb-6">
+        {/* ─── Quiz CTA Banner ─── */}
+        <View style={styles.section}>
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => router.push("/quiz")}
           >
-            <ImageBackground
-              source={{
-                uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
-              }}
-              className="rounded-2xl overflow-hidden"
-              resizeMode="cover"
-            >
-              <LinearGradient
-                colors={["rgba(124, 58, 237, 0.95)", "rgba(37, 99, 235, 0.95)"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                className="p-6"
+            {/* FIX: overflow:hidden via wrapping View, not on ImageBackground className */}
+            <View style={styles.quizBannerWrapper}>
+              <ImageBackground
+                source={{
+                  uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+                }}
+                style={styles.quizBannerBg}
+                resizeMode="cover"
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1 mr-4">
-                    <View className="bg-white/20 px-3 py-1 rounded-full self-start mb-2">
-                      <Text className="text-white text-xs font-semibold">
-                        🎯 TRENDING NOW
+                <LinearGradient
+                  colors={[
+                    "rgba(124, 58, 237, 0.95)",
+                    "rgba(37, 99, 235, 0.95)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.quizGradient}
+                >
+                  <View style={styles.quizContent}>
+                    <View style={styles.quizTextBlock}>
+                      {/* FIX: alignSelf via style */}
+                      <View style={styles.quizBadge}>
+                        <Text style={styles.quizBadgeText}>
+                          🎯 TRENDING NOW
+                        </Text>
+                      </View>
+                      <Text style={styles.quizTitle}>Test Your Knowledge</Text>
+                      <Text style={styles.quizSubtitle}>
+                        Challenge yourself with MCQ quizzes
                       </Text>
+                      <TouchableOpacity style={styles.quizButton}>
+                        <Ionicons
+                          name="play-circle"
+                          size={18}
+                          color="#7c3aed"
+                        />
+                        <Text style={styles.quizButtonText}>Start Quiz</Text>
+                      </TouchableOpacity>
                     </View>
-                    <Text className="text-white text-xl font-bold mb-2">
-                      Test Your Knowledge
-                    </Text>
-                    <Text className="text-white/90 text-sm mb-4">
-                      Challenge yourself with MCQ quizzes
-                    </Text>
-                    <View className="bg-white py-2.5 px-5 rounded-xl flex-row items-center self-start">
-                      <Ionicons name="play-circle" size={18} color="#7c3aed" />
-                      <Text className="text-purple-600 font-bold text-sm ml-2">
-                        Start Quiz
-                      </Text>
+                    <View style={styles.quizIconBox}>
+                      <Ionicons
+                        name="help-circle-outline"
+                        size={40}
+                        color="white"
+                      />
                     </View>
                   </View>
-                  <View className="bg-white/10 w-16 h-16 rounded-2xl items-center justify-center">
-                    <Ionicons
-                      name="help-circle-outline"
-                      size={40}
-                      color="white"
-                    />
-                  </View>
-                </View>
-              </LinearGradient>
-            </ImageBackground>
+                </LinearGradient>
+              </ImageBackground>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* Blog Section - 2 Columns */}
-        <View className="px-6 mb-4">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-lg font-bold text-gray-900">
-              Latest from Blog
-            </Text>
+        {/* ─── Blog Section ─── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Latest from Blog</Text>
             <TouchableOpacity
-              className="flex-row items-center"
+              style={styles.seeAllButton}
               onPress={() => router.push("/blog")}
             >
-              <Text className="text-purple-600 font-semibold text-sm mr-1">
-                See More
-              </Text>
+              <Text style={styles.seeAllText}>See More</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </View>
 
-          <View className="flex-row flex-wrap gap-3">
-            {latestBlogs.map((blog) => (
-              <View key={blog.id} style={{ width: "48.5%" }}>
+          {/* FIX: Same grid fix as categories — no gap, use margins */}
+          <View style={styles.grid2col}>
+            {latestBlogs.map((blog, index) => (
+              <View
+                key={blog.id}
+                style={[
+                  styles.grid2colItem,
+                  index % 2 === 0 ? styles.gridItemLeft : styles.gridItemRight,
+                  index < latestBlogs.length - 2 ? styles.gridItemBottom : null,
+                ]}
+              >
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => router.push(`/blog/${blog.slug}`)}
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
+                  style={[
+                    styles.blogCard,
+                    {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 8,
+                      elevation: 2,
+                    },
+                  ]}
                 >
-                  <Image
-                    source={{ uri: blog.image }}
-                    className="w-full h-32"
-                    resizeMode="cover"
-                  />
-                  <View className="p-3">
-                    <View className="flex-row items-center mb-2">
-                      <View className="bg-purple-50 px-2 py-1 rounded-md">
-                        <Text className="text-purple-600 text-xs font-semibold">
-                          {blog.category}
-                        </Text>
-                      </View>
+                  {/* FIX: Image needs explicit style width/height, not className */}
+                  {/* FIX: overflow:hidden on wrapping View, not on TouchableOpacity */}
+                  <View style={styles.blogImageWrapper}>
+                    <Image
+                      source={{ uri: blog.image }}
+                      style={styles.blogImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View style={styles.blogBody}>
+                    <View style={styles.blogCategoryBadge}>
+                      <Text style={styles.blogCategoryText}>
+                        {blog.category}
+                      </Text>
                     </View>
-                    <Text
-                      className="text-gray-900 font-bold text-sm mb-2"
-                      numberOfLines={2}
-                    >
+                    <Text style={styles.blogTitle} numberOfLines={2}>
                       {blog.title}
                     </Text>
-                    <Text
-                      className="text-gray-600 text-xs mb-3"
-                      numberOfLines={2}
-                    >
+                    <Text style={styles.blogExcerpt} numberOfLines={2}>
                       {blog.excerpt}
                     </Text>
-                    <View className="flex-row items-center justify-between pt-2 border-t border-gray-50">
-                      <Text className="text-gray-400 text-xs">
-                        {blog.readTime}
-                      </Text>
-                      <Text className="text-gray-400 text-xs">
+                    <View style={styles.blogMeta}>
+                      <Text style={styles.blogMetaText}>{blog.readTime}</Text>
+                      <Text style={styles.blogMetaText}>
                         {blog.publishedDate}
                       </Text>
                     </View>
@@ -714,3 +610,493 @@ export default function Index() {
     </View>
   );
 }
+
+const GRID_GAP = 12;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  flex1: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  hPad: {
+    // helper used inline
+  },
+
+  // ── Header ──
+  header: {
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 24,
+    paddingTop: 56,
+    paddingBottom: 16,
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  welcomeText: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  nameText: {
+    color: "#111827",
+    fontSize: 24,
+    // FIX: fontWeight must be a string
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  notifButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: "#f9fafb",
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notifBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#7c3aed",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notifBadgeText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  avatarWrapper: {
+    position: "relative",
+  },
+  // FIX: wrap Image in a View with borderRadius + overflow:hidden
+  avatarImageWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: "#22c55e",
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+  searchBar: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: "#111827",
+  },
+  searchButton: {
+    width: 36,
+    height: 36,
+    backgroundColor: "#7c3aed",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Hero Carousel ──
+  heroCarousel: {
+    height: 260,
+    marginBottom: 24,
+  },
+  heroSlideWrapper: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  // FIX: overflow:hidden on a View, not on ImageBackground/className
+  heroSlideInner: {
+    flex: 1,
+    borderRadius: 24,
+    overflow: "hidden",
+  },
+  // FIX: LinearGradient layout via style, not className
+  heroGradient: {
+    flex: 1,
+    justifyContent: "flex-end",
+    padding: 24,
+  },
+  heroContent: {
+    marginBottom: 8,
+  },
+  // FIX: alignSelf via style, not self-start className
+  // FIX: backdrop-blur removed — use rgba background
+  heroBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 100,
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
+  heroBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  heroTitle: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  heroButton: {
+    backgroundColor: "#ffffff",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+  },
+  heroButtonText: {
+    color: "#7c3aed",
+    fontWeight: "700",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  heroPagination: {
+    bottom: 15,
+  },
+  heroDot: {
+    backgroundColor: "rgba(255,255,255,.3)",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 3,
+    marginRight: 3,
+  },
+  heroActiveDot: {
+    backgroundColor: "#fff",
+    width: 24,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 3,
+    marginRight: 3,
+  },
+
+  // ── Shared section layout ──
+  section: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  sectionNoHPad: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  seeAllText: {
+    color: "#7c3aed",
+    fontWeight: "600",
+    fontSize: 14,
+    marginRight: 4,
+  },
+
+  // ── 2-column grid (FIX: no gap, use explicit margins) ──
+  grid2col: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  grid2colItem: {
+    width: "50%",
+  },
+  gridItemLeft: {
+    paddingRight: GRID_GAP / 2,
+  },
+  gridItemRight: {
+    paddingLeft: GRID_GAP / 2,
+  },
+  gridItemBottom: {
+    marginBottom: GRID_GAP,
+  },
+
+  // ── Category cards ──
+  categoryCard: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  categoryIcon: {
+    width: 48,
+    height: 48,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  categoryName: {
+    fontWeight: "700",
+    color: "#ffffff",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  categoryCourses: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 12,
+  },
+
+  // ── Courses swiper ──
+  coursesSwiper: {
+    height: 260,
+    marginTop: 0,
+  },
+  coursesSlide: {
+    flexDirection: "row",
+    paddingHorizontal: 24,
+    gap: 12,
+    width: "100%",
+  },
+  coursesPagination: {
+    bottom: -10,
+  },
+  coursesDot: {
+    backgroundColor: "rgba(0,0,0,.15)",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 3,
+    marginRight: 3,
+  },
+  coursesActiveDot: {
+    backgroundColor: "#7c3aed",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 3,
+    marginRight: 3,
+  },
+
+  // ── Achievements ──
+  // FIX: negative margins via style prop instead of className -mx-6
+  achievementsScroll: {
+    marginHorizontal: -24,
+  },
+  achievementsScrollContent: {
+    paddingHorizontal: 24,
+  },
+  achievementCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    width: 200,
+  },
+  achievementIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  achievementTitle: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  achievementDesc: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  progressBar: {
+    backgroundColor: "#f3f4f6",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  progressLabel: {
+    color: "#9ca3af",
+    fontSize: 12,
+    marginTop: 8,
+  },
+
+  // ── Quiz CTA ──
+  quizBannerWrapper: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  quizBannerBg: {
+    width: "100%",
+  },
+  quizGradient: {
+    padding: 24,
+  },
+  quizContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  quizTextBlock: {
+    flex: 1,
+    marginRight: 16,
+  },
+  quizBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 100,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  quizBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  quizTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  quizSubtitle: {
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  quizButton: {
+    backgroundColor: "#ffffff",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+  },
+  quizButtonText: {
+    color: "#7c3aed",
+    fontWeight: "700",
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  quizIconBox: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Blog cards ──
+  blogCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f3f4f6",
+    // FIX: overflow:hidden here would clip the shadow on iOS,
+    // so we use a separate wrapper for the image overflow instead
+  },
+  // FIX: Image rounded corners need overflow:hidden on a wrapping View
+  blogImageWrapper: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: "hidden",
+  },
+  // FIX: Image dimensions via style, not className (w-full h-32)
+  blogImage: {
+    width: "100%",
+    height: 128,
+  },
+  blogBody: {
+    padding: 12,
+  },
+  blogCategoryBadge: {
+    backgroundColor: "#f5f3ff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  blogCategoryText: {
+    color: "#7c3aed",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  blogTitle: {
+    color: "#111827",
+    fontWeight: "700",
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  blogExcerpt: {
+    color: "#4b5563",
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  blogMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f9fafb",
+  },
+  blogMetaText: {
+    color: "#9ca3af",
+    fontSize: 12,
+  },
+});
