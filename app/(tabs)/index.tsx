@@ -38,6 +38,25 @@ export default function Index() {
 
   // ─── Add this state + fetch at the top of your Index component ───
   const [topCategories, setTopCategories] = useState<any[]>([]);
+  const [allBooks, setAllBooks] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch categories
+    fetch(`${API_URL}/categories`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setTopCategories(data.data.slice(0, 2));
+      })
+      .catch((e) => console.error("Failed to load categories", e));
+
+    // Fetch books (same endpoint as study page)
+    fetch(`${API_URL}/books`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setAllBooks(data.data);
+      })
+      .catch((e) => console.error("Failed to load books", e));
+  }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/categories`)
@@ -51,63 +70,63 @@ export default function Index() {
       .catch((e) => console.error("Failed to load categories", e));
   }, []);
 
-  const allBooks = [
-    {
-      id: 1,
-      title: "The Design of Everyday Things",
-      author: "Don Norman",
-      cover:
-        "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400",
-      rating: 4.8,
-      pages: 368,
-      duration: "12h 30m",
-      categoryId: 1,
-      category: "Design",
-      difficulty: "Intermediate",
-      students: 12400,
-    },
-    {
-      id: 2,
-      title: "Refactoring UI",
-      author: "Adam Wathan & Steve Schoger",
-      cover: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=400",
-      rating: 4.9,
-      pages: 250,
-      duration: "8h 45m",
-      categoryId: 1,
-      category: "Design",
-      difficulty: "Beginner",
-      students: 18200,
-    },
-    {
-      id: 3,
-      title: "Design Systems Handbook",
-      author: "Marco Suarez",
-      cover:
-        "https://images.unsplash.com/photo-1610465299996-30f240ac2b1c?w=400",
-      rating: 4.7,
-      pages: 420,
-      duration: "15h 20m",
-      categoryId: 1,
-      category: "Design",
-      difficulty: "Advanced",
-      students: 9800,
-    },
-    {
-      id: 4,
-      title: "Clean Code",
-      author: "Robert C. Martin",
-      cover:
-        "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400",
-      rating: 4.9,
-      pages: 464,
-      duration: "16h 30m",
-      categoryId: 2,
-      category: "Development",
-      difficulty: "Intermediate",
-      students: 25600,
-    },
-  ];
+  // const allBooks = [
+  //   {
+  //     id: 1,
+  //     title: "The Design of Everyday Things",
+  //     author: "Don Norman",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400",
+  //     rating: 4.8,
+  //     pages: 368,
+  //     duration: "12h 30m",
+  //     categoryId: 1,
+  //     category: "Design",
+  //     difficulty: "Intermediate",
+  //     students: 12400,
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Refactoring UI",
+  //     author: "Adam Wathan & Steve Schoger",
+  //     cover: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=400",
+  //     rating: 4.9,
+  //     pages: 250,
+  //     duration: "8h 45m",
+  //     categoryId: 1,
+  //     category: "Design",
+  //     difficulty: "Beginner",
+  //     students: 18200,
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Design Systems Handbook",
+  //     author: "Marco Suarez",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1610465299996-30f240ac2b1c?w=400",
+  //     rating: 4.7,
+  //     pages: 420,
+  //     duration: "15h 20m",
+  //     categoryId: 1,
+  //     category: "Design",
+  //     difficulty: "Advanced",
+  //     students: 9800,
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "Clean Code",
+  //     author: "Robert C. Martin",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400",
+  //     rating: 4.9,
+  //     pages: 464,
+  //     duration: "16h 30m",
+  //     categoryId: 2,
+  //     category: "Development",
+  //     difficulty: "Intermediate",
+  //     students: 25600,
+  //   },
+  // ];
 
   // ── Derive unique categories from allBooks, take only 2 ──
   // const topCategories = Object.values(
