@@ -6,13 +6,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -67,9 +71,12 @@ export default function VerifyOtpScreen() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input
+    // Auto-focus next input or dismiss keyboard when complete
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
+    } else if (value && index === 5) {
+      // Last digit entered — dismiss keyboard so the button is visible
+      Keyboard.dismiss();
     }
   };
 
@@ -182,92 +189,107 @@ export default function VerifyOtpScreen() {
         style={styles.gradientBackground}
       />
 
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={60} color="#7c3aed" />
-          </View>
-          <Text style={styles.title}>Verify Email</Text>
-          <Text style={styles.subtitle}>
-            We've sent a 6-digit code to{"\n"}
-            <Text style={styles.email}>{email}</Text>
-          </Text>
-        </View>
-
-        {/* Timer */}
-        <View style={styles.timerContainer}>
-          <Ionicons name="time-outline" size={24} color={getTimerColor()} />
-          <Text style={[styles.timerText, { color: getTimerColor() }]}>
-            {isExpired ? "Expired" : formatTime(timeLeft)}
-          </Text>
-        </View>
-
-        {isExpired && (
-          <View style={styles.expiredBanner}>
-            <Text style={styles.expiredText}>
-              OTP has expired. Please request a new one.
-            </Text>
-          </View>
-        )}
-
-        {/* OTP Input */}
-        <View style={styles.otpContainer}>
-          {otp.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
-              style={[styles.otpInput, digit && styles.otpInputFilled]}
-              value={digit}
-              onChangeText={(value) => handleOtpChange(index, value)}
-              onKeyPress={({ nativeEvent: { key } }) =>
-                handleKeyPress(index, key)
-              }
-              keyboardType="number-pad"
-              maxLength={1}
-              selectTextOnFocus
-              editable={!isLoading}
-            />
-          ))}
-        </View>
-
-        {/* Verify Button */}
-        <TouchableOpacity
-          style={[styles.verifyButton, isLoading && styles.buttonDisabled]}
-          onPress={handleVerify}
-          disabled={isLoading}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.verifyButtonText}>Verify Email</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="mail-outline" size={60} color="#7c3aed" />
+              </View>
+              <Text style={styles.title}>Verify Email</Text>
+              <Text style={styles.subtitle}>
+                We've sent a 6-digit code to{"\n"}
+                <Text style={styles.email}>{email}</Text>
+              </Text>
+            </View>
 
-        {/* Resend OTP */}
-        <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>Didn't receive the code? </Text>
-          <TouchableOpacity onPress={handleResendOtp} disabled={isResending}>
-            <Text
-              style={[
-                styles.resendButton,
-                isResending && styles.resendButtonDisabled,
-              ]}
+            {/* Timer */}
+            <View style={styles.timerContainer}>
+              <Ionicons name="time-outline" size={24} color={getTimerColor()} />
+              <Text style={[styles.timerText, { color: getTimerColor() }]}>
+                {isExpired ? "Expired" : formatTime(timeLeft)}
+              </Text>
+            </View>
+
+            {isExpired && (
+              <View style={styles.expiredBanner}>
+                <Text style={styles.expiredText}>
+                  OTP has expired. Please request a new one.
+                </Text>
+              </View>
+            )}
+
+            {/* OTP Input */}
+            <View style={styles.otpContainer}>
+              {otp.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  style={[styles.otpInput, digit && styles.otpInputFilled]}
+                  value={digit}
+                  onChangeText={(value) => handleOtpChange(index, value)}
+                  onKeyPress={({ nativeEvent: { key } }) =>
+                    handleKeyPress(index, key)
+                  }
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                  editable={!isLoading}
+                />
+              ))}
+            </View>
+
+            {/* Verify Button */}
+            <TouchableOpacity
+              style={[styles.verifyButton, isLoading && styles.buttonDisabled]}
+              onPress={handleVerify}
+              disabled={isLoading}
             >
-              {isResending ? "Sending..." : "Resend OTP"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.verifyButtonText}>Verify Email</Text>
+              )}
+            </TouchableOpacity>
 
-        {/* Back to Login */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={20} color="#6b7280" />
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-      </View>
+            {/* Resend OTP */}
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              <TouchableOpacity
+                onPress={handleResendOtp}
+                disabled={isResending}
+              >
+                <Text
+                  style={[
+                    styles.resendButton,
+                    isResending && styles.resendButtonDisabled,
+                  ]}
+                >
+                  {isResending ? "Sending..." : "Resend OTP"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={20} color="#6b7280" />
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -284,6 +306,13 @@ const styles = StyleSheet.create({
     right: 0,
     height: "30%",
     opacity: 0.1,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
   content: {
     flex: 1,
@@ -383,7 +412,6 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 14,
   },
-
   timerContainer: {
     flexDirection: "row",
     alignItems: "center",

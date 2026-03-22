@@ -12,6 +12,7 @@ interface Book {
   title: string;
   author: string;
   cover: string;
+  description: string;
   rating: number;
   pages: number;
   duration: string;
@@ -64,6 +65,10 @@ const BookCard = ({ book, index, categories = [] }: BookCardProps) => {
               title: book.title,
               author: book.author,
               cover: book.cover,
+              duration: book.duration,
+              difficulty: book.difficulty,
+              rating: book.rating,
+              description: book.description,
             },
           })
         }
