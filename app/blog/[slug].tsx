@@ -1,322 +1,221 @@
 // app/blog/[slug].tsx
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    Share,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
 } from "react-native";
+import RenderHtml from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Import blog data
-import blogsData from "@/assets/data/blogs.json";
-
-const { width } = Dimensions.get("window");
-
 export default function BlogDetailScreen() {
-  const { slug } = useLocalSearchParams();
   const router = useRouter();
-  const [isLiked, setIsLiked] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const params = useLocalSearchParams();
+  const { width } = useWindowDimensions();
 
-  // Find the blog post
-  const blog = blogsData.find((b) => b.slug === slug);
+  // Parse blog from params
+  let blog = null;
+
+  if (params.blog) {
+    try {
+      blog = JSON.parse(params.blog as string);
+    } catch (error) {
+      console.error("Error parsing blog:", error);
+    }
+  }
+
+  console.log("Blog params:", params);
+  console.log("Parsed blog:", blog);
 
   if (!blog) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-900 text-lg font-bold">Blog not found</Text>
-        <TouchableOpacity onPress={() => router.back()} className="mt-4">
-          <Text className="text-purple-600 font-semibold">Go back</Text>
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4">
+          <Ionicons name="document-text-outline" size={40} color="#9ca3af" />
+        </View>
+        <Text className="text-gray-900 font-bold text-lg mb-2">
+          Blog not found
+        </Text>
+        <Text className="text-gray-500 text-sm mb-4">
+          Unable to load blog content
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="px-6 py-3 bg-purple-600 rounded-xl"
+        >
+          <Text className="text-white font-bold">Go Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // Get related blogs (same category, excluding current)
-  const relatedBlogs = blogsData
-    .filter((b) => b.category === blog.category && b.id !== blog.id)
-    .slice(0, 4);
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out this article: ${blog.title}`,
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  // Parse content into sections
-  const contentSections = blog.content.split("\n\n");
-
   return (
-    <View className="flex-1 bg-white">
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* Hero Image */}
-        <View className="relative">
-          <Image
-            source={{ uri: blog.image }}
-            style={{ width, height: 300 }}
-            resizeMode="cover"
-          />
-          <LinearGradient
-            colors={["rgba(0,0,0,0.6)", "transparent"]}
-            className="absolute inset-0"
-          />
+    <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="bg-white px-6 py-4 border-b border-gray-100">
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
+          >
+            <Ionicons name="arrow-back" size={22} color="#374151" />
+          </TouchableOpacity>
 
-          {/* Header Buttons */}
-          <SafeAreaView className="absolute top-0 left-0 right-0">
-            <View className="flex-row items-center justify-between px-6">
-              <TouchableOpacity
-                onPress={() => router.back()}
-                className="w-10 h-10 bg-white/90 rounded-full items-center justify-center"
-              >
-                <Ionicons name="arrow-back" size={22} color="#374151" />
-              </TouchableOpacity>
-
-              <View className="flex-row items-center gap-2">
-                <TouchableOpacity
-                  onPress={() => setIsBookmarked(!isBookmarked)}
-                  className="w-10 h-10 bg-white/90 rounded-full items-center justify-center"
-                >
-                  <Ionicons
-                    name={isBookmarked ? "bookmark" : "bookmark-outline"}
-                    size={20}
-                    color="#7c3aed"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleShare}
-                  className="w-10 h-10 bg-white/90 rounded-full items-center justify-center"
-                >
-                  <Ionicons name="share-outline" size={20} color="#374151" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </SafeAreaView>
+          <View className="flex-row gap-2">
+            <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+              <Ionicons name="bookmark-outline" size={20} color="#374151" />
+            </TouchableOpacity>
+            <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+              <Ionicons name="share-outline" size={20} color="#374151" />
+            </TouchableOpacity>
+          </View>
         </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        {/* Cover Image */}
+        <Image
+          source={{ uri: blog.image }}
+          className="w-full h-64"
+          resizeMode="cover"
+        />
 
         {/* Content */}
         <View className="px-6 py-6">
-          {/* Category Badge */}
-          <View className="flex-row items-center mb-4">
-            <View className="bg-purple-50 px-3 py-1.5 rounded-lg">
-              <Text className="text-purple-600 text-sm font-semibold">
+          {/* Category & Read Time */}
+          <View className="flex-row items-center gap-3 mb-4">
+            <View className="bg-purple-100 px-3 py-1.5 rounded-lg">
+              <Text className="text-purple-700 text-xs font-bold">
                 {blog.category}
               </Text>
             </View>
-            <View className="flex-row items-center ml-3">
-              <Ionicons name="time-outline" size={16} color="#9ca3af" />
-              <Text className="text-gray-400 text-sm ml-1">
+            <View className="flex-row items-center">
+              <Ionicons name="time-outline" size={14} color="#9ca3af" />
+              <Text className="text-gray-500 text-xs ml-1">
                 {blog.readTime}
               </Text>
             </View>
           </View>
 
           {/* Title */}
-          <Text className="text-gray-900 text-3xl font-bold mb-4 leading-tight">
+          <Text className="text-gray-900 text-2xl font-black mb-3 leading-tight">
             {blog.title}
           </Text>
 
-          {/* Author Info */}
+          {/* Author & Date */}
           <View className="flex-row items-center justify-between mb-6 pb-6 border-b border-gray-100">
-            <View className="flex-row items-center flex-1">
-              <Image
-                source={{ uri: blog.author.avatar }}
-                className="w-12 h-12 rounded-full mr-3"
-              />
-              <View className="flex-1">
-                <Text className="text-gray-900 text-base font-bold">
-                  {blog.author.name}
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center mr-3">
+                <Text className="text-purple-700 font-bold">
+                  {blog.author.charAt(0).toUpperCase()}
                 </Text>
-                <Text className="text-gray-500 text-sm">{blog.author.bio}</Text>
+              </View>
+              <View>
+                <Text className="text-gray-900 font-bold text-sm">
+                  {blog.author}
+                </Text>
+                <Text className="text-gray-500 text-xs">
+                  {blog.publishedAt || "Recently"}
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row items-center gap-4">
+              <View className="flex-row items-center">
+                <Ionicons name="heart-outline" size={18} color="#9ca3af" />
+                <Text className="text-gray-500 text-sm ml-1">{blog.likes}</Text>
+              </View>
+              <View className="flex-row items-center">
+                <Ionicons name="eye-outline" size={18} color="#9ca3af" />
+                <Text className="text-gray-500 text-sm ml-1">{blog.views}</Text>
               </View>
             </View>
           </View>
 
-          {/* Stats */}
-          <View className="flex-row items-center gap-6 mb-8 pb-6 border-b border-gray-100">
-            <View className="flex-row items-center">
-              <Ionicons name="eye-outline" size={20} color="#6b7280" />
-              <Text className="text-gray-600 text-sm font-medium ml-2">
-                {blog.views.toLocaleString()} views
-              </Text>
-            </View>
+          {/* Excerpt */}
+          <Text className="text-gray-700 text-base leading-7 mb-6 italic">
+            {blog.excerpt}
+          </Text>
 
-            <TouchableOpacity
-              onPress={() => setIsLiked(!isLiked)}
-              className="flex-row items-center"
-            >
-              <Ionicons
-                name={isLiked ? "heart" : "heart-outline"}
-                size={20}
-                color={isLiked ? "#ef4444" : "#6b7280"}
-              />
-              <Text className="text-gray-600 text-sm font-medium ml-2">
-                {blog.likes + (isLiked ? 1 : 0)} likes
-              </Text>
-            </TouchableOpacity>
+          {/* HTML Content */}
+          <RenderHtml
+            contentWidth={width - 48}
+            source={{ html: blog.content }}
+            baseStyle={{
+              fontSize: 16,
+              lineHeight: 28,
+              color: "#374151",
+            }}
+            tagsStyles={{
+              h1: {
+                fontSize: 24,
+                fontWeight: "bold",
+                color: "#1f2937",
+                marginTop: 20,
+                marginBottom: 12,
+              },
+              h2: {
+                fontSize: 20,
+                fontWeight: "bold",
+                color: "#1f2937",
+                marginTop: 18,
+                marginBottom: 10,
+              },
+              h3: {
+                fontSize: 18,
+                fontWeight: "bold",
+                color: "#1f2937",
+                marginTop: 16,
+                marginBottom: 8,
+              },
+              p: {
+                marginBottom: 16,
+                lineHeight: 28,
+              },
+              a: {
+                color: "#7c3aed",
+                textDecorationLine: "underline",
+              },
+              ul: {
+                marginBottom: 16,
+              },
+              ol: {
+                marginBottom: 16,
+              },
+              li: {
+                marginBottom: 8,
+              },
+              blockquote: {
+                borderLeftWidth: 4,
+                borderLeftColor: "#7c3aed",
+                paddingLeft: 16,
+                marginLeft: 0,
+                marginBottom: 16,
+                fontStyle: "italic",
+                color: "#6b7280",
+              },
+            }}
+          />
+        </View>
 
-            <View className="flex-row items-center">
-              <Ionicons name="calendar-outline" size={20} color="#6b7280" />
-              <Text className="text-gray-600 text-sm font-medium ml-2">
-                {new Date(blog.publishedDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </Text>
-            </View>
-          </View>
-
-          {/* Article Content */}
-          <View className="mb-8">
-            {contentSections.map((section, index) => {
-              // Check if it's a heading
-              if (section.startsWith("## ")) {
-                return (
-                  <Text
-                    key={index}
-                    className="text-gray-900 text-xl font-bold mt-6 mb-3"
-                  >
-                    {section.replace("## ", "")}
-                  </Text>
-                );
-              }
-              // Check if it's a subheading
-              if (section.startsWith("### ")) {
-                return (
-                  <Text
-                    key={index}
-                    className="text-gray-900 text-lg font-bold mt-4 mb-2"
-                  >
-                    {section.replace("### ", "")}
-                  </Text>
-                );
-              }
-              // Regular paragraph
-              return (
-                <Text
-                  key={index}
-                  className="text-gray-700 text-base leading-7 mb-4"
-                >
-                  {section}
-                </Text>
-              );
-            })}
-          </View>
-
-          {/* Tags */}
-          <View className="mb-8 pb-8 border-b border-gray-100">
-            <Text className="text-gray-900 font-bold text-lg mb-3">Tags</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {blog.tags.map((tag, index) => (
-                <View key={index} className="bg-gray-100 px-3 py-2 rounded-lg">
-                  <Text className="text-gray-700 text-sm font-medium">
-                    #{tag}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Related Blogs */}
-          {relatedBlogs.length > 0 && (
-            <View className="mb-6">
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-gray-900 font-bold text-xl">
-                  Related Articles
-                </Text>
-                <TouchableOpacity
-                  onPress={() => router.push("/blog")}
-                  className="flex-row items-center"
-                >
-                  <Text className="text-purple-600 font-semibold text-sm mr-1">
-                    View All
-                  </Text>
-                  <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12 }}
-              >
-                {relatedBlogs.map((relatedBlog) => (
-                  <TouchableOpacity
-                    key={relatedBlog.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/blog/${relatedBlog.slug}`)}
-                    className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-                    style={{
-                      width: 280,
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 8,
-                      elevation: 2,
-                    }}
-                  >
-                    <Image
-                      source={{ uri: relatedBlog.image }}
-                      className="w-full h-36"
-                      resizeMode="cover"
-                    />
-                    <View className="p-3">
-                      <View className="bg-purple-50 px-2 py-1 rounded-md self-start mb-2">
-                        <Text className="text-purple-600 text-xs font-semibold">
-                          {relatedBlog.category}
-                        </Text>
-                      </View>
-                      <Text
-                        className="text-gray-900 font-bold text-base mb-2"
-                        numberOfLines={2}
-                      >
-                        {relatedBlog.title}
-                      </Text>
-                      <Text
-                        className="text-gray-600 text-sm mb-3"
-                        numberOfLines={2}
-                      >
-                        {relatedBlog.excerpt}
-                      </Text>
-                      <View className="flex-row items-center justify-between pt-2 border-t border-gray-50">
-                        <Text className="text-gray-400 text-xs">
-                          {relatedBlog.readTime}
-                        </Text>
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="heart-outline"
-                            size={14}
-                            color="#9ca3af"
-                          />
-                          <Text className="text-gray-400 text-xs ml-1">
-                            {relatedBlog.likes}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+        {/* Related Articles Section (Optional) */}
+        <View className="px-6 py-6 bg-gray-50 mt-6">
+          <Text className="text-gray-900 font-bold text-lg mb-4">
+            More from {blog.category}
+          </Text>
+          <Text className="text-gray-500 text-sm">
+            Related articles will appear here
+          </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

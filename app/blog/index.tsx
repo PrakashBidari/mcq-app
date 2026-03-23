@@ -1,33 +1,65 @@
 // app/blog/index.tsx
+import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Import blog data
-import blogsData from "@/assets/data/blogs.json";
 
 export default function BlogListScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [blogsData, setBlogsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch blogs from API
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    try {
+      setIsLoading(true);
+      console.log("Fetching from:", `${API_URL}/blogs`); // ← Add this
+      const response = await fetch(`${API_URL}/blogs`);
+      const data = await response.json();
+
+      if (data.success) {
+        setBlogsData(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pull to refresh
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchBlogs();
+    setRefreshing(false);
+  };
 
   // Get unique categories
   const categories = [
     "All",
-    ...Array.from(new Set(blogsData.map((blog) => blog.category))),
+    ...Array.from(new Set(blogsData.map((blog: any) => blog.category))),
   ];
 
   // Filter blogs
-  const filteredBlogs = blogsData.filter((blog) => {
+  const filteredBlogs = blogsData.filter((blog: any) => {
     const matchesSearch =
       blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
@@ -35,6 +67,15 @@ export default function BlogListScreen() {
       selectedCategory === "All" || blog.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#7c3aed" />
+        <Text className="text-gray-600 mt-4 text-base">Loading blogs...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -85,7 +126,7 @@ export default function BlogListScreen() {
           const count =
             category === "All"
               ? blogsData.length
-              : blogsData.filter((b) => b.category === category).length;
+              : blogsData.filter((b: any) => b.category === category).length;
 
           return (
             <TouchableOpacity
@@ -134,6 +175,14 @@ export default function BlogListScreen() {
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#7c3aed"]}
+            tintColor="#7c3aed"
+          />
+        }
       >
         <Text className="text-gray-500 text-sm mb-4">
           {filteredBlogs.length} article{filteredBlogs.length !== 1 ? "s" : ""}{" "}
@@ -142,11 +191,19 @@ export default function BlogListScreen() {
 
         {filteredBlogs.length > 0 ? (
           <View className="flex-row flex-wrap gap-3">
-            {filteredBlogs.map((blog) => (
+            {filteredBlogs.map((blog: any) => (
               <View key={blog.id} style={{ width: "48.5%" }}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => router.push(`/blog/${blog.slug}`)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/blog/[slug]",
+                      params: {
+                        slug: blog.slug,
+                        blog: JSON.stringify(blog),
+                      },
+                    })
+                  }
                   className="bg-white rounded-2xl overflow-hidden border border-gray-100"
                   style={{
                     shadowColor: "#000",

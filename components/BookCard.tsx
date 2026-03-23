@@ -61,14 +61,8 @@ const BookCard = ({ book, index, categories = [] }: BookCardProps) => {
           router.push({
             pathname: "/book/[id]",
             params: {
-              id: book.id,
-              title: book.title,
-              author: book.author,
-              cover: book.cover,
-              duration: book.duration,
-              difficulty: book.difficulty,
-              rating: book.rating,
-              description: book.description,
+              id: book.id.toString(),
+              book: JSON.stringify(book), // ← Fixed: Pass full book object
             },
           })
         }
