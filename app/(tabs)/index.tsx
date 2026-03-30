@@ -1,5 +1,3 @@
-import blogsData from "@/assets/data/blogs.json";
-import BookCard from "@/components/BookCard";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -8,161 +6,351 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Dimensions,
   Image,
   ImageBackground,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import * as Animatable from "react-native-animatable";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Swiper from "react-native-swiper";
 
-// Map category names → icon & accent color
-const CATEGORY_META: Record<string, { icon: string; color: string }> = {
-  Design: { icon: "color-palette-outline", color: "#7c3aed" },
-  Development: { icon: "code-slash-outline", color: "#2563eb" },
-  Business: { icon: "briefcase-outline", color: "#059669" },
-  Marketing: { icon: "megaphone-outline", color: "#dc2626" },
-  Photography: { icon: "camera-outline", color: "#ea580c" },
-  Music: { icon: "musical-notes-outline", color: "#0891b2" },
-};
-const DEFAULT_META = { icon: "grid-outline", color: "#6b7280" };
+const { width: SW } = Dimensions.get("window");
 
+// ─── Avatar with initials ─────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  "#7c3aed",
+  "#2563eb",
+  "#059669",
+  "#ef4444",
+  "#ea580c",
+  "#0891b2",
+  "#7c3aed",
+];
+function getAvatarColor(name: string) {
+  const idx = (name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[idx];
+}
+function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+  const letter = (name ?? "U")[0].toUpperCase();
+  const bg = getAvatarColor(name ?? "U");
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 4,
+        backgroundColor: bg,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 2.5,
+        borderColor: "rgba(255,255,255,0.5)",
+      }}
+    >
+      <Text style={{ color: "#fff", fontSize: size * 0.38, fontWeight: "900" }}>
+        {letter}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Category Chip (circle icon style) ───────────────────────────────────────
+const CAT_COLORS: Record<string, string[]> = {
+  Design: ["#f472b6", "#ec4899"],
+  Development: ["#60a5fa", "#2563eb"],
+  Business: ["#34d399", "#059669"],
+  Marketing: ["#f87171", "#dc2626"],
+  Photography: ["#fb923c", "#ea580c"],
+  Music: ["#38bdf8", "#0891b2"],
+};
+
+// ─── Book Card ────────────────────────────────────────────────────────────────
+function BookCard({
+  book,
+  index,
+  onPress,
+}: {
+  book: any;
+  index: number;
+  onPress: () => void;
+}) {
+  const diffColor =
+    book.difficulty === "Beginner"
+      ? "#10b981"
+      : book.difficulty === "Advanced"
+        ? "#ef4444"
+        : "#f59e0b";
+  return (
+    <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
+      <TouchableOpacity
+        activeOpacity={0.92}
+        onPress={onPress}
+        style={styles.bookCard}
+      >
+        {/* Cover */}
+        <View style={styles.bookImageWrap}>
+          <Image
+            source={{ uri: book.cover }}
+            style={styles.bookImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(10,4,30,0.82)"]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          {/* Top badges */}
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={11} color="#f59e0b" />
+            <Text style={styles.ratingTxt}>
+              {parseFloat(book.rating).toFixed(1)}
+            </Text>
+          </View>
+          {book.difficulty ? (
+            <View style={[styles.diffBadge, { backgroundColor: diffColor }]}>
+              <Text style={styles.diffBadgeTxt}>{book.difficulty}</Text>
+            </View>
+          ) : null}
+          {/* Category on image bottom */}
+          <View style={styles.bookCatOnImg}>
+            <Text style={styles.bookCatOnImgTxt}>{book.category}</Text>
+          </View>
+        </View>
+        {/* Info */}
+        <View style={styles.bookInfo}>
+          <Text style={styles.bookTitle} numberOfLines={1}>
+            {book.title}
+          </Text>
+          <View style={styles.bookAuthorRow}>
+            <View style={styles.bookAuthorDot} />
+            <Text style={styles.bookAuthor} numberOfLines={1}>
+              {book.author}
+            </Text>
+          </View>
+          <View style={styles.bookFootRow}>
+            <View style={styles.bookDurationPill}>
+              <Ionicons name="time-outline" size={11} color="#7c3aed" />
+              <Text style={styles.bookDurationTxt}>{book.duration}</Text>
+            </View>
+            <View style={styles.bookStudentsPill}>
+              <Ionicons name="people-outline" size={11} color="#059669" />
+              <Text style={styles.bookStudentsTxt}>{book.students ?? "—"}</Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animatable.View>
+  );
+}
+
+const CAT_ICONS: Record<string, string> = {
+  Design: "color-palette-outline",
+  Development: "code-slash-outline",
+  Business: "briefcase-outline",
+  Marketing: "megaphone-outline",
+  Photography: "camera-outline",
+  Music: "musical-notes-outline",
+};
+function CategoryItem({
+  cat,
+  index,
+  onPress,
+}: {
+  cat: any;
+  index: number;
+  onPress: () => void;
+}) {
+  const colors = CAT_COLORS[cat.name] ?? [cat.color ?? "#7c3aed", "#4f46e5"];
+  const icon = (CAT_ICONS[cat.name] ?? cat.icon ?? "grid-outline") as any;
+  return (
+    <Animatable.View animation="fadeInUp" delay={index * 60} duration={400}>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={onPress}
+        style={styles.catItem}
+      >
+        <LinearGradient
+          colors={colors as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.catCircle}
+        >
+          <Ionicons name={icon} size={26} color="#fff" />
+        </LinearGradient>
+        <Text style={styles.catLabel} numberOfLines={1}>
+          {cat.name}
+        </Text>
+      </TouchableOpacity>
+    </Animatable.View>
+  );
+}
+
+// ─── Blog Card ────────────────────────────────────────────────────────────────
+function BlogCard({
+  blog,
+  index,
+  onPress,
+}: {
+  blog: any;
+  index: number;
+  onPress: () => void;
+}) {
+  return (
+    <Animatable.View animation="fadeInUp" delay={index * 55} duration={400}>
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={onPress}
+        style={styles.blogCard}
+      >
+        {/* Left: fixed size image */}
+        <View style={styles.blogImgWrap}>
+          <Image
+            source={{ uri: blog.image }}
+            style={styles.blogCardImg}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={["transparent", "rgba(10,4,30,0.6)"]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          {/* <View style={styles.blogCatBadge}>
+            <Text style={styles.blogCatTxt}>{blog.category}</Text>
+          </View> */}
+        </View>
+
+        {/* Right: body */}
+        <View style={styles.blogCardBody}>
+          <Text style={styles.blogCardTitle} numberOfLines={2}>
+            {blog.title}
+          </Text>
+          <Text style={styles.blogCardExcerpt} numberOfLines={2}>
+            {blog.excerpt}
+          </Text>
+          <View style={styles.blogCardMeta}>
+            <View style={styles.blogMetaItem}>
+              <Ionicons name="time-outline" size={12} color="#a89ec0" />
+              <Text style={styles.blogCardMetaTxt}>{blog.readTime}</Text>
+            </View>
+            <View style={styles.metaDot} />
+            <View style={styles.blogMetaItem}>
+              <Ionicons name="heart-outline" size={12} color="#a89ec0" />
+              <Text style={styles.blogCardMetaTxt}>{blog.likes}</Text>
+            </View>
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              <View style={styles.blogArrow}>
+                <Ionicons name="arrow-forward" size={13} color="#7c3aed" />
+              </View>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animatable.View>
+  );
+}
+
+// ─── Achievement Card ─────────────────────────────────────────────────────────
+function AchievementCard({ item, index }: { item: any; index: number }) {
+  return (
+    <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
+      <View style={[styles.achieveCard, { shadowColor: item.color }]}>
+        <View
+          style={[
+            styles.achieveIconBox,
+            { backgroundColor: item.color + "18" },
+          ]}
+        >
+          <Ionicons name={item.icon as any} size={22} color={item.color} />
+        </View>
+        <Text style={styles.achieveTitle}>{item.title}</Text>
+        <Text style={styles.achieveDesc}>{item.description}</Text>
+        <View style={styles.achieveBarBg}>
+          <View
+            style={[
+              styles.achieveBarFill,
+              {
+                width: `${item.progress}%` as any,
+                backgroundColor: item.color,
+              },
+            ]}
+          />
+        </View>
+        <Text style={[styles.achievePct, { color: item.color }]}>
+          {item.progress}%
+        </Text>
+      </View>
+    </Animatable.View>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Index() {
   const { colors } = useTheme();
   const router = useRouter();
-  // Add this at the top of your component (you likely already import useAuth)
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
-  // ─── Add this state + fetch at the top of your Index component ───
-  const [topCategories, setTopCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [allBooks, setAllBooks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-
-  useEffect(() => {}, []);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchCategoryData(); // Pass categoryId if needed, or remove parameter
+    fetchAll();
   }, []);
 
-  const fetchCategoryData = () => {
-    // Fetch categories
-    fetch(`${API_URL}/categories`)
+  const fetchAll = () => {
+    setLoading(true);
+    const p1 = fetch(`${API_URL}/categories`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setTopCategories(data.data.slice(0, 2));
+      .then((d) => {
+        if (d.success) setCategories(d.data);
       })
-      .catch((e) => console.error("Failed to load categories", e));
-
-    // Fetch books (same endpoint as study page)
-    fetch(`${API_URL}/books`)
+      .catch(() => {});
+    const p2 = fetch(`${API_URL}/books`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setAllBooks(data.data);
+      .then((d) => {
+        if (d.success) setAllBooks(d.data);
       })
-      .catch((e) => console.error("Failed to load books", e));
+      .catch(() => {});
+    const p3 = fetch(`${API_URL}/blogs`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setBlogs(d.data.slice(0, 5));
+      })
+      .catch(() => {});
+    Promise.all([p1, p2, p3]).finally(() => setLoading(false));
   };
-
-  // const allBooks = [
-  //   {
-  //     id: 1,
-  //     title: "The Design of Everyday Things",
-  //     author: "Don Norman",
-  //     cover:
-  //       "https://images.unsplash.com/photo-1589998059171-988d887df646?w=400",
-  //     rating: 4.8,
-  //     pages: 368,
-  //     duration: "12h 30m",
-  //     categoryId: 1,
-  //     category: "Design",
-  //     difficulty: "Intermediate",
-  //     students: 12400,
-  //   },
-  //   {
-  //     id: 2,
-  //     title: "Refactoring UI",
-  //     author: "Adam Wathan & Steve Schoger",
-  //     cover: "https://images.unsplash.com/photo-1558655146-d09347e92766?w=400",
-  //     rating: 4.9,
-  //     pages: 250,
-  //     duration: "8h 45m",
-  //     categoryId: 1,
-  //     category: "Design",
-  //     difficulty: "Beginner",
-  //     students: 18200,
-  //   },
-  //   {
-  //     id: 3,
-  //     title: "Design Systems Handbook",
-  //     author: "Marco Suarez",
-  //     cover:
-  //       "https://images.unsplash.com/photo-1610465299996-30f240ac2b1c?w=400",
-  //     rating: 4.7,
-  //     pages: 420,
-  //     duration: "15h 20m",
-  //     categoryId: 1,
-  //     category: "Design",
-  //     difficulty: "Advanced",
-  //     students: 9800,
-  //   },
-  //   {
-  //     id: 4,
-  //     title: "Clean Code",
-  //     author: "Robert C. Martin",
-  //     cover:
-  //       "https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400",
-  //     rating: 4.9,
-  //     pages: 464,
-  //     duration: "16h 30m",
-  //     categoryId: 2,
-  //     category: "Development",
-  //     difficulty: "Intermediate",
-  //     students: 25600,
-  //   },
-  // ];
-
-  // ── Derive unique categories from allBooks, take only 2 ──
-  // const topCategories = Object.values(
-  //   allBooks.reduce((acc: Record<number, any>, book) => {
-  //     if (!acc[book.categoryId]) {
-  //       acc[book.categoryId] = {
-  //         id: book.categoryId,
-  //         name: book.category,
-  //         count: 1,
-  //         ...(CATEGORY_META[book.category] ?? DEFAULT_META),
-  //       };
-  //     } else {
-  //       acc[book.categoryId].count++;
-  //     }
-  //     return acc;
-  //   }, {}),
-  // ).slice(0, 2);
 
   const heroSlides = [
     {
       id: 1,
-      title: "Master Your Skills",
-      subtitle: "Learn from the best courses",
+      title: "Master Your\nSkills Today",
+      subtitle: "Learn from world-class instructors",
       image:
         "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800",
       type: "learning",
     },
     {
       id: 2,
-      title: "Test Your Knowledge",
-      subtitle: "Challenge yourself with quizzes",
+      title: "Test Your\nKnowledge",
+      subtitle: "Challenge yourself with smart quizzes",
       image:
         "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800",
       type: "quiz",
     },
     {
       id: 3,
-      title: "Achieve Excellence",
-      subtitle: "Get certified and grow",
+      title: "Achieve\nExcellence",
+      subtitle: "Get certified and grow your career",
       image:
         "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
       type: "learning",
@@ -197,43 +385,47 @@ export default function Index() {
     {
       id: 4,
       title: "Streak Champion",
-      description: "30 days learning streak",
+      description: "30 day streak",
       progress: 70,
       icon: "flame-outline",
-      color: "#dc2626",
+      color: "#ef4444",
     },
   ];
 
-  const latestBlogs = blogsData
-    .sort(
-      (a, b) =>
-        new Date(b.publishedDate).getTime() -
-        new Date(a.publishedDate).getTime(),
-    )
-    .slice(0, 4);
-
-  const fetchData = async () => {
-    try {
-      fetchCategoryData();
-      // Simulate an API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
+  const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Learner";
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchData();
+    fetchAll();
+    await new Promise((r) => setTimeout(r, 900));
     setRefreshing(false);
   };
 
+  const goToBook = (book: any) => {
+    router.push({
+      pathname: "/book/[id]",
+      params: {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        description: book.description ?? "",
+        rating: book.rating,
+        pages: book.pages ?? "",
+        duration: book.duration ?? "",
+        category: book.category ?? "",
+        difficulty: book.difficulty ?? "",
+      },
+    });
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={{ flex: 1, backgroundColor: "#F5F3FF" }}>
+      <StatusBar barStyle="light-content" />
+
       <ScrollView
-        style={styles.flex1}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 110 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -243,757 +435,970 @@ export default function Index() {
           />
         }
       >
-        {/* ─── Header ─── */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={styles.flex1}>
-              <Text style={styles.welcomeText}>Welcome back</Text>
-              <Text style={styles.nameText}>
-                {user?.name ?? user?.email ?? "Welcome"}
-              </Text>
+        {/* ═══ PURPLE HEADER ════════════════════════ */}
+        <LinearGradient
+          colors={["#6d28d9", "#7c3aed", "#8b5cf6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top + 18 }]}
+        >
+          {/* Subtle blobs */}
+          <View style={styles.blob1} />
+          <View style={styles.blob2} />
+
+          {/* Top row: greeting + avatar */}
+          <View style={styles.topRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.hiTxt}>Hi {displayName},</Text>
+              <Text style={styles.subTxt}>Let's Start Learning</Text>
             </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.notifButton}>
-                <Ionicons
-                  name="notifications-outline"
-                  size={22}
-                  color="#374151"
-                />
-                <View style={styles.notifBadge}>
-                  <Text style={styles.notifBadgeText}>3</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.avatarWrapper}>
-                <View style={styles.avatarImageWrapper}>
-                  <Image
-                    source={{ uri: "https://i.pravatar.cc/150?img=12" }}
-                    style={styles.avatarImage}
-                  />
-                </View>
-                <View style={styles.onlineDot} />
-              </TouchableOpacity>
-            </View>
+            <Avatar name={displayName} size={46} />
           </View>
 
+          {/* Search bar */}
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color="#9CA3AF" />
+            <Ionicons name="search-outline" size={18} color="#9ca3af" />
             <TextInput
-              placeholder="Search courses, books, quizzes..."
-              placeholderTextColor="#9CA3AF"
+              placeholder="Search for Topics, Courses"
+              placeholderTextColor="#9ca3af"
               style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-            <TouchableOpacity style={styles.searchButton}>
-              <Ionicons name="options-outline" size={18} color="white" />
+            <TouchableOpacity style={styles.filterBtn}>
+              <Ionicons name="options-outline" size={18} color="#7c3aed" />
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* ─── Hero Carousel ─── */}
-        <View style={styles.heroCarousel}>
-          <Swiper
-            autoplay
-            autoplayTimeout={5}
-            loop
-            showsPagination
-            paginationStyle={styles.heroPagination}
-            dotStyle={styles.heroDot}
-            activeDotStyle={styles.heroActiveDot}
+        {/* ═══ WHITE BODY ════════════════════════════ */}
+        <View style={styles.body}>
+          {/* ── Hero Swiper ──────────────────────── */}
+          <Animatable.View
+            animation="fadeIn"
+            duration={600}
+            style={styles.swiperSec}
           >
-            {heroSlides.map((slide) => (
-              <View key={slide.id} style={styles.heroSlideWrapper}>
-                <View style={styles.heroSlideInner}>
-                  <ImageBackground
-                    source={{ uri: slide.image }}
-                    style={styles.flex1}
-                    resizeMode="cover"
-                  >
-                    <LinearGradient
-                      colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.8)"]}
-                      style={styles.heroGradient}
+            <View style={styles.swiperWrap}>
+              <Swiper
+                autoplay
+                autoplayTimeout={4.5}
+                loop
+                showsPagination
+                paginationStyle={{ bottom: 12 }}
+                dotStyle={styles.dot}
+                activeDotStyle={styles.activeDot}
+              >
+                {heroSlides.map((slide) => (
+                  <View key={slide.id} style={styles.slide}>
+                    <ImageBackground
+                      source={{ uri: slide.image }}
+                      style={{ flex: 1 }}
+                      resizeMode="cover"
                     >
-                      <View style={styles.heroContent}>
-                        <View style={styles.heroBadge}>
-                          <Text style={styles.heroBadgeText}>
+                      <LinearGradient
+                        colors={["rgba(109,40,217,0.18)", "rgba(15,5,40,0.88)"]}
+                        style={styles.slideGrad}
+                      >
+                        <View style={styles.slideBadge}>
+                          <Text style={styles.slideBadgeTxt}>
                             {slide.type === "quiz"
-                              ? "🎯 Quiz Mode"
-                              : "📚 Learning Path"}
+                              ? "🎯  QUIZ"
+                              : "📚  LEARNING"}
                           </Text>
                         </View>
-                        <Text style={styles.heroTitle}>{slide.title}</Text>
-                        <Text style={styles.heroSubtitle}>
-                          {slide.subtitle}
-                        </Text>
+                        <Text style={styles.slideTitle}>{slide.title}</Text>
+                        <Text style={styles.slideSub}>{slide.subtitle}</Text>
                         <TouchableOpacity
-                          style={styles.heroButton}
+                          style={styles.slideBtn}
                           onPress={() =>
                             slide.type === "quiz"
                               ? router.push("/(tabs)/quiz")
                               : router.push("/(tabs)/study")
                           }
                         >
-                          <Text style={styles.heroButtonText}>
-                            {slide.type === "quiz" ? "Start Now" : "Explore"}
+                          <Text style={styles.slideBtnTxt}>
+                            {slide.type === "quiz" ? "Start Quiz" : "Explore"}
                           </Text>
                           <Ionicons
                             name="arrow-forward"
-                            size={16}
+                            size={14}
                             color="#7c3aed"
                           />
                         </TouchableOpacity>
-                      </View>
-                    </LinearGradient>
-                  </ImageBackground>
-                </View>
-              </View>
-            ))}
-          </Swiper>
-        </View>
+                      </LinearGradient>
+                    </ImageBackground>
+                  </View>
+                ))}
+              </Swiper>
+            </View>
+          </Animatable.View>
 
-        {/* ─── Top Categories (dynamic, 2 from API) ─── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Top Categories</Text>
+          {/* ── Categories ───────────────────────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={110}
+            duration={500}
+            style={styles.sec}
+          >
+            <View style={styles.secHdr}>
+              <Text style={styles.secTitle}>Categories</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <View
+                style={{
+                  height: 100,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator color="#7c3aed" />
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingLeft: 20,
+                  paddingRight: 8,
+                  gap: 14,
+                }}
+              >
+                {categories.map((cat: any, i: number) => (
+                  <CategoryItem
+                    key={cat.id}
+                    cat={cat}
+                    index={i}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(tabs)/study",
+                        params: { categoryId: cat.id, categoryName: cat.name },
+                      })
+                    }
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </Animatable.View>
+
+          {/* ── Ad Banner — Study Library ──────────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={185}
+            duration={500}
+            style={styles.adSec}
+          >
             <TouchableOpacity
-              style={styles.seeAllButton}
+              activeOpacity={0.92}
               onPress={() => router.push("/(tabs)/study")}
             >
-              <Text style={styles.seeAllText}>View All</Text>
-              <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.categoryRow}>
-            {topCategories.map((cat: any, index: number) => (
-              <TouchableOpacity
-                key={cat.id}
-                activeOpacity={0.85}
-                style={[
-                  styles.categoryCardWrapper,
-                  index === 0
-                    ? styles.categoryCardLeft
-                    : styles.categoryCardRight,
-                ]}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(tabs)/study",
-                    params: { categoryId: cat.id, categoryName: cat.name },
-                  })
-                }
-              >
-                <LinearGradient
-                  colors={[cat.color, cat.color + "cc"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[
-                    styles.categoryCard,
-                    {
-                      shadowColor: cat.color,
-                      shadowOffset: { width: 0, height: 6 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 10,
-                      elevation: 6,
-                    },
-                  ]}
-                >
-                  <View style={styles.categoryArrow}>
+              <View style={styles.adBanner}>
+                {/* Decorative blobs */}
+                <View style={styles.adBlob1} />
+                <View style={styles.adBlob2} />
+                {/* Left icon column */}
+                <View style={styles.adIconStack}>
+                  <View style={styles.adIconTop}>
+                    <Ionicons name="book-outline" size={22} color="#7c3aed" />
+                  </View>
+                  <View style={styles.adIconBottom}>
                     <Ionicons
-                      name="arrow-forward"
-                      size={14}
-                      color="rgba(255,255,255,0.9)"
+                      name="library-outline"
+                      size={22}
+                      color="#059669"
                     />
                   </View>
-                  <View style={styles.categoryIconCircle}>
-                    <Ionicons name={cat.icon as any} size={28} color="white" />
+                </View>
+                {/* Text */}
+                <View style={{ flex: 1, marginHorizontal: 16 }}>
+                  <View style={styles.adTag}>
+                    <Text style={styles.adTagTxt}>📖 STUDY LIBRARY</Text>
                   </View>
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                  <Text style={styles.categoryCount}>
-                    {
-                      allBooks.filter((b: any) => b.categoryId === cat.id)
-                        .length
-                    }{" "}
-                    books
+                  <Text style={styles.adTitle}>
+                    Unlock 100+{"\n"}Premium Books
                   </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* ─── Popular Courses Slider ─── */}
-        <View style={styles.sectionNoHPad}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Popular Courses</Text>
-            <TouchableOpacity
-              style={styles.seeAllButton}
-              onPress={() => router.push("/(tabs)/study")}
-            >
-              <Text style={styles.seeAllText}>See All</Text>
-              <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.coursesSwiper}>
-            <Swiper
-              autoplay
-              autoplayTimeout={5}
-              loop
-              showsPagination
-              horizontal
-              removeClippedSubviews={false}
-              paginationStyle={styles.coursesPagination}
-              dotStyle={styles.coursesDot}
-              activeDotStyle={styles.coursesActiveDot}
-            >
-              {Array.from(
-                { length: Math.ceil(allBooks.length / 2) },
-                (_, i) => (
-                  <View key={i} style={styles.coursesSlide}>
-                    {allBooks.slice(i * 2, i * 2 + 2).map((book, idx) => (
-                      <View key={book.id || idx} style={styles.flex1}>
-                        <BookCard book={book} index={i * 2 + idx} />
-                      </View>
-                    ))}
-                  </View>
-                ),
-              )}
-            </Swiper>
-          </View>
-        </View>
-
-        {/* ─── Achievements ─── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Achievements</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
-              <Text style={styles.seeAllText}>View All</Text>
-              <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.achievementsScroll}
-            contentContainerStyle={styles.achievementsScrollContent}
-          >
-            {achievements.map((a) => (
-              <View
-                key={a.id}
-                style={[
-                  styles.achievementCard,
-                  {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.achievementIcon,
-                    { backgroundColor: a.color + "15" },
-                  ]}
-                >
-                  <Ionicons name={a.icon as any} size={24} color={a.color} />
+                  <Text style={styles.adSub}>Design, Dev, Business & more</Text>
                 </View>
-                <Text style={styles.achievementTitle}>{a.title}</Text>
-                <Text style={styles.achievementDesc}>{a.description}</Text>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${a.progress}%` as any,
-                        backgroundColor: a.color,
-                      },
-                    ]}
-                  />
+                {/* CTA */}
+                <View style={styles.adCta}>
+                  <LinearGradient
+                    colors={["#7c3aed", "#6d28d9"]}
+                    style={styles.adCtaBtn}
+                  >
+                    <Text style={styles.adCtaTxt}>Browse</Text>
+                    <Ionicons name="arrow-forward" size={13} color="#fff" />
+                  </LinearGradient>
                 </View>
-                <Text style={styles.progressLabel}>{a.progress}% Complete</Text>
               </View>
-            ))}
-          </ScrollView>
-        </View>
+            </TouchableOpacity>
+          </Animatable.View>
 
-        {/* ─── Quiz CTA ─── */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => router.push("/(tabs)/quiz")}
+          {/* ── This Week (Popular Books) ─────────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={80}
+            duration={500}
+            style={styles.sec}
           >
-            <View style={styles.quizBannerWrapper}>
-              <ImageBackground
-                source={{
-                  uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+            <View style={styles.secHdr}>
+              <Text style={styles.secTitle}>This week</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <View
+                style={{
+                  height: 200,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-                style={styles.quizBannerBg}
-                resizeMode="cover"
               >
-                <LinearGradient
-                  colors={["rgba(124,58,237,0.95)", "rgba(37,99,235,0.95)"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.quizGradient}
+                <ActivityIndicator color="#7c3aed" />
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingLeft: 20,
+                  paddingRight: 8,
+                  gap: 16,
+                }}
+              >
+                {allBooks.slice(0, 8).map((book: any, i: number) => (
+                  <BookCard
+                    key={book.id}
+                    book={book}
+                    index={i}
+                    onPress={() => goToBook(book)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </Animatable.View>
+
+          {/* ── Achievements ─────────────────────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={140}
+            duration={500}
+            style={styles.sec}
+          >
+            <View style={styles.secHdr}>
+              <Text style={styles.secTitle}>Achievements</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAll}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingLeft: 20,
+                paddingRight: 8,
+                gap: 14,
+              }}
+            >
+              {achievements.map((a, i) => (
+                <AchievementCard key={a.id} item={a} index={i} />
+              ))}
+            </ScrollView>
+          </Animatable.View>
+
+          {/* ── Quiz Banner ─────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={170}
+            duration={500}
+            style={styles.bannerSec}
+          >
+            <TouchableOpacity
+              activeOpacity={0.92}
+              onPress={() => router.push("/(tabs)/quiz")}
+            >
+              <View style={styles.quizBanner}>
+                <ImageBackground
+                  source={{
+                    uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800",
+                  }}
+                  style={{ width: "100%" }}
+                  resizeMode="cover"
                 >
-                  <View style={styles.quizContent}>
-                    <View style={styles.quizTextBlock}>
-                      <View style={styles.quizBadge}>
-                        <Text style={styles.quizBadgeText}>
-                          🎯 TRENDING NOW
-                        </Text>
+                  <LinearGradient
+                    colors={["rgba(109,40,217,0.88)", "rgba(124,58,237,0.97)"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.quizGrad}
+                  >
+                    <View style={styles.qDecor1} />
+                    <View style={styles.qDecor2} />
+                    <View style={{ flex: 1, marginRight: 18 }}>
+                      <View style={styles.quizTag}>
+                        <Text style={styles.quizTagTxt}>🎯 CHALLENGE</Text>
                       </View>
-                      <Text style={styles.quizTitle}>Test Your Knowledge</Text>
-                      <Text style={styles.quizSubtitle}>
-                        Challenge yourself with MCQ quizzes
+                      <Text style={styles.quizTitle}>
+                        Test Your{"\n"}Knowledge
                       </Text>
-                      <TouchableOpacity style={styles.quizButton}>
+                      <Text style={styles.quizSub}>
+                        Smart MCQ quizzes across all topics
+                      </Text>
+                      <View style={styles.quizBtn}>
                         <Ionicons
                           name="play-circle"
-                          size={18}
+                          size={16}
                           color="#7c3aed"
                         />
-                        <Text style={styles.quizButtonText}>Start Quiz</Text>
-                      </TouchableOpacity>
+                        <Text style={styles.quizBtnTxt}>Start Quiz</Text>
+                      </View>
                     </View>
-                    <View style={styles.quizIconBox}>
-                      <Ionicons
-                        name="help-circle-outline"
-                        size={40}
-                        color="white"
-                      />
+                    <View style={styles.quizIconOuter}>
+                      <View style={styles.quizIconInner}>
+                        <Ionicons
+                          name="help-circle-outline"
+                          size={38}
+                          color="#fff"
+                        />
+                      </View>
                     </View>
-                  </View>
-                </LinearGradient>
-              </ImageBackground>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* ─── Blog ─── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Latest from Blog</Text>
-            <TouchableOpacity
-              style={styles.seeAllButton}
-              onPress={() => router.push("/blog")}
-            >
-              <Text style={styles.seeAllText}>See More</Text>
-              <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.grid2col}>
-            {latestBlogs.map((blog, index) => (
-              <View
-                key={blog.id}
-                style={[
-                  styles.grid2colItem,
-                  index % 2 === 0 ? styles.gridItemLeft : styles.gridItemRight,
-                  index < latestBlogs.length - 2 ? styles.gridItemBottom : null,
-                ]}
-              >
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => router.push(`/blog/${blog.slug}`)}
-                  style={[
-                    styles.blogCard,
-                    {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 8,
-                      elevation: 2,
-                    },
-                  ]}
-                >
-                  <View style={styles.blogImageWrapper}>
-                    <Image
-                      source={{ uri: blog.image }}
-                      style={styles.blogImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={styles.blogBody}>
-                    <View style={styles.blogCategoryBadge}>
-                      <Text style={styles.blogCategoryText}>
-                        {blog.category}
-                      </Text>
-                    </View>
-                    <Text style={styles.blogTitle} numberOfLines={2}>
-                      {blog.title}
-                    </Text>
-                    <Text style={styles.blogExcerpt} numberOfLines={2}>
-                      {blog.excerpt}
-                    </Text>
-                    <View style={styles.blogMeta}>
-                      <Text style={styles.blogMetaText}>{blog.readTime}</Text>
-                      <Text style={styles.blogMetaText}>
-                        {blog.publishedDate}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  </LinearGradient>
+                </ImageBackground>
               </View>
-            ))}
-          </View>
+            </TouchableOpacity>
+          </Animatable.View>
+
+          {/* ── Latest Articles (dynamic) ─────────── */}
+          <Animatable.View
+            animation="fadeInUp"
+            delay={200}
+            duration={500}
+            style={styles.sec}
+          >
+            <View style={styles.secHdr}>
+              <Text style={styles.secTitle}>Latest Articles</Text>
+              <TouchableOpacity onPress={() => router.push("/blog")}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            </View>
+
+            {loading ? (
+              <View
+                style={{
+                  height: 120,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator color="#7c3aed" />
+              </View>
+            ) : blogs.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Ionicons
+                  name="document-text-outline"
+                  size={34}
+                  color="#c4b8e8"
+                />
+                <Text style={styles.emptyTxt}>No articles yet</Text>
+              </View>
+            ) : (
+              <View style={{ paddingHorizontal: 20, gap: 14 }}>
+                {blogs.map((blog: any, i: number) => (
+                  <BlogCard
+                    key={blog.id}
+                    blog={blog}
+                    index={i}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/blog/[slug]",
+                        params: { slug: blog.slug, blog: JSON.stringify(blog) },
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            )}
+          </Animatable.View>
         </View>
       </ScrollView>
     </View>
   );
 }
 
-const GRID_GAP = 12;
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flex1: { flex: 1 },
-  scrollContent: { paddingBottom: 100 },
-
+  // ── Header ──
   header: {
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 24,
-    paddingTop: 56,
-    paddingBottom: 16,
-  },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  welcomeText: { color: "#6b7280", fontSize: 14, fontWeight: "500" },
-  nameText: { color: "#111827", fontSize: 24, fontWeight: "700", marginTop: 4 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 12 },
-  notifButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: "#f9fafb",
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notifBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: "#7c3aed",
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  notifBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
-  avatarWrapper: { position: "relative" },
-  avatarImageWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 26,
     overflow: "hidden",
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  avatarImage: { width: 44, height: 44 },
-  onlineDot: {
+  blob1: {
     position: "absolute",
-    bottom: -2,
-    right: -2,
-    backgroundColor: "#22c55e",
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: "#ffffff",
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -60,
+    right: -50,
+  },
+  blob2: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: 20,
+    left: -30,
+  },
+  topRow: { flexDirection: "row", alignItems: "center", marginBottom: 22 },
+  hiTxt: {
+    color: "#fff",
+    fontSize: 26,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  subTxt: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 16,
+    fontWeight: "500",
+    marginTop: 3,
   },
   searchBar: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, color: "#111827" },
-  searchButton: {
-    width: 36,
-    height: 36,
-    backgroundColor: "#7c3aed",
-    borderRadius: 8,
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: "#1e0f4e" },
+  filterBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#F5F3FF",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  heroCarousel: { height: 260, marginBottom: 24 },
-  heroSlideWrapper: { flex: 1, paddingHorizontal: 24 },
-  heroSlideInner: { flex: 1, borderRadius: 24, overflow: "hidden" },
-  heroGradient: { flex: 1, justifyContent: "flex-end", padding: 24 },
-  heroContent: { marginBottom: 8 },
-  heroBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
+  // ── Body ──
+  body: { backgroundColor: "#F5F3FF" },
+
+  // ── Swiper ──
+  swiperSec: { paddingHorizontal: 20, paddingTop: 26, marginBottom: 8 },
+  swiperWrap: { height: 210, borderRadius: 22, overflow: "hidden" },
+  slide: { flex: 1 },
+  slideGrad: { flex: 1, justifyContent: "flex-end", padding: 20 },
+  slideBadge: {
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignSelf: "flex-start",
-    marginBottom: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 9,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
   },
-  heroBadgeText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
-  heroTitle: {
-    color: "#ffffff",
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.9)",
+  slideBadgeTxt: {
+    color: "#fff",
     fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  slideTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "900",
+    lineHeight: 30,
+    marginBottom: 5,
+    letterSpacing: -0.4,
+  },
+  slideSub: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 15,
+    lineHeight: 18,
     marginBottom: 16,
   },
-  heroButton: {
-    backgroundColor: "#ffffff",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-  },
-  heroButtonText: {
-    color: "#7c3aed",
-    fontWeight: "700",
-    fontSize: 14,
-    marginRight: 8,
-  },
-  heroPagination: { bottom: 15 },
-  heroDot: {
-    backgroundColor: "rgba(255,255,255,.3)",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 3,
-    marginRight: 3,
-  },
-  heroActiveDot: {
+  slideBtn: {
     backgroundColor: "#fff",
-    width: 24,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 3,
-    marginRight: 3,
-  },
-
-  section: { paddingHorizontal: 24, marginBottom: 24 },
-  sectionNoHPad: { marginBottom: 24 },
-  sectionHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-    paddingHorizontal: 24,
+    gap: 7,
+    alignSelf: "flex-start",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111827" },
-  seeAllButton: { flexDirection: "row", alignItems: "center" },
-  seeAllText: {
-    color: "#7c3aed",
-    fontWeight: "600",
-    fontSize: 14,
-    marginRight: 4,
+  slideBtnTxt: { color: "#7c3aed", fontWeight: "900", fontSize: 14 },
+  dot: {
+    backgroundColor: "rgba(255,255,255,0.35)",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+  },
+  activeDot: {
+    backgroundColor: "#fff",
+    width: 20,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
   },
 
-  // ── 2 dynamic category cards ──
-  categoryRow: { flexDirection: "row" },
-  categoryCardWrapper: { flex: 1 },
-  categoryCardLeft: { marginRight: GRID_GAP / 2 },
-  categoryCardRight: { marginLeft: GRID_GAP / 2 },
-  categoryCard: { borderRadius: 20, padding: 20, minHeight: 148 },
-  categoryArrow: {
+  // ── Sections ──
+  sec: { paddingTop: 24, marginBottom: 8 },
+  secHdr: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  secTitle: {
+    color: "#1e0f4e",
+    fontSize: 21,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+  },
+  seeAll: { color: "#f59e0b", fontSize: 16, fontWeight: "800" },
+
+  // ── Book card ──
+  bookCard: {
+    width: 172,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.13,
+    shadowRadius: 18,
+    elevation: 2,
+    marginBottom: 2,
+  },
+  bookImageWrap: { position: "relative", height: 148 },
+  bookImage: { width: "100%", height: "100%" },
+  ratingBadge: {
     position: "absolute",
-    top: 14,
-    right: 14,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    width: 28,
-    height: 28,
+    top: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(10,4,30,0.68)",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 9,
+  },
+  ratingTxt: { color: "#f59e0b", fontSize: 12, fontWeight: "800" },
+  diffBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  diffBadgeTxt: { color: "#fff", fontSize: 10, fontWeight: "800" },
+  bookCatOnImg: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "rgba(124,58,237,0.85)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bookCatOnImgTxt: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  bookInfo: { padding: 13, paddingTop: 12 },
+  bookTitle: {
+    color: "#1e0f4e",
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+    marginBottom: 7,
+  },
+  bookAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  bookAuthorDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "#7c3aed",
+  },
+  bookAuthor: { color: "#8070a8", fontSize: 14, fontWeight: "600", flex: 1 },
+  bookFootRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  bookDurationPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#ede8ff",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bookDurationTxt: { color: "#7c3aed", fontSize: 11, fontWeight: "700" },
+  bookStudentsPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  bookStudentsTxt: { color: "#059669", fontSize: 11, fontWeight: "700" },
+
+  // ── Category ──
+  catItem: { alignItems: "center", width: 80 },
+  catCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  catLabel: {
+    color: "#1e0f4ec0",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  // ── Achievements ──
+  achieveCard: {
+    width: 180,
+    height: 180,
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#ede8ff",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.13,
+    shadowRadius: 12,
+    elevation: 2,
+    marginBottom: 2,
+  },
+  achieveIconBox: {
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-  },
-  categoryIconCircle: {
-    width: 52,
-    height: 52,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 26,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 12,
-    marginTop: 8,
   },
-  categoryName: {
-    fontWeight: "700",
-    color: "#ffffff",
+  achieveTitle: {
+    color: "#1e0f4e",
     fontSize: 16,
-    marginBottom: 4,
+    fontWeight: "800",
+    marginBottom: 3,
   },
-  categoryCount: { color: "rgba(255,255,255,0.75)", fontSize: 12 },
+  achieveDesc: { color: "#8070a8", fontSize: 14, marginBottom: 12 },
+  achieveBarBg: {
+    backgroundColor: "#ede8ff",
+    height: 6,
+    borderRadius: 3,
+    overflow: "hidden",
+    marginBottom: 6,
+  },
+  achieveBarFill: { height: "100%", borderRadius: 3 },
+  achievePct: { fontSize: 12, fontWeight: "800" },
 
-  coursesSwiper: { height: 260 },
-  coursesSlide: {
+  // ── Quiz Banner ──
+  bannerSec: { paddingHorizontal: 20, paddingTop: 28, marginBottom: 8 },
+  quizBanner: {
+    borderRadius: 22,
+    overflow: "hidden",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  quizGrad: {
+    padding: 24,
     flexDirection: "row",
-    paddingHorizontal: 24,
-    gap: 12,
-    width: "100%",
-  },
-  coursesPagination: { bottom: -10 },
-  coursesDot: {
-    backgroundColor: "rgba(0,0,0,.15)",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 3,
-    marginRight: 3,
-  },
-  coursesActiveDot: {
-    backgroundColor: "#7c3aed",
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 3,
-    marginRight: 3,
-  },
-
-  achievementsScroll: { marginHorizontal: -24 },
-  achievementsScrollContent: { paddingHorizontal: 24 },
-  achievementCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#f3f4f6",
-    width: 200,
-  },
-  achievementIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  achievementTitle: {
-    color: "#111827",
-    fontWeight: "700",
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  achievementDesc: { color: "#6b7280", fontSize: 12, marginBottom: 12 },
-  progressBar: {
-    backgroundColor: "#f3f4f6",
-    height: 8,
-    borderRadius: 4,
     overflow: "hidden",
   },
-  progressFill: { height: "100%", borderRadius: 4 },
-  progressLabel: { color: "#9ca3af", fontSize: 12, marginTop: 8 },
-
-  quizBannerWrapper: { borderRadius: 16, overflow: "hidden" },
-  quizBannerBg: { width: "100%" },
-  quizGradient: { padding: 24 },
-  quizContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  qDecor1: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -60,
+    right: -20,
   },
-  quizTextBlock: { flex: 1, marginRight: 16 },
-  quizBadge: {
+  qDecor2: {
+    position: "absolute",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: -30,
+    right: 60,
+  },
+  quizTag: {
     backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 100,
     alignSelf: "flex-start",
-    marginBottom: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 9,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
   },
-  quizBadgeText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
+  quizTagTxt: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
   quizTitle: {
-    color: "#ffffff",
-    fontSize: 20,
-    fontWeight: "700",
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "900",
+    lineHeight: 28,
     marginBottom: 8,
+    letterSpacing: -0.3,
   },
-  quizSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    marginBottom: 16,
+  quizSub: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 16,
+    lineHeight: 18,
+    marginBottom: 18,
   },
-  quizButton: {
-    backgroundColor: "#ffffff",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+  quizBtn: {
+    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
+    gap: 7,
     alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 12,
   },
-  quizButtonText: {
-    color: "#7c3aed",
-    fontWeight: "700",
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  quizIconBox: {
+  quizBtnTxt: { color: "#7c3aed", fontWeight: "900", fontSize: 14 },
+  quizIconOuter: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
     backgroundColor: "rgba(255,255,255,0.1)",
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  quizIconInner: {
+    width: 62,
+    height: 62,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  grid2col: { flexDirection: "row", flexWrap: "wrap" },
-  grid2colItem: { width: "50%" },
-  gridItemLeft: { paddingRight: GRID_GAP / 2 },
-  gridItemRight: { paddingLeft: GRID_GAP / 2 },
-  gridItemBottom: { marginBottom: GRID_GAP },
-
+  // ── Blog cards ──
   blogCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#f3f4f6",
-  },
-  blogImageWrapper: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: "#fff",
+    borderRadius: 20,
     overflow: "hidden",
+    flexDirection: "row",
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "#7c3aed3e",
+    // shadowColor: "#7c3aed",
+    // shadowOffset: { width: 0, height: 5 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 14,
+    // elevation: 5,
+    height: 116,
   },
-  blogImage: { width: "100%", height: 128 },
-  blogBody: { padding: 12 },
-  blogCategoryBadge: {
-    backgroundColor: "#f5f3ff",
+  blogImgWrap: {
+    width: 116,
+    height: 116,
+    position: "relative",
+    flexShrink: 0,
+  },
+  blogCardImg: {
+    width: 116,
+    height: 116,
+  },
+  blogCatBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    backgroundColor: "#7c3aed",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-    marginBottom: 8,
+    borderRadius: 8,
   },
-  blogCategoryText: { color: "#7c3aed", fontSize: 12, fontWeight: "600" },
-  blogTitle: {
-    color: "#111827",
-    fontWeight: "700",
+  blogCatTxt: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+  },
+  blogCardBody: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingLeft: 13,
+    paddingRight: 12,
+    justifyContent: "space-between",
+  },
+  blogCardTitle: {
+    color: "#1e0f4ed1",
+    fontSize: 16,
+    fontWeight: "800",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  blogCardExcerpt: {
+    color: "#8070a8",
     fontSize: 14,
-    marginBottom: 8,
+    lineHeight: 17,
+    flex: 1,
   },
-  blogExcerpt: {
-    color: "#4b5563",
-    fontSize: 12,
-    marginBottom: 12,
-    lineHeight: 16,
-  },
-  blogMeta: {
+  blogCardMeta: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#f9fafb",
+    gap: 5,
+    marginTop: 8,
   },
-  blogMetaText: { color: "#9ca3af", fontSize: 12 },
+  blogMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  blogCardMetaTxt: { color: "#a89ec0", fontSize: 11, fontWeight: "500" },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#c4b8e8",
+    marginHorizontal: 1,
+  },
+  blogArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: "#ede8ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ── Ad Banner ──
+  adSec: { paddingHorizontal: 20, paddingTop: 20, marginBottom: 8 },
+  adBanner: {
+    backgroundColor: "#fff",
+    borderRadius: 22,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+    overflow: "hidden",
+    borderWidth: 1.5,
+    borderColor: "#ede8ff",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  adBlob1: {
+    position: "absolute",
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "#ede8ff",
+    top: -50,
+    right: -30,
+  },
+  adBlob2: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#dcfce7",
+    bottom: -30,
+    left: 60,
+  },
+  adIconStack: { gap: 8 },
+  adIconTop: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#ede8ff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adIconBottom: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#dcfce7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adTag: {
+    backgroundColor: "#f5f3ff",
+    alignSelf: "flex-start",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  adTagTxt: {
+    color: "#7c3aed",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+  adTitle: {
+    color: "#1e0f4e",
+    fontSize: 16,
+    fontWeight: "900",
+    lineHeight: 22,
+    marginBottom: 5,
+    letterSpacing: -0.2,
+  },
+  adSub: { color: "#8070a8", fontSize: 14, fontWeight: "600" },
+  adCta: { marginLeft: 4 },
+  adCtaBtn: {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 5,
+  },
+  adCtaTxt: { color: "#fff", fontSize: 15, fontWeight: "800" },
+
+  // ── Empty ──
+  emptyBox: { alignItems: "center", paddingVertical: 30 },
+  emptyTxt: { color: "#8070a8", fontSize: 16, fontWeight: "600", marginTop: 8 },
 });
