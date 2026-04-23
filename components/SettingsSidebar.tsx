@@ -149,27 +149,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const settingsSections = [
     {
-      title: "Account",
-      items: [
-        { icon: "person-outline", label: "Edit Profile", hasArrow: true },
-        {
-          icon: "lock-closed-outline",
-          label: "Change Password",
-          hasArrow: true,
-        },
-        { icon: "mail-outline", label: "Email Preferences", hasArrow: true },
-      ],
-    },
-    {
       title: "Preferences",
       items: [
-        {
-          icon: "notifications-outline",
-          label: "Push Notifications",
-          hasSwitch: true,
-          value: notifications,
-          onToggle: setNotifications,
-        },
         {
           icon: "moon-outline",
           label: "Dark Mode",
@@ -183,8 +164,15 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     {
       title: "Support",
       items: [
-        { icon: "help-circle-outline", label: "Help Center", hasArrow: true },
-        { icon: "chatbubble-outline", label: "Contact Us", hasArrow: true },
+        {
+          icon: "chatbubble-outline",
+          label: "Contact Us",
+          hasArrow: true,
+          onPress: () => {
+            onNavigate("ContactUs"); // ← Add this
+            onClose();
+          },
+        },
         { icon: "star-outline", label: "Rate App", hasArrow: true },
       ],
     },
@@ -350,6 +338,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                             styles.settingsItemBorder,
                         ]}
                         activeOpacity={0.7}
+                        onPress={item.onPress}
                       >
                         <View style={styles.settingsIconContainer}>
                           <Ionicons

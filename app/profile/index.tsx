@@ -1,163 +1,273 @@
 // app/profile/index.tsx
+import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<
-    "stats" | "achievements" | "activity"
-  >("stats");
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  // User data
-  const user = {
-    name: "Alex Martinez",
-    email: "alex.martinez@email.com",
-    avatar: "https://i.pravatar.cc/150?img=12",
-    joinDate: "January 2024",
-    bio: "Passionate learner exploring technology, design, and business. Always eager to grow and share knowledge.",
-    level: 12,
-    xp: 2840,
-    nextLevelXp: 3000,
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Add state for password visibility at the top with other states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Fetch user profile
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setIsLoading(true);
+      const token = await AsyncStorage.getItem("auth_token");
+
+      console.log("Token exists:", !!token);
+
+      // Don't redirect if no token, just show error and let user try again
+      if (!token) {
+        Alert.alert("Error", "Session not found. Please restart the app.");
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/profile`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Response status:", response.status);
+
+      const text = await response.text();
+      console.log("Raw response (first 200 chars):", text.substring(0, 200));
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("JSON parse error. Response was:", text);
+        Alert.alert("Error", "Invalid response from server. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (response.status === 401) {
+        Alert.alert("Session Expired", "Please login again.");
+        await AsyncStorage.removeItem("auth_token");
+        router.replace("/(tabs)");
+        return;
+      }
+
+      if (data.success) {
+        setUser(data.data);
+      } else {
+        Alert.alert("Error", data.message || "Failed to load profile");
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      Alert.alert(
+        "Error",
+        "Failed to connect to server. Please check your connection.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Stats data
-  const stats = [
-    {
-      id: 1,
-      label: "Courses Completed",
-      value: "12",
-      icon: "checkmark-circle",
-      color: "#059669",
-      bgColor: "#d1fae5",
-    },
-    {
-      id: 2,
-      label: "Hours Learned",
-      value: "148",
-      icon: "time",
-      color: "#2563eb",
-      bgColor: "#dbeafe",
-    },
-    {
-      id: 3,
-      label: "Quizzes Passed",
-      value: "45",
-      icon: "trophy",
-      color: "#f59e0b",
-      bgColor: "#fef3c7",
-    },
-    {
-      id: 4,
-      label: "Day Streak",
-      value: "24",
-      icon: "flame",
-      color: "#dc2626",
-      bgColor: "#fee2e2",
-    },
-  ];
+  // Pick and upload image
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  // Achievements data
-  const achievements = [
-    {
-      id: 1,
-      title: "Quick Starter",
-      description: "Complete your first course",
-      icon: "rocket",
-      color: "#7c3aed",
-      earned: true,
-      earnedDate: "Jan 15, 2024",
-      progress: 100,
-    },
-    {
-      id: 2,
-      title: "Knowledge Seeker",
-      description: "Complete 10 courses",
-      icon: "book",
-      color: "#2563eb",
-      earned: true,
-      earnedDate: "Feb 8, 2024",
-      progress: 100,
-    },
-    {
-      id: 3,
-      title: "Quiz Master",
-      description: "Score 90% or higher in 20 quizzes",
-      icon: "trophy",
-      color: "#f59e0b",
-      earned: true,
-      earnedDate: "Feb 10, 2024",
-      progress: 100,
-    },
-    {
-      id: 4,
-      title: "Dedicated Learner",
-      description: "Maintain a 30-day learning streak",
-      icon: "flame",
-      color: "#dc2626",
-      earned: false,
-      progress: 80,
-    },
-    {
-      id: 5,
-      title: "Social Butterfly",
-      description: "Share 10 achievements",
-      icon: "share-social",
-      color: "#059669",
-      earned: false,
-      progress: 40,
-    },
-    {
-      id: 6,
-      title: "Night Owl",
-      description: "Complete 5 courses after 10 PM",
-      icon: "moon",
-      color: "#8b5cf6",
-      earned: false,
-      progress: 60,
-    },
-  ];
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Sorry, we need camera roll permissions to upload profile picture!",
+      );
+      return;
+    }
 
-  // Recent activity
-  const recentActivity = [
-    {
-      id: 1,
-      type: "course",
-      title: "Completed React Native Complete Guide",
-      date: "2 hours ago",
-      icon: "checkmark-circle",
-      color: "#059669",
-    },
-    {
-      id: 2,
-      type: "quiz",
-      title: "Scored 95% in JavaScript Fundamentals",
-      date: "5 hours ago",
-      icon: "trophy",
-      color: "#f59e0b",
-    },
-    {
-      id: 3,
-      type: "achievement",
-      title: "Earned 'Quiz Master' badge",
-      date: "1 day ago",
-      icon: "medal",
-      color: "#7c3aed",
-    },
-    {
-      id: 4,
-      type: "course",
-      title: "Started UI/UX Design Masterclass",
-      date: "2 days ago",
-      icon: "play-circle",
-      color: "#2563eb",
-    },
-  ];
+    // Pick image
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5, // Compress to reduce size
+    });
 
-  const levelProgress = (user.xp / user.nextLevelXp) * 100;
+    if (!result.canceled) {
+      uploadImage(result.assets[0].uri);
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    try {
+      setUploading(true);
+
+      // Get file info
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Check file size (300KB = 300 * 1024 bytes)
+      if (blob.size > 300 * 1024) {
+        Alert.alert(
+          "File Too Large",
+          "Please select an image smaller than 300KB",
+        );
+        setUploading(false);
+        return;
+      }
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("image", {
+        uri: uri,
+        type: "image/jpeg",
+        name: "profile.jpg",
+      } as any);
+
+      const token = await AsyncStorage.getItem("auth_token");
+
+      const uploadResponse = await fetch(`${API_URL}/update-profile-image`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+      });
+
+      const data = await uploadResponse.json();
+
+      if (data.success) {
+        Alert.alert("Success", "Profile image updated successfully!");
+        fetchProfile(); // Refresh profile
+      } else {
+        Alert.alert("Error", data.message || "Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      Alert.alert("Error", "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Change password
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters");
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      const token = await AsyncStorage.getItem("auth_token");
+
+      const response = await fetch(`${API_URL}/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+          new_password_confirmation: confirmPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        Alert.alert("Success", "Password changed successfully!");
+        setShowPasswordModal(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        Alert.alert("Error", data.message || "Failed to change password");
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      Alert.alert("Error", "Failed to change password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#7c3aed" />
+        <Text className="text-gray-600 mt-4 text-base">Loading profile...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center px-6">
+        <Ionicons name="person-circle-outline" size={80} color="#D1D5DB" />
+        <Text className="text-gray-800 text-xl font-bold mt-4 mb-2">
+          Failed to Load Profile
+        </Text>
+        <Text className="text-gray-600 text-sm text-center mb-6">
+          We couldn't load your profile information. Please try again.
+        </Text>
+        <TouchableOpacity
+          onPress={fetchProfile}
+          className="bg-purple-600 px-8 py-3 rounded-2xl"
+        >
+          <Text className="text-white font-bold text-base">Retry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="mt-4 px-8 py-3"
+        >
+          <Text className="text-gray-600 font-semibold">Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
@@ -196,324 +306,203 @@ export default function ProfileScreen() {
           >
             {/* Avatar and Basic Info */}
             <View className="items-center mb-6">
-              <View className="relative mb-4">
+              <TouchableOpacity
+                onPress={pickImage}
+                disabled={uploading}
+                className="relative mb-4"
+              >
                 <Image
-                  source={{ uri: user.avatar }}
+                  source={{
+                    uri:
+                      user.profile_image ||
+                      `https://ui-avatars.com/api/?name=${user.name}&size=200&background=7c3aed&color=fff`,
+                  }}
                   className="w-24 h-24 rounded-full"
                 />
-                <View className="absolute -bottom-1 -right-1 bg-green-500 w-7 h-7 rounded-full border-4 border-white" />
-              </View>
+                {uploading ? (
+                  <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                ) : (
+                  <View className="absolute bottom-0 right-0 bg-purple-600 w-8 h-8 rounded-full items-center justify-center border-4 border-white">
+                    <Ionicons name="camera" size={14} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
               <Text className="text-gray-900 text-2xl font-bold mb-1">
                 {user.name}
               </Text>
               <Text className="text-gray-500 text-sm mb-3">{user.email}</Text>
               <View className="bg-purple-50 px-4 py-1.5 rounded-full">
                 <Text className="text-purple-600 text-sm font-semibold">
-                  Member since {user.joinDate}
+                  Member since {user.created_at}
                 </Text>
               </View>
             </View>
 
-            {/* Bio */}
-            <View className="mb-6 pb-6 border-b border-gray-100">
-              <Text className="text-gray-700 text-sm text-center leading-5">
-                {user.bio}
-              </Text>
-            </View>
-
-            {/* Level Progress */}
-            <View>
-              <View className="flex-row items-center justify-between mb-3">
+            {/* Action Buttons */}
+            <View className="space-y-3">
+              <TouchableOpacity
+                onPress={() => setShowPasswordModal(true)}
+                className="bg-purple-50 p-4 rounded-2xl flex-row items-center justify-between"
+              >
                 <View className="flex-row items-center">
-                  <LinearGradient
-                    colors={["#7c3aed", "#a855f7"]}
-                    className="w-12 h-12 rounded-xl items-center justify-center mr-3"
-                  >
-                    <Text className="text-white text-lg font-bold">
-                      {user.level}
-                    </Text>
-                  </LinearGradient>
-                  <View>
-                    <Text className="text-gray-900 font-bold text-base">
-                      Level {user.level}
-                    </Text>
-                    <Text className="text-gray-500 text-xs">
-                      {user.xp} / {user.nextLevelXp} XP
-                    </Text>
+                  <View className="bg-purple-100 w-10 h-10 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="lock-closed" size={18} color="#7c3aed" />
                   </View>
-                </View>
-                <Text className="text-purple-600 font-bold text-sm">
-                  {Math.round(levelProgress)}%
-                </Text>
-              </View>
-
-              <View className="bg-gray-100 h-3 rounded-full overflow-hidden">
-                <View
-                  className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"
-                  style={{ width: `${levelProgress}%` }}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Tabs */}
-        <View className="px-6 mb-4">
-          <View className="flex-row bg-gray-100 rounded-2xl p-1">
-            <TouchableOpacity
-              onPress={() => setActiveTab("stats")}
-              className={`flex-1 py-3 rounded-xl ${
-                activeTab === "stats" ? "bg-white" : ""
-              }`}
-              style={
-                activeTab === "stats"
-                  ? {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }
-                  : {}
-              }
-            >
-              <Text
-                className={`text-center font-bold text-sm ${
-                  activeTab === "stats" ? "text-purple-600" : "text-gray-500"
-                }`}
-              >
-                Stats
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setActiveTab("achievements")}
-              className={`flex-1 py-3 rounded-xl ${
-                activeTab === "achievements" ? "bg-white" : ""
-              }`}
-              style={
-                activeTab === "achievements"
-                  ? {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }
-                  : {}
-              }
-            >
-              <Text
-                className={`text-center font-bold text-sm ${
-                  activeTab === "achievements"
-                    ? "text-purple-600"
-                    : "text-gray-500"
-                }`}
-              >
-                Achievements
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => setActiveTab("activity")}
-              className={`flex-1 py-3 rounded-xl ${
-                activeTab === "activity" ? "bg-white" : ""
-              }`}
-              style={
-                activeTab === "activity"
-                  ? {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.05,
-                      shadowRadius: 4,
-                      elevation: 2,
-                    }
-                  : {}
-              }
-            >
-              <Text
-                className={`text-center font-bold text-sm ${
-                  activeTab === "activity" ? "text-purple-600" : "text-gray-500"
-                }`}
-              >
-                Activity
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Tab Content */}
-        <View className="px-6">
-          {/* Stats Tab */}
-          {activeTab === "stats" && (
-            <View className="flex-row flex-wrap gap-3">
-              {stats.map((stat) => (
-                <View
-                  key={stat.id}
-                  className="bg-white rounded-2xl p-4 border border-gray-100"
-                  style={{
-                    width: "48%",
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
-                >
-                  <View
-                    className="w-12 h-12 rounded-xl items-center justify-center mb-3"
-                    style={{ backgroundColor: stat.bgColor }}
-                  >
-                    <Ionicons
-                      name={stat.icon as any}
-                      size={24}
-                      color={stat.color}
-                    />
-                  </View>
-                  <Text className="text-gray-900 text-3xl font-bold mb-1">
-                    {stat.value}
+                  <Text className="text-purple-700 font-bold text-base">
+                    Change Password
                   </Text>
-                  <Text className="text-gray-500 text-xs">{stat.label}</Text>
                 </View>
-              ))}
-            </View>
-          )}
+                <Ionicons name="chevron-forward" size={20} color="#7c3aed" />
+              </TouchableOpacity>
 
-          {/* Achievements Tab */}
-          {activeTab === "achievements" && (
-            <View className="gap-3">
-              {achievements.map((achievement) => (
-                <View
-                  key={achievement.id}
-                  className="bg-white rounded-2xl p-4 border border-gray-100"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
-                >
-                  <View className="flex-row items-start">
-                    <View
-                      className="w-14 h-14 rounded-xl items-center justify-center mr-4"
-                      style={{
-                        backgroundColor: achievement.earned
-                          ? achievement.color + "15"
-                          : "#f3f4f6",
-                      }}
-                    >
-                      <Ionicons
-                        name={achievement.icon as any}
-                        size={28}
-                        color={
-                          achievement.earned ? achievement.color : "#9ca3af"
-                        }
-                      />
-                    </View>
-
-                    <View className="flex-1">
-                      <View className="flex-row items-center mb-1">
-                        <Text
-                          className={`text-base font-bold mr-2 ${
-                            achievement.earned
-                              ? "text-gray-900"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {achievement.title}
-                        </Text>
-                        {achievement.earned && (
-                          <View className="bg-green-100 px-2 py-0.5 rounded-full">
-                            <Text className="text-green-600 text-xs font-bold">
-                              Earned
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <Text
-                        className={`text-sm mb-3 ${
-                          achievement.earned ? "text-gray-600" : "text-gray-400"
-                        }`}
-                      >
-                        {achievement.description}
-                      </Text>
-
-                      {achievement.earned ? (
-                        <Text className="text-gray-400 text-xs">
-                          Earned on {achievement.earnedDate}
-                        </Text>
-                      ) : (
-                        <View>
-                          <View className="flex-row items-center justify-between mb-1">
-                            <Text className="text-gray-500 text-xs">
-                              Progress
-                            </Text>
-                            <Text className="text-gray-600 text-xs font-bold">
-                              {achievement.progress}%
-                            </Text>
-                          </View>
-                          <View className="bg-gray-100 h-2 rounded-full overflow-hidden">
-                            <View
-                              className="h-full rounded-full"
-                              style={{
-                                width: `${achievement.progress}%`,
-                                backgroundColor: achievement.color,
-                              }}
-                            />
-                          </View>
-                        </View>
-                      )}
-                    </View>
+              <TouchableOpacity
+                onPress={pickImage}
+                className="bg-blue-50 p-4 rounded-2xl flex-row items-center justify-between"
+              >
+                <View className="flex-row items-center">
+                  <View className="bg-blue-100 w-10 h-10 rounded-full items-center justify-center mr-3">
+                    <Ionicons name="image" size={18} color="#2563eb" />
                   </View>
+                  <Text className="text-blue-700 font-bold text-base">
+                    Update Profile Picture
+                  </Text>
                 </View>
-              ))}
+                <Ionicons name="chevron-forward" size={20} color="#2563eb" />
+              </TouchableOpacity>
             </View>
-          )}
-
-          {/* Activity Tab */}
-          {activeTab === "activity" && (
-            <View className="gap-3">
-              {recentActivity.map((activity) => (
-                <View
-                  key={activity.id}
-                  className="bg-white rounded-2xl p-4 border border-gray-100 flex-row items-center"
-                  style={{
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                    elevation: 2,
-                  }}
-                >
-                  <View
-                    className="w-12 h-12 rounded-xl items-center justify-center mr-4"
-                    style={{ backgroundColor: activity.color + "15" }}
-                  >
-                    <Ionicons
-                      name={activity.icon as any}
-                      size={24}
-                      color={activity.color}
-                    />
-                  </View>
-
-                  <View className="flex-1">
-                    <Text className="text-gray-900 font-bold text-sm mb-1">
-                      {activity.title}
-                    </Text>
-                    <Text className="text-gray-400 text-xs">
-                      {activity.date}
-                    </Text>
-                  </View>
-
-                  <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
-                </View>
-              ))}
-            </View>
-          )}
+          </View>
         </View>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      {/* Change Password Modal */}
+      <Modal
+        visible={showPasswordModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPasswordModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            onPress={() => setShowPasswordModal(false)}
+          />
+
+          <View className="bg-white rounded-t-3xl p-6">
+            <View className="flex-row items-center justify-between mb-6">
+              <Text className="text-gray-800 text-xl font-bold">
+                Change Password
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowPasswordModal(false)}
+                className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center"
+              >
+                <Ionicons name="close" size={20} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Current Password */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">
+                Current Password
+              </Text>
+              <View className="relative">
+                <TextInput
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry={!showCurrentPassword}
+                  placeholder="Enter current password"
+                  className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-4 top-3"
+                >
+                  <Ionicons
+                    name={
+                      showCurrentPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={24}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* New Password */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-semibold mb-2">
+                New Password
+              </Text>
+              <View className="relative">
+                <TextInput
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNewPassword}
+                  placeholder="Enter new password (min 8 characters)"
+                  className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-4 top-3"
+                >
+                  <Ionicons
+                    name={showNewPassword ? "eye-off-outline" : "eye-outline"}
+                    size={24}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Confirm Password */}
+            <View className="mb-6">
+              <Text className="text-gray-700 font-semibold mb-2">
+                Confirm New Password
+              </Text>
+              <View className="relative">
+                <TextInput
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  placeholder="Confirm new password"
+                  className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-3"
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={24}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              onPress={handleChangePassword}
+              disabled={passwordLoading}
+              className="bg-purple-600 py-4 rounded-2xl"
+            >
+              {passwordLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text className="text-white font-bold text-center text-base">
+                  Change Password
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

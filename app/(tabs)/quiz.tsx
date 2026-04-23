@@ -25,6 +25,10 @@ interface Category {
   color: string;
   icon: string | null;
   question_sets_count: number;
+
+  // NEW
+  min_price?: number;
+  has_paid_sets?: boolean;
 }
 
 interface QuestionSet {
@@ -32,32 +36,34 @@ interface QuestionSet {
   name: string;
   description: string;
   questions_count: number;
+  price: number; // Add price
+  is_free: boolean; // Add free flag
 }
-
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty) {
-    case "Easy":
-      return "#10b981";
-    case "Medium":
-      return "#f59e0b";
-    case "Hard":
-      return "#ef4444";
-    default:
-      return "#6b7280";
-  }
-};
 
 export default function QuizScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
+
+  const [selectedCategoryForPayment, setSelectedCategoryForPayment] =
+    useState<Category | null>(null);
+
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
   const [numberOfQuestions, setNumberOfQuestions] = useState("10");
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [totalQuestionsInCategory, setTotalQuestionsInCategory] = useState(0);
+
+  // Payment form state
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -68,8 +74,17 @@ export default function QuizScreen() {
     try {
       const response = await fetch(`${API_URL}/categories`);
       const data = await response.json();
-      if (data.success) setCategories(data.data);
-      else Alert.alert("Error", "Failed to load categories");
+      if (data.success) {
+        const categoriesWithPricing = data.data.map(
+          (cat: Category, index: number) => ({
+            ...cat,
+            min_price: index % 2 === 0 ? 0 : (index + 1) * 3.99,
+            has_paid_sets: index % 2 !== 0,
+          }),
+        );
+
+        setCategories(categoriesWithPricing);
+      } else Alert.alert("Error", "Failed to load categories");
     } catch (error) {
       console.error("Error fetching categories:", error);
       Alert.alert("Error", "Something went wrong");
@@ -86,8 +101,16 @@ export default function QuizScreen() {
       );
       const data = await response.json();
       if (data.success) {
-        setQuestionSets(data.data.question_sets);
-        const total = data.data.question_sets.reduce(
+        // Add dummy pricing (you'll get this from API later)
+        const setsWithPrice = data.data.question_sets.map(
+          (set: QuestionSet, index: number) => ({
+            ...set,
+            price: index % 3 === 0 ? 0 : (index + 1) * 5.99, // Dummy prices
+            is_free: index % 3 === 0, // Every 3rd set is free
+          }),
+        );
+        setQuestionSets(setsWithPrice);
+        const total = setsWithPrice.reduce(
           (sum: number, set: QuestionSet) => sum + set.questions_count,
           0,
         );
@@ -155,6 +178,26 @@ export default function QuizScreen() {
     }
   };
 
+  const handleCategoryAction = (category: Category) => {
+    if (!category.has_paid_sets) {
+      handleCategorySelect(category);
+    } else {
+      setSelectedCategoryForPayment(category);
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handleSetAction = async (set: QuestionSet) => {
+    if (set.is_free) {
+      // Start quiz directly if free
+      startQuestionSetQuiz(set.id);
+    } else {
+      // Show payment modal if paid
+      setSelectedSet(set);
+      setShowPaymentModal(true);
+    }
+  };
+
   const startQuestionSetQuiz = async (setId: number) => {
     setIsLoading(true);
     try {
@@ -179,6 +222,70 @@ export default function QuizScreen() {
     }
   };
 
+  const handlePayment = async () => {
+    // Validation
+    if (!cardNumber || cardNumber.length < 16) {
+      Alert.alert("Error", "Please enter a valid card number");
+      return;
+    }
+    if (!cardHolder) {
+      Alert.alert("Error", "Please enter card holder name");
+      return;
+    }
+    if (!expiryDate || expiryDate.length < 5) {
+      Alert.alert("Error", "Please enter valid expiry date (MM/YY)");
+      return;
+    }
+    if (!cvv || cvv.length < 3) {
+      Alert.alert("Error", "Please enter valid CVV");
+      return;
+    }
+
+    setPaymentLoading(true);
+
+    // Simulate payment processing
+    setTimeout(() => {
+      setPaymentLoading(false);
+      setShowPaymentModal(false);
+      Alert.alert(
+        "Success!",
+        "Payment successful! You can now access this question set.",
+        [
+          {
+            text: "Start Quiz",
+            onPress: () => {
+              if (selectedSet) {
+                startQuestionSetQuiz(selectedSet.id);
+              } else if (selectedCategoryForPayment) {
+                handleCategorySelect(selectedCategoryForPayment);
+              }
+            },
+          },
+        ],
+      );
+      // Clear form
+      setCardNumber("");
+      setCardHolder("");
+      setExpiryDate("");
+      setCvv("");
+    }, 2000);
+  };
+
+  const formatCardNumber = (text: string) => {
+    const cleaned = text.replace(/\s/g, "");
+    const formatted = cleaned.match(/.{1,4}/g)?.join(" ") || cleaned;
+    setCardNumber(formatted);
+  };
+
+  const formatExpiryDate = (text: string) => {
+    const cleaned = text.replace(/\D/g, "");
+    if (cleaned.length >= 2) {
+      setExpiryDate(cleaned.substring(0, 2) + "/" + cleaned.substring(2, 4));
+    } else {
+      setExpiryDate(cleaned);
+    }
+  };
+
   // ─── Loading screen ───
   if (isLoading && categories.length === 0) {
     return (
@@ -195,7 +302,6 @@ export default function QuizScreen() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
 
-        {/* FIX: layout className on LinearGradient → style prop */}
         <LinearGradient
           colors={["#7c3aed", "#a855f7"]}
           start={{ x: 0, y: 0 }}
@@ -209,6 +315,196 @@ export default function QuizScreen() {
           </Text>
         </LinearGradient>
 
+        <Modal
+          visible={showPaymentModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowPaymentModal(false)}
+        >
+          <View style={styles.paymentModalOverlay}>
+            <TouchableOpacity
+              style={styles.paymentModalBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowPaymentModal(false)}
+            />
+
+            <View style={styles.paymentModalContent}>
+              {/* Header */}
+              <View style={styles.paymentHeader}>
+                <View style={styles.paymentHeaderTop}>
+                  <Text style={styles.paymentTitle}>Complete Payment</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowPaymentModal(false)}
+                    style={styles.paymentCloseBtn}
+                  >
+                    <Ionicons name="close" size={24} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedSet && (
+                  <View style={styles.paymentSetInfo}>
+                    <Text style={styles.paymentSetName}>
+                      {selectedSet.name}
+                    </Text>
+                    <View style={styles.paymentPriceRow}>
+                      <Text style={styles.paymentPriceLabel}>
+                        Total Amount:
+                      </Text>
+                      <Text style={styles.paymentPriceValue}>
+                        ${selectedSet.price.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {selectedCategoryForPayment && !selectedSet && (
+                  <View style={styles.paymentSetInfo}>
+                    <Text style={styles.paymentSetName}>
+                      {selectedCategoryForPayment.name}
+                    </Text>
+                    <View style={styles.paymentPriceRow}>
+                      <Text style={styles.paymentPriceLabel}>
+                        Total Amount:
+                      </Text>
+                      <Text style={styles.paymentPriceValue}>
+                        ${selectedCategoryForPayment.min_price?.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.paymentFormScroll}
+              >
+                {/* Payment Methods */}
+                <View style={styles.paymentMethods}>
+                  <TouchableOpacity style={styles.paymentMethodActive}>
+                    <Ionicons name="card-outline" size={24} color="#7c3aed" />
+                    <Text style={styles.paymentMethodText}>Credit Card</Text>
+                    <View style={styles.paymentMethodCheck}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color="#7c3aed"
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Card Number */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Card Number</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons name="card-outline" size={20} color="#9ca3af" />
+                    <TextInput
+                      value={cardNumber}
+                      onChangeText={formatCardNumber}
+                      placeholder="1234 5678 9012 3456"
+                      keyboardType="numeric"
+                      maxLength={19}
+                      style={styles.formInput}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                </View>
+
+                {/* Card Holder */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>Card Holder Name</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons name="person-outline" size={20} color="#9ca3af" />
+                    <TextInput
+                      value={cardHolder}
+                      onChangeText={setCardHolder}
+                      placeholder="John Doe"
+                      autoCapitalize="words"
+                      style={styles.formInput}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                </View>
+
+                {/* Expiry & CVV */}
+                <View style={styles.formRow}>
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={styles.formLabel}>Expiry Date</Text>
+                    <View style={styles.formInputContainer}>
+                      <Ionicons
+                        name="calendar-outline"
+                        size={20}
+                        color="#9ca3af"
+                      />
+                      <TextInput
+                        value={expiryDate}
+                        onChangeText={formatExpiryDate}
+                        placeholder="MM/YY"
+                        keyboardType="numeric"
+                        maxLength={5}
+                        style={styles.formInput}
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={[styles.formGroup, styles.formGroupHalf]}>
+                    <Text style={styles.formLabel}>CVV</Text>
+                    <View style={styles.formInputContainer}>
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color="#9ca3af"
+                      />
+                      <TextInput
+                        value={cvv}
+                        onChangeText={setCvv}
+                        placeholder="123"
+                        keyboardType="numeric"
+                        maxLength={3}
+                        secureTextEntry
+                        style={styles.formInput}
+                        placeholderTextColor="#9ca3af"
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {/* Security Notice */}
+                <View style={styles.securityNotice}>
+                  <Ionicons name="shield-checkmark" size={20} color="#059669" />
+                  <Text style={styles.securityText}>
+                    Your payment information is secure and encrypted
+                  </Text>
+                </View>
+
+                {/* Pay Button */}
+                <TouchableOpacity
+                  onPress={handlePayment}
+                  disabled={paymentLoading}
+                  style={[
+                    styles.payButton,
+                    { opacity: paymentLoading ? 0.6 : 1 },
+                  ]}
+                >
+                  {paymentLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="lock-closed" size={20} color="#fff" />
+                      <Text style={styles.payButtonText}>
+                        Pay $
+                        {selectedSet
+                          ? selectedSet.price.toFixed(2)
+                          : selectedCategoryForPayment?.min_price?.toFixed(2)}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -221,7 +517,6 @@ export default function QuizScreen() {
             />
           }
         >
-          {/* FIX: gap → marginBottom on each card */}
           <View>
             {categories.map((category) => {
               const icon = category.icon || "help-circle";
@@ -232,9 +527,24 @@ export default function QuizScreen() {
                   onPress={() => handleCategorySelect(category)}
                   style={styles.categoryCard}
                 >
-                  {/* FIX: overflow:hidden on TouchableOpacity clips shadow on iOS
-                       → move overflow to inner View only around content that needs clipping */}
                   <View style={styles.categoryCardRow}>
+                    {/* Price Badge */}
+                    {category.has_paid_sets ? (
+                      <View style={styles.categoryPriceBadge}>
+                        <Ionicons
+                          name="cash-outline"
+                          size={14}
+                          color="#7c3aed"
+                        />
+                        <Text style={styles.categoryPriceText}>
+                          From ${category.min_price?.toFixed(2)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.categoryFreeBadge}>
+                        <Text style={styles.categoryFreeText}>FREE</Text>
+                      </View>
+                    )}
                     <View
                       style={[
                         styles.categoryIconBox,
@@ -261,12 +571,42 @@ export default function QuizScreen() {
                         </Text>
                       </View>
                     </View>
-
-                    <Ionicons
-                      name="chevron-forward"
-                      size={24}
-                      color="#9ca3af"
-                    />
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation(); // ✅ IMPORTANT FIX
+                        handleCategoryAction(category);
+                      }}
+                      style={[
+                        styles.categoryStartButton,
+                        {
+                          backgroundColor: category.has_paid_sets
+                            ? "#7c3aed"
+                            : category.color + "15",
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          category.has_paid_sets
+                            ? "cart-outline"
+                            : "play-circle-outline"
+                        }
+                        size={18}
+                        color={category.has_paid_sets ? "#fff" : category.color}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryStartText,
+                          {
+                            color: category.has_paid_sets
+                              ? "#fff"
+                              : category.color,
+                          },
+                        ]}
+                      >
+                        {category.has_paid_sets ? "Buy" : "Start"}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               );
@@ -284,7 +624,6 @@ export default function QuizScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* FIX: layout className on LinearGradient → style prop */}
       <LinearGradient
         colors={[selectedCategory.color, selectedCategory.color + "dd"]}
         start={{ x: 0, y: 0 }}
@@ -299,7 +638,6 @@ export default function QuizScreen() {
           <Text style={styles.backButtonText}>Back to Categories</Text>
         </TouchableOpacity>
 
-        {/* FIX: gap → marginRight on icon box */}
         <View style={styles.gradientCategoryRow}>
           <View style={styles.gradientCategoryIcon}>
             <Ionicons name={categoryIcon as any} size={24} color="white" />
@@ -337,7 +675,6 @@ export default function QuizScreen() {
               { borderColor: selectedCategory.color },
             ]}
           >
-            {/* FIX: gap → marginLeft on text block */}
             <View style={styles.fullQuizCardTop}>
               <View
                 style={[
@@ -381,16 +718,24 @@ export default function QuizScreen() {
         {/* Question Sets */}
         <Text style={styles.sectionTitle}>Question Sets</Text>
 
-        {/* FIX: gap → marginBottom on each set card */}
         <View>
           {questionSets.map((set) => (
-            <TouchableOpacity
-              key={set.id}
-              activeOpacity={0.8}
-              onPress={() => startQuestionSetQuiz(set.id)}
-              style={styles.setCard}
-            >
+            <View key={set.id} style={styles.setCard}>
               <View style={styles.setCardInner}>
+                {/* Price Badge */}
+                {set.is_free ? (
+                  <View style={styles.freeBadge}>
+                    <Text style={styles.freeBadgeText}>FREE</Text>
+                  </View>
+                ) : (
+                  <View style={styles.priceBadge}>
+                    <Ionicons name="cash-outline" size={14} color="#7c3aed" />
+                    <Text style={styles.priceText}>
+                      ${set.price.toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+
                 <Text style={styles.setName}>{set.name}</Text>
                 {set.description && (
                   <Text style={styles.setDesc}>{set.description}</Text>
@@ -407,28 +752,32 @@ export default function QuizScreen() {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => startQuestionSetQuiz(set.id)}
+                  onPress={() => handleSetAction(set)}
                   style={[
                     styles.setStartButton,
-                    { backgroundColor: selectedCategory.color + "15" },
+                    {
+                      backgroundColor: set.is_free
+                        ? selectedCategory.color + "15"
+                        : "#7c3aed",
+                    },
                   ]}
                 >
                   <Ionicons
-                    name="play-circle-outline"
+                    name={set.is_free ? "play-circle-outline" : "cart-outline"}
                     size={18}
-                    color={selectedCategory.color}
+                    color={set.is_free ? selectedCategory.color : "#fff"}
                   />
                   <Text
                     style={[
                       styles.setStartText,
-                      { color: selectedCategory.color },
+                      { color: set.is_free ? selectedCategory.color : "#fff" },
                     ]}
                   >
-                    Start This Set
+                    {set.is_free ? "Start This Set" : "Buy Set"}
                   </Text>
                 </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -440,10 +789,8 @@ export default function QuizScreen() {
         animationType="fade"
         onRequestClose={() => setShowQuestionModal(false)}
       >
-        {/* FIX: bg-black/50 → rgba; items-center/justify-center → style */}
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            {/* Icon + Title */}
             <View style={styles.modalHeader}>
               <View
                 style={[
@@ -463,8 +810,6 @@ export default function QuizScreen() {
               </Text>
             </View>
 
-            {/* Stepper */}
-            {/* FIX: gap → marginHorizontal on input */}
             <View style={styles.stepper}>
               <TouchableOpacity
                 onPress={() => {
@@ -516,8 +861,6 @@ export default function QuizScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Quick Select */}
-            {/* FIX: gap → marginRight on all but last */}
             <View style={styles.quickSelect}>
               {[5, 10, 15, 20].map((num, index) => {
                 const isDisabled = num > totalQuestionsInCategory;
@@ -560,8 +903,6 @@ export default function QuizScreen() {
               })}
             </View>
 
-            {/* Action buttons */}
-            {/* FIX: gap → marginBottom on start button */}
             <TouchableOpacity
               onPress={startFullCategoryQuiz}
               disabled={isLoading}
@@ -590,6 +931,191 @@ export default function QuizScreen() {
         </View>
       </Modal>
 
+      {/* ─── Payment Modal ─── */}
+      <Modal
+        visible={showPaymentModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPaymentModal(false)}
+      >
+        <View style={styles.paymentModalOverlay}>
+          <TouchableOpacity
+            style={styles.paymentModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowPaymentModal(false)}
+          />
+
+          <View style={styles.paymentModalContent}>
+            {/* Header */}
+            <View style={styles.paymentHeader}>
+              <View style={styles.paymentHeaderTop}>
+                <Text style={styles.paymentTitle}>Complete Payment</Text>
+                <TouchableOpacity
+                  onPress={() => setShowPaymentModal(false)}
+                  style={styles.paymentCloseBtn}
+                >
+                  <Ionicons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+
+              {selectedSet && (
+                <View style={styles.paymentSetInfo}>
+                  <Text style={styles.paymentSetName}>{selectedSet.name}</Text>
+                  <View style={styles.paymentPriceRow}>
+                    <Text style={styles.paymentPriceLabel}>Total Amount:</Text>
+                    <Text style={styles.paymentPriceValue}>
+                      ${selectedSet.price.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {selectedCategoryForPayment && !selectedSet && (
+                <View style={styles.paymentSetInfo}>
+                  <Text style={styles.paymentSetName}>
+                    {selectedCategoryForPayment.name}
+                  </Text>
+                  <View style={styles.paymentPriceRow}>
+                    <Text style={styles.paymentPriceLabel}>Total Amount:</Text>
+                    <Text style={styles.paymentPriceValue}>
+                      ${selectedCategoryForPayment.min_price?.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.paymentFormScroll}
+            >
+              {/* Payment Methods */}
+              <View style={styles.paymentMethods}>
+                <TouchableOpacity style={styles.paymentMethodActive}>
+                  <Ionicons name="card-outline" size={24} color="#7c3aed" />
+                  <Text style={styles.paymentMethodText}>Credit Card</Text>
+                  <View style={styles.paymentMethodCheck}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color="#7c3aed"
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Card Number */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Card Number</Text>
+                <View style={styles.formInputContainer}>
+                  <Ionicons name="card-outline" size={20} color="#9ca3af" />
+                  <TextInput
+                    value={cardNumber}
+                    onChangeText={formatCardNumber}
+                    placeholder="1234 5678 9012 3456"
+                    keyboardType="numeric"
+                    maxLength={19}
+                    style={styles.formInput}
+                    placeholderTextColor="#9ca3af"
+                  />
+                </View>
+              </View>
+
+              {/* Card Holder */}
+              <View style={styles.formGroup}>
+                <Text style={styles.formLabel}>Card Holder Name</Text>
+                <View style={styles.formInputContainer}>
+                  <Ionicons name="person-outline" size={20} color="#9ca3af" />
+                  <TextInput
+                    value={cardHolder}
+                    onChangeText={setCardHolder}
+                    placeholder="John Doe"
+                    autoCapitalize="words"
+                    style={styles.formInput}
+                    placeholderTextColor="#9ca3af"
+                  />
+                </View>
+              </View>
+
+              {/* Expiry & CVV */}
+              <View style={styles.formRow}>
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={styles.formLabel}>Expiry Date</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color="#9ca3af"
+                    />
+                    <TextInput
+                      value={expiryDate}
+                      onChangeText={formatExpiryDate}
+                      placeholder="MM/YY"
+                      keyboardType="numeric"
+                      maxLength={5}
+                      style={styles.formInput}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                </View>
+
+                <View style={[styles.formGroup, styles.formGroupHalf]}>
+                  <Text style={styles.formLabel}>CVV</Text>
+                  <View style={styles.formInputContainer}>
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={20}
+                      color="#9ca3af"
+                    />
+                    <TextInput
+                      value={cvv}
+                      onChangeText={setCvv}
+                      placeholder="123"
+                      keyboardType="numeric"
+                      maxLength={3}
+                      secureTextEntry
+                      style={styles.formInput}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Security Notice */}
+              <View style={styles.securityNotice}>
+                <Ionicons name="shield-checkmark" size={20} color="#059669" />
+                <Text style={styles.securityText}>
+                  Your payment information is secure and encrypted
+                </Text>
+              </View>
+
+              {/* Pay Button */}
+              <TouchableOpacity
+                onPress={handlePayment}
+                disabled={paymentLoading}
+                style={[
+                  styles.payButton,
+                  { opacity: paymentLoading ? 0.6 : 1 },
+                ]}
+              >
+                {paymentLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="lock-closed" size={20} color="#fff" />
+                    <Text style={styles.payButtonText}>
+                      Pay $
+                      {selectedSet
+                        ? selectedSet.price.toFixed(2)
+                        : selectedCategoryForPayment?.min_price?.toFixed(2)}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Loading Overlay */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
@@ -601,7 +1127,7 @@ export default function QuizScreen() {
 }
 
 const styles = StyleSheet.create({
-  // ── Shared ──
+  // ... (keep all existing styles) ...
   container: {
     flex: 1,
     backgroundColor: "#f9fafb",
@@ -611,8 +1137,6 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 100,
   },
-
-  // ── Loading ──
   loadingContainer: {
     flex: 1,
     backgroundColor: "#f9fafb",
@@ -624,8 +1148,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
-
-  // ── Gradient header (FIX: was className on LinearGradient) ──
   gradientHeader: {
     paddingTop: 56,
     paddingBottom: 24,
@@ -648,8 +1170,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
   },
-
-  // ── Back button ──
   backButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -661,8 +1181,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-
-  // ── Category header row (FIX: gap → marginRight) ──
   gradientCategoryRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -677,8 +1195,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-
-  // ── Category list cards (FIX: overflow:hidden clips shadow on iOS) ──
   categoryCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -719,8 +1235,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
   },
-
-  // ── Full quiz card ──
   fullQuizSection: {
     marginBottom: 24,
   },
@@ -747,7 +1261,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // FIX: gap → marginLeft
   fullQuizText: {
     flex: 1,
     marginLeft: 12,
@@ -785,16 +1298,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-
-  // ── Section title ──
   sectionTitle: {
     color: "#111827",
     fontWeight: "700",
     fontSize: 18,
     marginBottom: 16,
   },
-
-  // ── Question set cards ──
   setCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -810,6 +1319,40 @@ const styles = StyleSheet.create({
   setCardInner: {
     padding: 16,
   },
+
+  // ── NEW: Price Badges ──
+  freeBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#10b981",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  freeBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  priceBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#f3e8ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  priceText: {
+    color: "#7c3aed",
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: 4,
+  },
+
   setName: {
     color: "#111827",
     fontWeight: "700",
@@ -844,8 +1387,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  // ── Modal ──
-  // FIX: bg-black/50 + centering → style prop
+  // ── Question Modal (existing) ──
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -853,7 +1395,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-  // FIX: rounded-3xl, w-full, max-w-sm → style prop (max-w not supported, use width)
   modalSheet: {
     backgroundColor: "#ffffff",
     borderRadius: 24,
@@ -884,8 +1425,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-
-  // ── Stepper (FIX: gap → marginHorizontal on input) ──
   stepper: {
     flexDirection: "row",
     alignItems: "center",
@@ -907,8 +1446,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 12,
   },
-
-  // ── Quick select (FIX: gap → marginRight on items) ──
   quickSelect: {
     flexDirection: "row",
     marginBottom: 24,
@@ -927,8 +1464,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
-
-  // ── Modal buttons (FIX: gap → marginBottom on start button) ──
   modalStartButton: {
     paddingVertical: 14,
     borderRadius: 12,
@@ -954,7 +1489,160 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // ── Loading overlay ──
+  // ── NEW: Payment Modal ──
+  paymentModalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  paymentModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  paymentModalContent: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "90%",
+  },
+  paymentHeader: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  paymentHeaderTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  paymentTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  paymentCloseBtn: {
+    width: 36,
+    height: 36,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paymentSetInfo: {
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 12,
+  },
+  paymentSetName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  paymentPriceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  paymentPriceLabel: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  paymentPriceValue: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#7c3aed",
+  },
+  paymentFormScroll: {
+    padding: 24,
+  },
+  paymentMethods: {
+    marginBottom: 24,
+  },
+  paymentMethodActive: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3e8ff",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#7c3aed",
+  },
+  paymentMethodText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#7c3aed",
+    marginLeft: 12,
+  },
+  paymentMethodCheck: {
+    width: 24,
+    height: 24,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  formLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  formInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  formInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#111827",
+    marginLeft: 12,
+  },
+  formRow: {
+    flexDirection: "row",
+    marginHorizontal: -8,
+  },
+  formGroupHalf: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  securityNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#d1fae5",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  securityText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#065f46",
+    marginLeft: 8,
+  },
+  payButton: {
+    backgroundColor: "#7c3aed",
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  payButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
+
   loadingOverlay: {
     position: "absolute",
     top: 0,
@@ -964,5 +1652,57 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  categoryPriceBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#f3e8ff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  categoryPriceText: {
+    color: "#7c3aed",
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 4,
+  },
+
+  categoryFreeBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: "#10b981",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+
+  categoryFreeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  categoryStartButton: {
+    marginTop: 12,
+    transform: [{ translateY: 18 }],
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  categoryStartText: {
+    fontWeight: "700",
+    fontSize: 12,
+    marginLeft: 8,
   },
 });

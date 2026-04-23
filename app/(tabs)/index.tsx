@@ -1,10 +1,13 @@
+import BookCard from "@/components/BookCard";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -73,82 +76,82 @@ const CAT_COLORS: Record<string, string[]> = {
 };
 
 // ─── Book Card ────────────────────────────────────────────────────────────────
-function BookCard({
-  book,
-  index,
-  onPress,
-}: {
-  book: any;
-  index: number;
-  onPress: () => void;
-}) {
-  const diffColor =
-    book.difficulty === "Beginner"
-      ? "#10b981"
-      : book.difficulty === "Advanced"
-        ? "#ef4444"
-        : "#f59e0b";
-  return (
-    <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={onPress}
-        style={styles.bookCard}
-      >
-        {/* Cover */}
-        <View style={styles.bookImageWrap}>
-          <Image
-            source={{ uri: book.cover }}
-            style={styles.bookImage}
-            resizeMode="cover"
-          />
-          <LinearGradient
-            colors={["transparent", "rgba(10,4,30,0.82)"]}
-            style={StyleSheet.absoluteFillObject}
-          />
-          {/* Top badges */}
-          <View style={styles.ratingBadge}>
-            <Ionicons name="star" size={11} color="#f59e0b" />
-            <Text style={styles.ratingTxt}>
-              {parseFloat(book.rating).toFixed(1)}
-            </Text>
-          </View>
-          {book.difficulty ? (
-            <View style={[styles.diffBadge, { backgroundColor: diffColor }]}>
-              <Text style={styles.diffBadgeTxt}>{book.difficulty}</Text>
-            </View>
-          ) : null}
-          {/* Category on image bottom */}
-          <View style={styles.bookCatOnImg}>
-            <Text style={styles.bookCatOnImgTxt}>{book.category}</Text>
-          </View>
-        </View>
-        {/* Info */}
-        <View style={styles.bookInfo}>
-          <Text style={styles.bookTitle} numberOfLines={1}>
-            {book.title}
-          </Text>
-          <View style={styles.bookAuthorRow}>
-            <View style={styles.bookAuthorDot} />
-            <Text style={styles.bookAuthor} numberOfLines={1}>
-              {book.author}
-            </Text>
-          </View>
-          <View style={styles.bookFootRow}>
-            <View style={styles.bookDurationPill}>
-              <Ionicons name="time-outline" size={11} color="#7c3aed" />
-              <Text style={styles.bookDurationTxt}>{book.duration}</Text>
-            </View>
-            <View style={styles.bookStudentsPill}>
-              <Ionicons name="people-outline" size={11} color="#059669" />
-              <Text style={styles.bookStudentsTxt}>{book.students ?? "—"}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animatable.View>
-  );
-}
+// function BookCard({
+//   book,
+//   index,
+//   onPress,
+// }: {
+//   book: any;
+//   index: number;
+//   onPress: () => void;
+// }) {
+//   const diffColor =
+//     book.difficulty === "Beginner"
+//       ? "#10b981"
+//       : book.difficulty === "Advanced"
+//         ? "#ef4444"
+//         : "#f59e0b";
+//   return (
+//     <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
+//       <TouchableOpacity
+//         activeOpacity={0.92}
+//         onPress={onPress}
+//         style={styles.bookCard}
+//       >
+//         {/* Cover */}
+//         <View style={styles.bookImageWrap}>
+//           <Image
+//             source={{ uri: book.cover }}
+//             style={styles.bookImage}
+//             resizeMode="cover"
+//           />
+//           <LinearGradient
+//             colors={["transparent", "rgba(10,4,30,0.82)"]}
+//             style={StyleSheet.absoluteFillObject}
+//           />
+//           {/* Top badges */}
+//           <View style={styles.ratingBadge}>
+//             <Ionicons name="star" size={11} color="#f59e0b" />
+//             <Text style={styles.ratingTxt}>
+//               {parseFloat(book.rating).toFixed(1)}
+//             </Text>
+//           </View>
+//           {book.difficulty ? (
+//             <View style={[styles.diffBadge, { backgroundColor: diffColor }]}>
+//               <Text style={styles.diffBadgeTxt}>{book.difficulty}</Text>
+//             </View>
+//           ) : null}
+//           {/* Category on image bottom */}
+//           <View style={styles.bookCatOnImg}>
+//             <Text style={styles.bookCatOnImgTxt}>{book.category}</Text>
+//           </View>
+//         </View>
+//         {/* Info */}
+//         <View style={styles.bookInfo}>
+//           <Text style={styles.bookTitle} numberOfLines={1}>
+//             {book.title}
+//           </Text>
+//           <View style={styles.bookAuthorRow}>
+//             <View style={styles.bookAuthorDot} />
+//             <Text style={styles.bookAuthor} numberOfLines={1}>
+//               {book.author}
+//             </Text>
+//           </View>
+//           <View style={styles.bookFootRow}>
+//             <View style={styles.bookDurationPill}>
+//               <Ionicons name="time-outline" size={11} color="#7c3aed" />
+//               <Text style={styles.bookDurationTxt}>{book.duration}</Text>
+//             </View>
+//             <View style={styles.bookStudentsPill}>
+//               <Ionicons name="people-outline" size={11} color="#059669" />
+//               <Text style={styles.bookStudentsTxt}>{book.students ?? "—"}</Text>
+//             </View>
+//           </View>
+//         </View>
+//       </TouchableOpacity>
+//     </Animatable.View>
+//   );
+// }
 
 const CAT_ICONS: Record<string, string> = {
   Design: "color-palette-outline",
@@ -303,9 +306,37 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
   useEffect(() => {
     fetchAll();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfileImage();
+    }, []),
+  );
+
+  const fetchProfileImage = async () => {
+    try {
+      const token = await AsyncStorage.getItem("auth_token");
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (data.success && data.data.profile_image) {
+        setProfileImage(data.data.profile_image);
+      }
+    } catch (error) {
+      console.error("Error fetching profile image:", error);
+    }
+  };
 
   const fetchAll = () => {
     setLoading(true);
@@ -405,13 +436,13 @@ export default function Index() {
     router.push({
       pathname: "/book/[id]",
       params: {
-        id: book.id,
+        id: String(book.id),
         title: book.title,
         author: book.author,
         cover: book.cover,
         description: book.description ?? "",
-        rating: book.rating,
-        pages: book.pages ?? "",
+        rating: String(book.rating),
+        pages: String(book.pages ?? ""),
         duration: book.duration ?? "",
         category: book.category ?? "",
         difficulty: book.difficulty ?? "",
@@ -452,7 +483,24 @@ export default function Index() {
               <Text style={styles.hiTxt}>Hi {displayName},</Text>
               <Text style={styles.subTxt}>Let's Start Learning</Text>
             </View>
-            <Avatar name={displayName} size={46} />
+
+            {/* Avatar with profile image or initials */}
+            <TouchableOpacity onPress={() => router.push("/profile")}>
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: "#d6d1df",
+                  }}
+                />
+              ) : (
+                <Avatar name={displayName} size={46} />
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* Search bar */}
@@ -654,7 +702,7 @@ export default function Index() {
             {loading ? (
               <View
                 style={{
-                  height: 200,
+                  height: 180,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -668,16 +716,18 @@ export default function Index() {
                 contentContainerStyle={{
                   paddingLeft: 20,
                   paddingRight: 8,
+                  marginBottom: -24,
                   gap: 16,
                 }}
               >
-                {allBooks.slice(0, 8).map((book: any, i: number) => (
-                  <BookCard
-                    key={book.id}
-                    book={book}
-                    index={i}
-                    onPress={() => goToBook(book)}
-                  />
+                {allBooks.slice(0, 8).map((book: any, index: number) => (
+                  <View key={book.id || index} style={{ width: 172 }}>
+                    <BookCard
+                      book={book}
+                      index={index}
+                      categories={categories}
+                    />
+                  </View>
                 ))}
               </ScrollView>
             )}
@@ -1240,17 +1290,17 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.1,
     // shadowRadius: 14,
     // elevation: 5,
-    height: 116,
+    height: 124,
   },
   blogImgWrap: {
     width: 116,
-    height: 116,
+    height: 124,
     position: "relative",
     flexShrink: 0,
   },
   blogCardImg: {
     width: 116,
-    height: 116,
+    height: 124,
   },
   blogCatBadge: {
     position: "absolute",
