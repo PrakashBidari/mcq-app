@@ -25,8 +25,8 @@ interface Category {
   color: string;
   icon: string | null;
   question_sets_count: number;
-
-  // NEW
+  free_sets_count?: number; // ← add
+  paid_sets_count?: number; // ← add
   min_price?: number;
   has_paid_sets?: boolean;
 }
@@ -36,8 +36,9 @@ interface QuestionSet {
   name: string;
   description: string;
   questions_count: number;
-  price: number; // Add price
-  is_free: boolean; // Add free flag
+  price: number | null;
+  is_paid: boolean; // ← from API
+  is_free: boolean; // ← derived from is_paid
 }
 
 export default function QuizScreen() {
@@ -69,21 +70,37 @@ export default function QuizScreen() {
     fetchCategories();
   }, []);
 
+  // const fetchCategories = async () => {
+  //   setIsLoading(true);
+  //   try {
+  //     const response = await fetch(`${API_URL}/categories`);
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       const categoriesWithPricing = data.data.map(
+  //         (cat: Category, index: number) => ({
+  //           ...cat,
+  //           min_price: index % 2 === 0 ? 0 : (index + 1) * 3.99,
+  //           has_paid_sets: index % 2 !== 0,
+  //         }),
+  //       );
+
+  //       setCategories(categoriesWithPricing);
+  //     } else Alert.alert("Error", "Failed to load categories");
+  //   } catch (error) {
+  //     console.error("Error fetching categories:", error);
+  //     Alert.alert("Error", "Something went wrong");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const fetchCategories = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/categories`);
       const data = await response.json();
       if (data.success) {
-        const categoriesWithPricing = data.data.map(
-          (cat: Category, index: number) => ({
-            ...cat,
-            min_price: index % 2 === 0 ? 0 : (index + 1) * 3.99,
-            has_paid_sets: index % 2 !== 0,
-          }),
-        );
-
-        setCategories(categoriesWithPricing);
+        setCategories(data.data); // ← use raw API data directly
       } else Alert.alert("Error", "Failed to load categories");
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -93,6 +110,39 @@ export default function QuizScreen() {
     }
   };
 
+  // const fetchQuestionSets = async (categoryId: number) => {
+  //   setIsLoading(true);
+  //   try {
+  //     const response = await fetch(
+  //       `${API_URL}/categories/${categoryId}/question-sets`,
+  //     );
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       // Add dummy pricing (you'll get this from API later)
+  //       const setsWithPrice = data.data.question_sets.map(
+  //         (set: QuestionSet, index: number) => ({
+  //           ...set,
+  //           price: index % 3 === 0 ? 0 : (index + 1) * 5.99, // Dummy prices
+  //           is_free: index % 3 === 0, // Every 3rd set is free
+  //         }),
+  //       );
+  //       setQuestionSets(setsWithPrice);
+  //       const total = setsWithPrice.reduce(
+  //         (sum: number, set: QuestionSet) => sum + set.questions_count,
+  //         0,
+  //       );
+  //       setTotalQuestionsInCategory(total);
+  //     } else {
+  //       Alert.alert("Error", "Failed to load question sets");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching question sets:", error);
+  //     Alert.alert("Error", "Something went wrong");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const fetchQuestionSets = async (categoryId: number) => {
     setIsLoading(true);
     try {
@@ -101,16 +151,14 @@ export default function QuizScreen() {
       );
       const data = await response.json();
       if (data.success) {
-        // Add dummy pricing (you'll get this from API later)
-        const setsWithPrice = data.data.question_sets.map(
-          (set: QuestionSet, index: number) => ({
-            ...set,
-            price: index % 3 === 0 ? 0 : (index + 1) * 5.99, // Dummy prices
-            is_free: index % 3 === 0, // Every 3rd set is free
-          }),
-        );
-        setQuestionSets(setsWithPrice);
-        const total = setsWithPrice.reduce(
+        const sets = data.data.question_sets.map((set: any) => ({
+          ...set,
+          is_paid: set.is_paid ?? false, // ← from API
+          price: set.price ?? 0, // ← from API
+          is_free: !set.is_paid, // ← derived
+        }));
+        setQuestionSets(sets);
+        const total = sets.reduce(
           (sum: number, set: QuestionSet) => sum + set.questions_count,
           0,
         );
@@ -528,23 +576,23 @@ export default function QuizScreen() {
                   style={styles.categoryCard}
                 >
                   <View style={styles.categoryCardRow}>
-                    {/* Price Badge */}
-                    {category.has_paid_sets ? (
-                      <View style={styles.categoryPriceBadge}>
-                        <Ionicons
-                          name="cash-outline"
-                          size={14}
-                          color="#7c3aed"
-                        />
-                        <Text style={styles.categoryPriceText}>
-                          From ${category.min_price?.toFixed(2)}
+                    {/* Sets Count Badge */}
+                    <View style={styles.categoryCountBadge}>
+                      {(category.free_sets_count ?? 0) > 0 && (
+                        <Text style={styles.categoryFreeCountText}>
+                          {category.free_sets_count} Free
                         </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.categoryFreeBadge}>
-                        <Text style={styles.categoryFreeText}>FREE</Text>
-                      </View>
-                    )}
+                      )}
+                      {(category.free_sets_count ?? 0) > 0 &&
+                        (category.paid_sets_count ?? 0) > 0 && (
+                          <Text style={styles.categoryCountDivider}>·</Text>
+                        )}
+                      {(category.paid_sets_count ?? 0) > 0 && (
+                        <Text style={styles.categoryPaidCountText}>
+                          {category.paid_sets_count} Paid
+                        </Text>
+                      )}
+                    </View>
                     <View
                       style={[
                         styles.categoryIconBox,
@@ -1704,5 +1752,34 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
     marginLeft: 8,
+  },
+
+  categoryCountBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryFreeCountText: {
+    color: "#10b981",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  categoryPaidCountText: {
+    color: "#7c3aed",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  categoryCountDivider: {
+    color: "#9ca3af",
+    fontSize: 12,
+    marginHorizontal: 4,
   },
 });
