@@ -18,11 +18,12 @@ export default function QuizResults() {
 
   const score = parseInt(params.score as string);
   const total = parseInt(params.total as string);
-  const userAnswers = JSON.parse(params.answers as string);
+  const userAnswers = JSON.parse(params.answers as string); // may contain -1 for unanswered
   const questions = JSON.parse(params.questions as string);
 
   const percentage = Math.round((score / total) * 100);
   const passed = percentage >= 60;
+  const unanswered = userAnswers.filter((a: number) => a === -1).length;
 
   const getGrade = () => {
     if (percentage >= 90)
@@ -42,18 +43,15 @@ export default function QuizResults() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* ─── Header ─── */}
-      {/* FIX: layout className + rounded-b-[40px] on LinearGradient → style prop */}
+      {/* Header */}
       <LinearGradient
         colors={passed ? ["#10b981", "#059669"] : ["#ef4444", "#dc2626"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientHeader}
       >
-        {/* FIX: className on Animatable.View → style prop */}
         <Animatable.View animation="fadeInDown" delay={100}>
           <View style={styles.headerCenter}>
-            {/* FIX: className on Animatable.View → style prop */}
             <Animatable.View
               animation="bounceIn"
               delay={300}
@@ -65,11 +63,11 @@ export default function QuizResults() {
                 color="white"
               />
             </Animatable.View>
-
             <Text style={styles.completedLabel}>Quiz Completed!</Text>
             <Text style={styles.gradeMessage}>{gradeInfo.message}</Text>
             <Text style={styles.scoreLabel}>
               You scored {score} out of {total}
+              {unanswered > 0 && ` • ${unanswered} unanswered`}
             </Text>
           </View>
         </Animatable.View>
@@ -79,13 +77,12 @@ export default function QuizResults() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ─── Score Cards ─── */}
-        {/* FIX: gap → marginRight on first card; flex-1 on Animatable.View → style prop */}
+        {/* Score Cards */}
         <View style={styles.scoreCardsRow}>
           <Animatable.View
             animation="fadeInLeft"
             delay={400}
-            style={styles.scoreCardAnimWrapper}
+            style={styles.scoreCardWrap}
           >
             <View style={styles.scoreCard}>
               <View
@@ -101,11 +98,10 @@ export default function QuizResults() {
               <Text style={styles.scoreCardLabel}>Your Grade</Text>
             </View>
           </Animatable.View>
-
           <Animatable.View
             animation="fadeInRight"
             delay={500}
-            style={styles.scoreCardAnimWrapper}
+            style={styles.scoreCardWrap}
           >
             <View style={styles.scoreCard}>
               <View style={styles.percentageBox}>
@@ -116,8 +112,7 @@ export default function QuizResults() {
           </Animatable.View>
         </View>
 
-        {/* ─── Stats ─── */}
-        {/* FIX: className on Animatable.View → style prop */}
+        {/* Stats */}
         <Animatable.View
           animation="fadeInUp"
           delay={600}
@@ -125,7 +120,6 @@ export default function QuizResults() {
         >
           <Text style={styles.cardTitle}>Quiz Statistics</Text>
 
-          {/* FIX: gap → marginBottom on stat rows */}
           <View style={styles.statRow}>
             <View style={styles.statLeft}>
               <View style={[styles.statIcon, { backgroundColor: "#dcfce7" }]}>
@@ -146,9 +140,23 @@ export default function QuizResults() {
               <Text style={styles.statLabel}>Wrong Answers</Text>
             </View>
             <Text style={[styles.statValue, { color: "#dc2626" }]}>
-              {total - score}
+              {total - score - unanswered}
             </Text>
           </View>
+
+          {unanswered > 0 && (
+            <View style={styles.statRow}>
+              <View style={styles.statLeft}>
+                <View style={[styles.statIcon, { backgroundColor: "#f3f4f6" }]}>
+                  <Ionicons name="remove-circle" size={20} color="#9ca3af" />
+                </View>
+                <Text style={styles.statLabel}>Unanswered</Text>
+              </View>
+              <Text style={[styles.statValue, { color: "#6b7280" }]}>
+                {unanswered}
+              </Text>
+            </View>
+          )}
 
           <View style={styles.statRowLast}>
             <View style={styles.statLeft}>
@@ -163,30 +171,31 @@ export default function QuizResults() {
           </View>
         </Animatable.View>
 
-        {/* ─── Answer Review ─── */}
-        {/* FIX: className on Animatable.View → style prop */}
+        {/* Answer Review */}
         <Animatable.View
           animation="fadeInUp"
           delay={700}
           style={styles.reviewCard}
         >
           <Text style={styles.cardTitle}>Answer Review</Text>
-
-          {/* FIX: gap → marginBottom on each review item */}
           <View>
             {questions.map((question: any, index: number) => {
               const userAnswer = userAnswers[index];
-              const isCorrect = userAnswer === question.correctAnswer;
+              const isUnanswered =
+                userAnswer === -1 || userAnswer === undefined;
+              const isCorrect =
+                !isUnanswered && userAnswer === question.correctAnswer;
 
               return (
                 <View
                   key={question.id}
-                  // FIX: conditional className → conditional style array
                   style={[
                     styles.reviewItem,
-                    isCorrect
-                      ? styles.reviewItemCorrect
-                      : styles.reviewItemWrong,
+                    isUnanswered
+                      ? styles.reviewItemUnanswered
+                      : isCorrect
+                        ? styles.reviewItemCorrect
+                        : styles.reviewItemWrong,
                     index < questions.length - 1 && styles.reviewItemMB,
                   ]}
                 >
@@ -194,11 +203,23 @@ export default function QuizResults() {
                     <View
                       style={[
                         styles.reviewDot,
-                        { backgroundColor: isCorrect ? "#22c55e" : "#ef4444" },
+                        {
+                          backgroundColor: isUnanswered
+                            ? "#9ca3af"
+                            : isCorrect
+                              ? "#22c55e"
+                              : "#ef4444",
+                        },
                       ]}
                     >
                       <Ionicons
-                        name={isCorrect ? "checkmark" : "close"}
+                        name={
+                          isUnanswered
+                            ? "remove"
+                            : isCorrect
+                              ? "checkmark"
+                              : "close"
+                        }
                         size={16}
                         color="white"
                       />
@@ -208,17 +229,30 @@ export default function QuizResults() {
                     </Text>
                   </View>
 
-                  {/* FIX: ml-9 → marginLeft: 36 */}
                   <View style={styles.reviewAnswers}>
                     <Text
                       style={[
                         styles.reviewYourAnswer,
-                        { color: isCorrect ? "#15803d" : "#dc2626" },
+                        {
+                          color: isUnanswered
+                            ? "#6b7280"
+                            : isCorrect
+                              ? "#15803d"
+                              : "#dc2626",
+                        },
                       ]}
                     >
-                      Your answer: {question.options[userAnswer]}
+                      Your answer:{" "}
+                      {isUnanswered
+                        ? "Not answered"
+                        : question.options[userAnswer]}
                     </Text>
-                    {!isCorrect && (
+                    {!isCorrect && !isUnanswered && (
+                      <Text style={styles.reviewCorrectAnswer}>
+                        Correct: {question.options[question.correctAnswer]}
+                      </Text>
+                    )}
+                    {isUnanswered && (
                       <Text style={styles.reviewCorrectAnswer}>
                         Correct: {question.options[question.correctAnswer]}
                       </Text>
@@ -230,17 +264,14 @@ export default function QuizResults() {
           </View>
         </Animatable.View>
 
-        {/* ─── Action Buttons ─── */}
-        {/* FIX: gap → marginBottom on first button */}
+        {/* Action Buttons */}
         <View>
-          {/* FIX: className on Animatable.View → style prop */}
           <Animatable.View
             animation="bounceIn"
             delay={800}
             style={styles.actionButtonMB}
           >
             <TouchableOpacity onPress={() => router.push("/(tabs)/quiz")}>
-              {/* FIX: layout className on LinearGradient → style prop */}
               <LinearGradient
                 colors={["#667eea", "#764ba2"]}
                 start={{ x: 0, y: 0 }}
@@ -253,7 +284,6 @@ export default function QuizResults() {
             </TouchableOpacity>
           </Animatable.View>
 
-          {/* FIX: className on Animatable.View + TouchableOpacity → style props */}
           <Animatable.View animation="bounceIn" delay={900}>
             <TouchableOpacity
               onPress={() => router.push("/(tabs)")}
@@ -277,17 +307,9 @@ const CARD_SHADOW = {
 } as const;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100,
-  },
+  container: { flex: 1, backgroundColor: "#f9fafb" },
+  scrollContent: { padding: 20, paddingBottom: 100 },
 
-  // ── Gradient header ──
-  // FIX: layout + rounded-b-[40px] from className → style
   gradientHeader: {
     paddingTop: 36,
     paddingBottom: 40,
@@ -295,10 +317,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
   },
-  headerCenter: {
-    alignItems: "center",
-  },
-  // FIX: className on Animatable.View → style prop
+  headerCenter: { alignItems: "center" },
   trophyCircle: {
     backgroundColor: "rgba(255,255,255,0.2)",
     width: 96,
@@ -322,23 +341,14 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     color: "rgba(255,255,255,0.8)",
-    fontSize: 18,
+    fontSize: 16,
+    textAlign: "center",
   },
 
-  // ── Score cards row ──
-  // FIX: gap → marginRight on first card
-  scoreCardsRow: {
-    flexDirection: "row",
-    marginTop: 0,
-    marginBottom: 24,
-  },
-  // FIX: flex-1 on Animatable.View → style prop
-  scoreCardAnimWrapper: {
-    flex: 1,
-    marginRight: 0,
-  },
+  scoreCardsRow: { flexDirection: "row", marginTop: 0, marginBottom: 24 },
+  scoreCardWrap: { flex: 1 },
   scoreCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     borderRadius: 24,
     padding: 20,
     alignItems: "center",
@@ -353,32 +363,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  gradeText: {
-    fontSize: 28,
-    fontWeight: "900",
-  },
+  gradeText: { fontSize: 28, fontWeight: "900" },
   percentageBox: {
     height: 64,
-    paddingHorizontal: 4,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
   },
-  percentageText: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#6d28d9",
-  },
-  scoreCardLabel: {
-    color: "#6b7280",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  percentageText: { fontSize: 28, fontWeight: "900", color: "#6d28d9" },
+  scoreCardLabel: { color: "#6b7280", fontSize: 14, fontWeight: "600" },
 
-  // ── Stats card ──
-  // FIX: className on Animatable.View → style prop
   statsCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
@@ -391,7 +387,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // FIX: gap → border-bottom separates rows; marginBottom on all but last
   statRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -399,7 +394,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f3f4f6",
-    marginBottom: 4,
   },
   statRowLast: {
     flexDirection: "row",
@@ -407,10 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
   },
-  statLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  statLeft: { flexDirection: "row", alignItems: "center" },
   statIcon: {
     width: 40,
     height: 40,
@@ -419,43 +410,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  statLabel: {
-    color: "#374151",
-    fontWeight: "600",
-    fontSize: 15,
-  },
-  statValue: {
-    fontWeight: "900",
-    fontSize: 18,
-  },
+  statLabel: { color: "#374151", fontWeight: "600", fontSize: 15 },
+  statValue: { fontWeight: "900", fontSize: 18 },
 
-  // ── Review card ──
-  // FIX: className on Animatable.View → style prop
   reviewCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     borderRadius: 24,
     padding: 24,
     marginBottom: 24,
     ...CARD_SHADOW,
   },
-
-  // FIX: conditional className → conditional style arrays
-  reviewItem: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  reviewItemMB: {
-    marginBottom: 12,
-  },
-  reviewItemCorrect: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
-  },
-  reviewItemWrong: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fecaca",
-  },
+  reviewItem: { padding: 16, borderRadius: 16, borderWidth: 1 },
+  reviewItemMB: { marginBottom: 12 },
+  reviewItemCorrect: { backgroundColor: "#f0fdf4", borderColor: "#bbf7d0" },
+  reviewItemWrong: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
+  reviewItemUnanswered: { backgroundColor: "#f9fafb", borderColor: "#e5e7eb" },
   reviewItemHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -468,7 +437,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-    // keeps it from shrinking
     flexShrink: 0,
   },
   reviewQuestion: {
@@ -477,27 +445,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  // FIX: ml-9 className → marginLeft: 36
-  reviewAnswers: {
-    marginLeft: 36,
-  },
-  reviewYourAnswer: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  reviewCorrectAnswer: {
-    color: "#15803d",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  reviewAnswers: { marginLeft: 36 },
+  reviewYourAnswer: { fontSize: 12, fontWeight: "700", marginBottom: 4 },
+  reviewCorrectAnswer: { color: "#15803d", fontSize: 12, fontWeight: "700" },
 
-  // ── Action buttons ──
-  // FIX: gap → marginBottom on first button wrapper
-  actionButtonMB: {
-    marginBottom: 12,
-  },
-  // FIX: layout className on LinearGradient → style prop
+  actionButtonMB: { marginBottom: 12 },
   primaryButton: {
     paddingVertical: 16,
     borderRadius: 16,
@@ -516,16 +468,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginLeft: 8,
   },
-  // FIX: className on TouchableOpacity → style prop
   secondaryButton: {
     backgroundColor: "#f3f4f6",
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
   },
-  secondaryButtonText: {
-    color: "#374151",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  secondaryButtonText: { color: "#374151", fontWeight: "700", fontSize: 16 },
 });

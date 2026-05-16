@@ -257,6 +257,7 @@ export default function QuizScreen() {
           params: {
             questions: JSON.stringify(data.data.questions),
             total: data.data.questions.length,
+            timeLimit: data.data.set?.time_limit ?? 0,
           },
         });
       } else {

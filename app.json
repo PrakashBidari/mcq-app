@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "MCQ App",
-    "slug": "mcq-app",
+    "name": "Ikigai connect",
+    "slug": "ikigai-connect",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/logo-new.png",
     "scheme": "testmobileapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,22 +19,23 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/logo.png"
+        "foregroundImage": "./assets/images/logo-new.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.prakashbidar.testmobileapp"
+      "package": "com.ikigaiconnect.app",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo.png"
+      "favicon": "./assets/images/logo-new.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo.png",
+          "image": "./assets/images/logo-new.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
