@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Ikigai connect",
-    "slug": "ikigai-connect",
+    "slug": "test-mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo-new.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.prakashbidar.mcqapp",
+      "bundleIdentifier": "com.ikigaiconnect.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -54,6 +54,7 @@
       "eas": {
         "projectId": "dfd572be-77a8-40ca-91c5-e053adbb0e99"
       }
-    }
+    },
+    "owner": "prakashbidar"
   }
 }
