@@ -1,4 +1,5 @@
 // app/quiz/play.tsx
+import FuriganaText from "@/components/FuriganaText";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -13,6 +14,22 @@ import {
 } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+// import ScreenshotPrevent from "react-native-screenshot-prevent";
+
+let ScreenshotPrevent: any = null;
+try {
+  ScreenshotPrevent = require("react-native-screenshot-prevent").default;
+} catch (e) {
+  ScreenshotPrevent = {
+    enabled: () => {},
+    ScreenshotPreventView: ({ children, style }: any) =>
+      require("react-native").createElement(
+        require("react-native").View,
+        { style },
+        children,
+      ),
+  };
+}
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
@@ -27,13 +44,12 @@ export default function QuizPlay() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
 
-  // ── Sort questions by position ASC (nulls last), then id DESC (latest first on tie) ──
   const rawQuestions = JSON.parse(params.questions as string);
   const allQuestions = [...rawQuestions].sort((a: any, b: any) => {
     const posA = a.position ?? Number.MAX_SAFE_INTEGER;
     const posB = b.position ?? Number.MAX_SAFE_INTEGER;
     if (posA !== posB) return posA - posB;
-    return b.id - a.id; // same position → latest (higher id) first
+    return b.id - a.id;
   });
 
   const totalQuestions = allQuestions.length;
@@ -56,14 +72,20 @@ export default function QuizPlay() {
     answersRef.current = userAnswers;
   }, [userAnswers]);
 
-  // ── Timer — runs regardless of which screen is showing ──
+  // ── Enable screenshot prevention on mount, disable on unmount ──
+  useEffect(() => {
+    ScreenshotPrevent.enabled(true);
+    return () => {
+      ScreenshotPrevent.enabled(false);
+    };
+  }, []);
+
   useEffect(() => {
     if (!hasTimer) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          // Works even when isFinished or isReview is true
           goToResults(answersRef.current);
           return 0;
         }
@@ -99,17 +121,16 @@ export default function QuizPlay() {
         score,
         total: totalQuestions,
         answers: JSON.stringify(answers.map((a) => (a === undefined ? -1 : a))),
-        questions: JSON.stringify(allQuestions), // pass sorted questions
+        questions: JSON.stringify(allQuestions),
       },
     });
   };
 
-  // ── Allow changing answer freely during quiz ──
   const handleSelect = (optIdx: number) => {
     const next = [...userAnswers];
     next[currentIndex] = optIdx;
     setUserAnswers(next);
-    setShowExplanation(false); // reset explanation when answer changes
+    setShowExplanation(false);
   };
 
   const handleReviewChange = (qIdx: number, optIdx: number) => {
@@ -135,7 +156,6 @@ export default function QuizPlay() {
   const answeredCount = userAnswers.filter((a) => a !== undefined).length;
   const tc = getTimerColor();
 
-  // ── Timer badge (reused across screens) ──
   const TimerBadge = () =>
     hasTimer ? (
       <View
@@ -163,7 +183,6 @@ export default function QuizPlay() {
           colors={["#667eea", "#764ba2"]}
           style={[styles.finishHeader, { paddingTop: insets.top + 20 }]}
         >
-          {/* Timer shown at top right of finish screen */}
           {hasTimer && (
             <View style={styles.finishTimerRow}>
               <TimerBadge />
@@ -175,7 +194,6 @@ export default function QuizPlay() {
             {answeredCount} of {totalQuestions} answered
           </Text>
         </LinearGradient>
-
         <View style={styles.finishBody}>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
@@ -199,7 +217,6 @@ export default function QuizPlay() {
               <Text style={styles.statLabel}>Total</Text>
             </View>
           </View>
-
           <TouchableOpacity
             onPress={() => {
               setIsFinished(false);
@@ -216,7 +233,6 @@ export default function QuizPlay() {
             </View>
             <Ionicons name="chevron-forward" size={18} color="#667eea" />
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => goToResults(userAnswers)}
             style={{ borderRadius: 16, overflow: "hidden" }}
@@ -243,7 +259,6 @@ export default function QuizPlay() {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
-
         <LinearGradient
           colors={["#667eea", "#764ba2"]}
           style={[styles.reviewBar, { paddingTop: insets.top + 12 }]}
@@ -263,7 +278,6 @@ export default function QuizPlay() {
               Tap any option to change your answer
             </Text>
           </View>
-          {/* Timer shown in review header */}
           <TimerBadge />
         </LinearGradient>
 
@@ -317,7 +331,11 @@ export default function QuizPlay() {
                   )}
                 </View>
 
-                <Text style={styles.reviewQText}>{q.question}</Text>
+                <FuriganaText
+                  text={q.question}
+                  style={styles.reviewQText}
+                  furiganaStyle={styles.furiganaSmall}
+                />
 
                 {q.options.map((opt: string, oi: number) => {
                   const isSel = sel === oi;
@@ -347,15 +365,15 @@ export default function QuizPlay() {
                           {OPTION_LABELS[oi]}
                         </Text>
                       </View>
-                      <Text
+                      <FuriganaText
+                        text={opt}
                         style={[
                           styles.optText,
                           isSel ? styles.optTextSel : styles.optTextDef,
                         ]}
-                        numberOfLines={3}
-                      >
-                        {opt}
-                      </Text>
+                        furiganaStyle={styles.furiganaSmall}
+                        containerStyle={{ flex: 1 }}
+                      />
                       {isSel && (
                         <Ionicons
                           name="checkmark-circle"
@@ -396,7 +414,6 @@ export default function QuizPlay() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header */}
       <LinearGradient
         colors={["#667eea", "#764ba2"]}
         start={{ x: 0, y: 0 }}
@@ -410,14 +427,11 @@ export default function QuizPlay() {
           >
             <Ionicons name="close" size={22} color="white" />
           </TouchableOpacity>
-
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text style={styles.qCounter}>
               Question {currentIndex + 1} / {totalQuestions}
             </Text>
           </View>
-
-          {/* Timer or answered count */}
           {hasTimer ? (
             <TimerBadge />
           ) : (
@@ -428,8 +442,6 @@ export default function QuizPlay() {
             </View>
           )}
         </View>
-
-        {/* Progress bar */}
         <View style={styles.progressTrack}>
           <View
             style={[
@@ -442,7 +454,6 @@ export default function QuizPlay() {
         </View>
       </LinearGradient>
 
-      {/* Question card */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
@@ -454,7 +465,6 @@ export default function QuizPlay() {
           duration={260}
           style={styles.qCard}
         >
-          {/* Meta row */}
           <View style={styles.qMeta}>
             <View style={styles.catBadge}>
               <Text style={styles.catBadgeText}>
@@ -488,9 +498,13 @@ export default function QuizPlay() {
             )}
           </View>
 
-          <Text style={styles.qText}>{currentQuestion.question}</Text>
+          <FuriganaText
+            text={currentQuestion.question}
+            style={styles.qText}
+            furiganaStyle={styles.furiganaMain}
+            containerStyle={styles.qTextContainer}
+          />
 
-          {/* Options — answer can be changed freely */}
           <View style={{ gap: 10 }}>
             {currentQuestion.options.map((opt: string, oi: number) => {
               const isSel = selectedAnswer === oi;
@@ -523,7 +537,6 @@ export default function QuizPlay() {
               return (
                 <TouchableOpacity
                   key={oi}
-                  // ── No disabled — user can change answer any time ──
                   onPress={() => handleSelect(oi)}
                   activeOpacity={0.7}
                   style={[styles.optionRow, rowStyle]}
@@ -538,7 +551,8 @@ export default function QuizPlay() {
                       {OPTION_LABELS[oi]}
                     </Text>
                   </View>
-                  <Text
+                  <FuriganaText
+                    text={opt}
                     style={[
                       styles.optText,
                       showOk
@@ -549,10 +563,15 @@ export default function QuizPlay() {
                             ? styles.optTextSel
                             : styles.optTextDef,
                     ]}
-                    numberOfLines={4}
-                  >
-                    {opt}
-                  </Text>
+                    furiganaStyle={
+                      showOk
+                        ? styles.furiganaOk
+                        : showBad
+                          ? styles.furiganaBad
+                          : styles.furiganaMain
+                    }
+                    containerStyle={{ flex: 1 }}
+                  />
                   {showOk && (
                     <Ionicons
                       name="checkmark-circle"
@@ -568,40 +587,31 @@ export default function QuizPlay() {
             })}
           </View>
 
-          {/* Show Explanation (only when answer is selected) */}
+          {/* EXPLANATION — disabled for now, enable in future
           {isAnswered && !showExplanation && !!currentQuestion.explanation && (
-            <TouchableOpacity
-              onPress={() => setShowExplanation(true)}
-              style={styles.explBtn}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={16}
-                color="#1d4ed8"
-              />
+            <TouchableOpacity onPress={() => setShowExplanation(true)} style={styles.explBtn}>
+              <Ionicons name="information-circle-outline" size={16} color="#1d4ed8" />
               <Text style={styles.explBtnTxt}>Show Explanation</Text>
             </TouchableOpacity>
           )}
 
           {showExplanation && (
-            <Animatable.View
-              animation="fadeInUp"
-              duration={260}
-              style={styles.explBox}
-            >
+            <Animatable.View animation="fadeInUp" duration={260} style={styles.explBox}>
               <Ionicons name="information-circle" size={18} color="#3b82f6" />
               <View style={{ flex: 1, marginLeft: 8 }}>
                 <Text style={styles.explLabel}>Explanation</Text>
-                <Text style={styles.explBody}>
-                  {currentQuestion.explanation}
-                </Text>
+                <FuriganaText
+                  text={currentQuestion.explanation}
+                  style={styles.explBody}
+                  furiganaStyle={styles.furiganaExpl}
+                />
               </View>
             </Animatable.View>
           )}
+          */}
         </Animatable.View>
       </ScrollView>
 
-      {/* Navigation bar */}
       <View style={[styles.navBar, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
           onPress={handlePrev}
@@ -663,7 +673,6 @@ export default function QuizPlay() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
 
-  // Header
   header: { paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: {
     flexDirection: "row",
@@ -705,7 +714,6 @@ const styles = StyleSheet.create({
   },
   progressFill: { backgroundColor: "#fff", height: "100%", borderRadius: 3 },
 
-  // Question card
   scrollContent: { padding: 20, paddingBottom: 24 },
   qCard: {
     backgroundColor: "#fff",
@@ -740,15 +748,16 @@ const styles = StyleSheet.create({
     borderRadius: 100,
   },
   positionText: { color: "#6b7280", fontWeight: "700", fontSize: 11 },
-  qText: {
-    color: "#1f2937",
-    fontSize: 17,
-    fontWeight: "700",
-    lineHeight: 26,
-    marginBottom: 20,
-  },
 
-  // Options
+  qTextContainer: { marginBottom: 20 },
+  qText: { color: "#1f2937", fontSize: 17, fontWeight: "700", lineHeight: 28 },
+
+  furiganaMain: { fontSize: 9, color: "#6b7280", lineHeight: 11 },
+  furiganaSmall: { fontSize: 8, color: "#9ca3af", lineHeight: 10 },
+  furiganaOk: { fontSize: 9, color: "#15803d", lineHeight: 11 },
+  furiganaBad: { fontSize: 9, color: "#dc2626", lineHeight: 11 },
+  furiganaExpl: { fontSize: 8, color: "#1d4ed8", lineHeight: 10 },
+
   optionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -778,7 +787,7 @@ const styles = StyleSheet.create({
   optLabelTxt: { fontSize: 13, fontWeight: "800", color: "#6b7280" },
   optLabelTxtSel: { color: "#fff" },
 
-  optText: { flex: 1, fontSize: 14, fontWeight: "500", lineHeight: 20 },
+  optText: { fontSize: 14, fontWeight: "500", lineHeight: 22 },
   optTextDef: { color: "#374151" },
   optTextSel: { color: "#6d28d9" },
   optTextOk: { color: "#15803d" },
@@ -814,7 +823,6 @@ const styles = StyleSheet.create({
   },
   explBody: { color: "#1d4ed8", fontSize: 13, lineHeight: 18 },
 
-  // Nav
   navBar: {
     paddingHorizontal: 20,
     paddingTop: 14,
@@ -851,7 +859,6 @@ const styles = StyleSheet.create({
   },
   nextTxt: { color: "#fff", fontWeight: "700", fontSize: 15 },
 
-  // Finished screen
   finishHeader: {
     paddingHorizontal: 24,
     paddingBottom: 36,
@@ -917,7 +924,6 @@ const styles = StyleSheet.create({
   },
   showResultText: { color: "#fff", fontSize: 17, fontWeight: "800" },
 
-  // Review screen
   reviewBar: {
     paddingHorizontal: 20,
     paddingBottom: 16,
@@ -963,7 +969,7 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     fontSize: 15,
     fontWeight: "600",
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 12,
   },
   submitGrad: {
