@@ -87,6 +87,7 @@ export default function VerifyOtpScreen() {
   };
 
   const handleVerify = async () => {
+    Keyboard.dismiss();
     const otpCode = otp.join("");
 
     if (otpCode.length !== 6) {
@@ -192,7 +193,7 @@ export default function VerifyOtpScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -313,6 +314,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
+    paddingBottom: 40,
   },
   content: {
     flex: 1,

@@ -22,6 +22,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "C:/Users/Prakash/Desktop/DeveloperGithub/AuthKey_7S299QJ552.p8",
+        "ascApiKeyIssuerId": "deac4758-d05f-40d9-8948-17cbaf793fbc",
+        "ascApiKeyId": "7S299QJ552"
+      }
+    }
   }
 }
