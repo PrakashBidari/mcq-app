@@ -3,7 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -29,8 +29,14 @@ export default function VerifyOtpScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const { login: saveAuth } = useAuth();
 
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds (change to match your backend)
+  const [timeLeft, setTimeLeft] = useState(600);
   const [isExpired, setIsExpired] = useState(false);
+  const isExpiredRef = useRef(false);
+
+  // Sync isExpired to ref (stale closure fix)
+  useEffect(() => {
+    isExpiredRef.current = isExpired;
+  }, [isExpired]);
 
   // Countdown timer
   useEffect(() => {
@@ -44,122 +50,118 @@ export default function VerifyOtpScreen() {
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
-  // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Get color based on time left
   const getTimerColor = () => {
-    if (timeLeft <= 30) return "#ef4444"; // Red
-    if (timeLeft <= 60) return "#f59e0b"; // Orange
-    return "#7c3aed"; // Purple
+    if (timeLeft <= 30) return "#ef4444";
+    if (timeLeft <= 60) return "#f59e0b";
+    return "#7c3aed";
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value[0];
-    }
+  // Core API function — defined before useEffect that calls it
+  const handleVerifyWithCode = useCallback(
+    async (otpCode: string) => {
+      if (isExpiredRef.current) {
+        Alert.alert(
+          "OTP Expired",
+          "Your OTP has expired. Please request a new one.",
+        );
+        return;
+      }
 
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+      setIsLoading(true);
 
-    // Auto-focus next input or dismiss keyboard when complete
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    } else if (value && index === 5) {
-      // Last digit entered — dismiss keyboard so the button is visible
+      try {
+        const response = await fetch(`${API_URL}/verify-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp: otpCode }),
+        });
+
+        const data = await response.json();
+        console.log("Verify response:", data);
+
+        if (data.success) {
+          await saveAuth(data.data.user, data.data.token);
+          Alert.alert(
+            "Success!",
+            "Email verified successfully! You are now logged in.",
+            [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
+          );
+        } else {
+          Alert.alert("Error", data.message || "Invalid OTP");
+          setOtp(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+        }
+      } catch (error: any) {
+        console.error("Verification error:", error);
+        Alert.alert("Error", "Something went wrong. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [email, saveAuth, router],
+  );
+
+  // Auto-verify when all 6 digits filled — works on both iOS and Android
+  useEffect(() => {
+    const otpCode = otp.join("");
+    if (otpCode.length === 6 && !otp.includes("")) {
       Keyboard.dismiss();
+      console.log("Auto verify triggered:", otpCode);
+      handleVerifyWithCode(otpCode);
     }
-  };
+  }, [otp, handleVerifyWithCode]);
 
-  const handleKeyPress = (index: number, key: string) => {
-    if (key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+  const handleOtpChange = useCallback(
+    (index: number, value: string) => {
+      if (value.length > 1) value = value[0];
+
+      const newOtp = [...otp];
+      newOtp[index] = value;
+      setOtp(newOtp);
+
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      } else if (value && index === 5) {
+        Keyboard.dismiss();
+      }
+    },
+    [otp],
+  );
+
+  const handleKeyPress = useCallback(
+    (index: number, key: string) => {
+      if (key === "Backspace" && !otp[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    },
+    [otp],
+  );
 
   const handleVerify = async () => {
-    Keyboard.dismiss();
     const otpCode = otp.join("");
-
     if (otpCode.length !== 6) {
       Alert.alert("Error", "Please enter the complete 6-digit OTP");
       return;
     }
-
-    if (isExpired) {
-      Alert.alert(
-        "OTP Expired",
-        "Your OTP has expired. Please request a new one.",
-      );
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/verify-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          otp: otpCode,
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Verify response:", data);
-
-      if (data.success) {
-        // Save auth data (verification API returns token)
-        await saveAuth(data.data.user, data.data.token);
-
-        Alert.alert(
-          "Success!",
-          "Email verified successfully! You are now logged in.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(tabs)"),
-            },
-          ],
-        );
-      } else {
-        Alert.alert("Error", data.message || "Invalid OTP");
-        // Clear OTP on error
-        setOtp(["", "", "", "", "", ""]);
-        inputRefs.current[0]?.focus();
-      }
-    } catch (error: any) {
-      console.error("Verification error:", error);
-      Alert.alert("Error", "Something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    await handleVerifyWithCode(otpCode);
   };
 
   const handleResendOtp = async () => {
     setIsResending(true);
-
     try {
       const response = await fetch(`${API_URL}/resend-otp`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
 
       const data = await response.json();
@@ -167,7 +169,7 @@ export default function VerifyOtpScreen() {
       if (data.success) {
         Alert.alert("Success", "OTP resent successfully! Check your email.");
         setOtp(["", "", "", "", "", ""]);
-        setTimeLeft(600); // Reset to 10 minutes (change to match your backend)
+        setTimeLeft(600);
         setIsExpired(false);
         inputRefs.current[0]?.focus();
       } else {
@@ -213,12 +215,33 @@ export default function VerifyOtpScreen() {
               </Text>
             </View>
 
-            {/* Timer */}
+            {/* Timer + Quick Verify */}
             <View style={styles.timerContainer}>
-              <Ionicons name="time-outline" size={24} color={getTimerColor()} />
-              <Text style={[styles.timerText, { color: getTimerColor() }]}>
-                {isExpired ? "Expired" : formatTime(timeLeft)}
-              </Text>
+              <View style={styles.timerLeft}>
+                <Ionicons
+                  name="time-outline"
+                  size={20}
+                  color={getTimerColor()}
+                />
+                <Text style={[styles.timerText, { color: getTimerColor() }]}>
+                  {isExpired ? "Expired" : formatTime(timeLeft)}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.timerVerifyBtn,
+                  isLoading && styles.buttonDisabled,
+                ]}
+                onPress={handleVerify}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#ffffff" size="small" />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color="#ffffff" />
+                )}
+              </TouchableOpacity>
             </View>
 
             {isExpired && (
@@ -245,6 +268,8 @@ export default function VerifyOtpScreen() {
                   maxLength={1}
                   selectTextOnFocus
                   editable={!isLoading}
+                  autoComplete="one-time-code"
+                  textContentType="oneTimeCode"
                 />
               ))}
             </View>
@@ -305,7 +330,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: "30%",
+    height: "12%",
     opacity: 0.1,
   },
   keyboardAvoidingView: {
@@ -313,26 +338,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
     paddingBottom: 40,
   },
   content: {
-    flex: 1,
     padding: 24,
-    justifyContent: "center",
+    paddingTop: 20,
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 20,
   },
   iconContainer: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     backgroundColor: "#f3f4f6",
-    borderRadius: 50,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 12,
   },
   title: {
     fontSize: 28,
@@ -350,10 +373,50 @@ const styles = StyleSheet.create({
     color: "#7c3aed",
     fontWeight: "600",
   },
+  timerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+  },
+  timerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  timerText: {
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  timerVerifyBtn: {
+    backgroundColor: "#7c3aed",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  expiredBanner: {
+    backgroundColor: "#fee2e2",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#ef4444",
+  },
+  expiredText: {
+    color: "#ef4444",
+    textAlign: "center",
+    fontWeight: "600",
+  },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 32,
+    marginBottom: 20,
   },
   otpInput: {
     width: 50,
@@ -413,32 +476,5 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: "#6b7280",
     fontSize: 14,
-  },
-  timerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginVertical: 20,
-    padding: 12,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-  },
-  timerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  expiredBanner: {
-    backgroundColor: "#fee2e2",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#ef4444",
-  },
-  expiredText: {
-    color: "#ef4444",
-    textAlign: "center",
-    fontWeight: "600",
   },
 });

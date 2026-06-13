@@ -5,13 +5,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -26,7 +29,6 @@ export default function ResetPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleResetPassword = async () => {
-    // Validation
     if (!password.trim()) {
       Alert.alert("Error", "Please enter your new password");
       return;
@@ -45,9 +47,7 @@ export default function ResetPasswordScreen() {
     try {
       const response = await fetch(`${API_URL}/reset-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email,
           otp: otp,
@@ -59,18 +59,11 @@ export default function ResetPasswordScreen() {
       console.log("Reset password response:", data);
 
       if (data.success) {
-        // Save auth data (auto-login after password reset)
         await saveAuth(data.data.user, data.data.token);
-
         Alert.alert(
           "Success!",
           "Password reset successful! You are now logged in.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/(tabs)"),
-            },
-          ],
+          [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
         );
       } else {
         Alert.alert("Error", data.message || "Password reset failed");
@@ -92,102 +85,118 @@ export default function ResetPasswordScreen() {
         style={styles.gradientBackground}
       />
 
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="key-outline" size={60} color="#7c3aed" />
-          </View>
-          <Text style={styles.title}>Reset Password</Text>
-          <Text style={styles.subtitle}>Enter your new password</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color="#6b7280"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="New Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color="#6b7280"
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Confirm Password Input */}
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={20}
-              color="#6b7280"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-            <TouchableOpacity
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <Ionicons
-                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                size={20}
-                color="#6b7280"
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Password Requirements */}
-          <View style={styles.requirements}>
-            <Text style={styles.requirementsText}>
-              Password must be at least 8 characters
-            </Text>
-          </View>
-
-          {/* Reset Button */}
-          <TouchableOpacity
-            style={[styles.resetButton, isLoading && styles.buttonDisabled]}
-            onPress={handleResetPassword}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.resetButtonText}>Reset Password</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Back to Login */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.replace("/(auth)/login")}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="arrow-back" size={20} color="#6b7280" />
-          <Text style={styles.backButtonText}>Back to Login</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="key-outline" size={50} color="#7c3aed" />
+              </View>
+              <Text style={styles.title}>Reset Password</Text>
+              <Text style={styles.subtitle}>Enter your new password</Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#6b7280"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="New Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Confirm Password Input */}
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#6b7280"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm New Password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={20}
+                    color="#6b7280"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Password Requirements */}
+              <View style={styles.requirements}>
+                <Text style={styles.requirementsText}>
+                  Password must be at least 8 characters
+                </Text>
+              </View>
+
+              {/* Reset Button */}
+              <TouchableOpacity
+                style={[styles.resetButton, isLoading && styles.buttonDisabled]}
+                onPress={handleResetPassword}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.resetButtonText}>Reset Password</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.replace("/(auth)/login")}
+            >
+              <Ionicons name="arrow-back" size={20} color="#6b7280" />
+              <Text style={styles.backButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -202,26 +211,32 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: "30%",
+    height: "12%",
     opacity: 0.1,
   },
-  content: {
+  keyboardAvoidingView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  content: {
     padding: 24,
-    justifyContent: "center",
+    paddingTop: 40,
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 32,
   },
   iconContainer: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     backgroundColor: "#f3f4f6",
-    borderRadius: 50,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,

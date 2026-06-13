@@ -4,13 +4,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,9 +33,7 @@ export default function ForgotPasswordScreen() {
     try {
       const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
         }),
@@ -72,62 +73,78 @@ export default function ForgotPasswordScreen() {
         style={styles.gradientBackground}
       />
 
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="lock-closed-outline" size={60} color="#7c3aed" />
-          </View>
-          <Text style={styles.title}>Forgot Password?</Text>
-          <Text style={styles.subtitle}>
-            Enter your email address and we'll send you a code to reset your
-            password
-          </Text>
-        </View>
-
-        {/* Email Input */}
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons
-              name="mail-outline"
-              size={20}
-              color="#6b7280"
-              style={styles.inputIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-          </View>
-
-          {/* Send Code Button */}
-          <TouchableOpacity
-            style={[styles.sendButton, isLoading && styles.buttonDisabled]}
-            onPress={handleSendOtp}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.sendButtonText}>Send Reset Code</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Back to Login */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="arrow-back" size={20} color="#6b7280" />
-          <Text style={styles.backButtonText}>Back to Login</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.content}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={50}
+                  color="#7c3aed"
+                />
+              </View>
+              <Text style={styles.title}>Forgot Password?</Text>
+              <Text style={styles.subtitle}>
+                Enter your email address and we'll send you a code to reset your
+                password
+              </Text>
+            </View>
+
+            {/* Email Input */}
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Ionicons
+                  name="mail-outline"
+                  size={20}
+                  color="#6b7280"
+                  style={styles.inputIcon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email Address"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+              </View>
+
+              {/* Send Code Button */}
+              <TouchableOpacity
+                style={[styles.sendButton, isLoading && styles.buttonDisabled]}
+                onPress={handleSendOtp}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.sendButtonText}>Send Reset Code</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={20} color="#6b7280" />
+              <Text style={styles.backButtonText}>Back to Login</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -142,26 +159,32 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: "30%",
+    height: "12%",
     opacity: 0.1,
   },
-  content: {
+  keyboardAvoidingView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  content: {
     padding: 24,
-    justifyContent: "center",
+    paddingTop: 60,
   },
   header: {
     alignItems: "center",
     marginBottom: 40,
   },
   iconContainer: {
-    width: 100,
-    height: 100,
+    width: 80,
+    height: 80,
     backgroundColor: "#f3f4f6",
-    borderRadius: 50,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 28,
