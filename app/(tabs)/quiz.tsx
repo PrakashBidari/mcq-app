@@ -1,5 +1,7 @@
 // app/(tabs)/quiz.tsx
 import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -42,6 +44,9 @@ interface QuestionSet {
 }
 
 export default function QuizScreen() {
+  const { isAuthenticated } = useAuth();
+  const { colors, isDark } = useTheme();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
@@ -53,6 +58,7 @@ export default function QuizScreen() {
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
   const [numberOfQuestions, setNumberOfQuestions] = useState("10");
   const [isLoading, setIsLoading] = useState(true);
@@ -230,6 +236,10 @@ export default function QuizScreen() {
     if (!category.has_paid_sets) {
       handleCategorySelect(category);
     } else {
+      if (!isAuthenticated) {
+        setShowLoginModal(true);
+        return;
+      }
       setSelectedCategoryForPayment(category);
       setShowPaymentModal(true);
     }
@@ -237,10 +247,12 @@ export default function QuizScreen() {
 
   const handleSetAction = async (set: QuestionSet) => {
     if (set.is_free) {
-      // Start quiz directly if free
       startQuestionSetQuiz(set.id);
     } else {
-      // Show payment modal if paid
+      if (!isAuthenticated) {
+        setShowLoginModal(true);
+        return;
+      }
       setSelectedSet(set);
       setShowPaymentModal(true);
     }
@@ -338,7 +350,7 @@ export default function QuizScreen() {
   // ─── Loading screen ───
   if (isLoading && categories.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#7c3aed" />
         <Text style={styles.loadingText}>Loading categories...</Text>
       </View>
@@ -348,7 +360,7 @@ export default function QuizScreen() {
   // ─── Category List ───
   if (!selectedCategory) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
@@ -574,7 +586,7 @@ export default function QuizScreen() {
                   key={category.id}
                   activeOpacity={0.8}
                   onPress={() => handleCategorySelect(category)}
-                  style={styles.categoryCard}
+                  style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
                   <View style={styles.categoryCardRow}>
                     {/* Sets Count Badge */}
@@ -608,7 +620,7 @@ export default function QuizScreen() {
                     </View>
 
                     <View style={styles.flex1}>
-                      <Text style={styles.categoryName}>{category.name}</Text>
+                      <Text style={[styles.categoryName, { color: colors.text }]}>{category.name}</Text>
                       <View style={styles.categoryMeta}>
                         <Ionicons
                           name="folder-outline"
@@ -662,6 +674,42 @@ export default function QuizScreen() {
             })}
           </View>
         </ScrollView>
+
+        {/* ─── Login Required Modal ─── */}
+        <Modal
+          visible={showLoginModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowLoginModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.loginModalSheet}>
+              <View style={styles.loginModalIconWrap}>
+                <Ionicons name="lock-closed" size={36} color="#7c3aed" />
+              </View>
+              <Text style={styles.loginModalTitle}>Login Required</Text>
+              <Text style={styles.loginModalMsg}>
+                Please login to buy this course.
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowLoginModal(false);
+                  router.push("/(auth)/login");
+                }}
+                style={styles.loginModalBtn}
+              >
+                <Ionicons name="log-in-outline" size={20} color="#fff" />
+                <Text style={styles.loginModalBtnText}>Go to Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowLoginModal(false)}
+                style={styles.loginModalCancel}
+              >
+                <Text style={styles.loginModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -769,7 +817,7 @@ export default function QuizScreen() {
 
         <View>
           {questionSets.map((set) => (
-            <View key={set.id} style={styles.setCard}>
+            <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <View style={styles.setCardInner}>
                 {/* Price Badge */}
                 {set.is_free ? (
@@ -1171,6 +1219,42 @@ export default function QuizScreen() {
           <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
+
+      {/* ─── Login Required Modal ─── */}
+      <Modal
+        visible={showLoginModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.loginModalSheet}>
+            <View style={styles.loginModalIconWrap}>
+              <Ionicons name="lock-closed" size={36} color="#7c3aed" />
+            </View>
+            <Text style={styles.loginModalTitle}>Login Required</Text>
+            <Text style={styles.loginModalMsg}>
+              Please login to buy this course.
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowLoginModal(false);
+                router.push("/(auth)/login");
+              }}
+              style={styles.loginModalBtn}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#fff" />
+              <Text style={styles.loginModalBtnText}>Go to Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowLoginModal(false)}
+              style={styles.loginModalCancel}
+            >
+              <Text style={styles.loginModalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1782,5 +1866,60 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     fontSize: 12,
     marginHorizontal: 4,
+  },
+  loginModalSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 28,
+    width: "100%",
+    alignItems: "center",
+  },
+  loginModalIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#f5f3ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  loginModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  loginModalMsg: {
+    fontSize: 15,
+    color: "#64748b",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  loginModalBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: "100%",
+    gap: 8,
+    marginBottom: 10,
+  },
+  loginModalBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  loginModalCancel: {
+    paddingVertical: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  loginModalCancelText: {
+    fontSize: 15,
+    color: "#94a3b8",
+    fontWeight: "500",
   },
 });

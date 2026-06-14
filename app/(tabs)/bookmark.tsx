@@ -1,4 +1,5 @@
 // app/(tabs)/bookmark.tsx
+import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
@@ -14,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 export default function BookmarkScreen() {
+  const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<
     "all" | "books" | "notes" | "quizzes"
   >("all");
@@ -462,13 +464,13 @@ export default function BookmarkScreen() {
     bookmarkedBooks.length + bookmarkedNotes.length + bookmarkedQuizzes.length;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* Header */}
-      <View className="px-5 pt-3 pb-4 bg-white">
+      <View className="px-5 pt-3 pb-4" style={{ backgroundColor: colors.headerBg }}>
         <View className="flex-row items-center justify-between mb-3">
           <View>
-            <Text className="text-2xl font-bold text-gray-900">Bookmarks</Text>
-            <Text className="text-xs text-gray-500 mt-0.5">
+            <Text className="text-2xl font-bold" style={{ color: colors.text }}>Bookmarks</Text>
+            <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
               {totalBookmarks} saved {totalBookmarks === 1 ? "item" : "items"}
             </Text>
           </View>
@@ -496,7 +498,7 @@ export default function BookmarkScreen() {
       </View>
 
       {/* Compact Tabs */}
-      <View className="flex-row px-5 py-2 bg-white border-b border-gray-100">
+      <View className="flex-row px-5 py-2 border-b" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}

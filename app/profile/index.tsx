@@ -1,5 +1,6 @@
 // app/profile/index.tsx
 import { API_URL } from "@/config/constants";
+import { useSidebar } from "@/context/SidebarContext";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
@@ -20,6 +21,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -281,7 +283,10 @@ export default function ProfileScreen() {
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-900">My Profile</Text>
-          <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+          <TouchableOpacity
+            className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
+            onPress={() => setSidebarVisible(true)}
+          >
             <Ionicons name="settings-outline" size={22} color="#374151" />
           </TouchableOpacity>
         </View>

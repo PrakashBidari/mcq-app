@@ -25,11 +25,12 @@ const GlobalSidebar = () => {
     } else if (screen === "ContactUs") {
       console.log("Navigate to: ContactUs");
       router.push("/contact-us");
+    } else if (screen === "AboutApp") {
+      router.push("/about");
+    } else if (screen === "PrivacyPolicy") {
+      router.push("/privacy-policy");
     } else {
-      // For other pages, you can create them later
-      // For now, just log
       console.log(`Navigate to: ${screen}`);
-      // When ready: router.push(`/${screen.toLowerCase()}`);
     }
   };
 

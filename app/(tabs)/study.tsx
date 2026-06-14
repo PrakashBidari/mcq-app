@@ -1,6 +1,7 @@
 // app/(tabs)/study.tsx
 import BookCard from "@/components/BookCard";
 import { API_URL } from "@/config/constants";
+import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import {
 import * as Animatable from "react-native-animatable";
 
 export default function Study() {
+  const { colors, isDark } = useTheme();
   // ── Read optional incoming params (from Home category tap) ──
   const params = useLocalSearchParams<{
     categoryId?: string;
@@ -91,18 +93,21 @@ export default function Study() {
   };
 
   const filteredBooks = allBooks.filter((book: any) => {
+    const bookCategoryId = book.categoryId ?? book.category_id;
     const matchesCategory =
-      selectedCategory === 0 || book.categoryId === selectedCategory;
+      selectedCategory === 0 || bookCategoryId === selectedCategory;
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.category.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (book.title ?? "").toLowerCase().includes(q) ||
+      (book.author ?? "").toLowerCase().includes(q) ||
+      (book.category ?? "").toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
   });
 
   const sortedBooks = [...filteredBooks].sort((a: any, b: any) => {
-    if (sortBy === "rating") return b.rating - a.rating;
-    if (sortBy === "popular") return b.students - a.students;
+    if (sortBy === "rating") return (b.rating ?? 0) - (a.rating ?? 0);
+    if (sortBy === "popular") return (b.students ?? 0) - (a.students ?? 0);
     return 0;
   });
 
@@ -112,33 +117,33 @@ export default function Study() {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#667eea" />
-        <Text style={styles.loadingText}>Loading books...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading books...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* ─── Header ─── */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Study Library</Text>
-        <Text style={styles.headerSubtitle}>
+      <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Study Library</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
           {filteredBooks.length} books available
         </Text>
       </View>
 
       {/* ─── Search & Filter ─── */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchBar}>
+      <View style={[styles.searchSection, { backgroundColor: colors.headerBg }]}>
+        <View style={[styles.searchBar, { backgroundColor: colors.inputBg }]}>
           <Ionicons name="search" size={20} color="#9CA3AF" />
           <TextInput
             placeholder="Search books, authors, categories..."
             placeholderTextColor="#9CA3AF"
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -318,7 +323,7 @@ export default function Study() {
                         <Text style={styles.categoryItemCount}>
                           {category.id === 0
                             ? `${allBooks.length} books`
-                            : `${allBooks.filter((b: any) => b.categoryId === category.id).length} books`}
+                            : `${allBooks.filter((b: any) => (b.categoryId ?? b.category_id) === category.id).length} books`}
                         </Text>
                       </View>
                       {isSelected && (

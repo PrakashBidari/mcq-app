@@ -2,7 +2,7 @@
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
-import { Redirect, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Image, Text, View } from "react-native";
 import * as Animatable from "react-native-animatable";
@@ -50,14 +50,8 @@ const TabIcon = ({ focused, icon, title, size = 6 }) => {
 const _Layout = () => {
   const insets = useSafeAreaInsets();
   const { setSidebarVisible } = useSidebar();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
-  // Redirect to login if not authenticated
-  if (!isLoading && !isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  // Show loading
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

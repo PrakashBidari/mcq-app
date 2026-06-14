@@ -3,9 +3,8 @@ import { Redirect } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function Index() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
 
-  // Show loading while checking auth
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -14,12 +13,7 @@ export default function Index() {
     );
   }
 
-  // Redirect based on authentication
-  return isAuthenticated ? (
-    <Redirect href="/(tabs)" />
-  ) : (
-    <Redirect href="/(auth)/login" />
-  );
+  return <Redirect href="/(tabs)" />;
 }
 
 const styles = StyleSheet.create({

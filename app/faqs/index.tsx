@@ -304,7 +304,10 @@ export default function FAQsScreen() {
               Can not find the answer you are looking for? Our support team is
               here to help.
             </Text>
-            <TouchableOpacity className="bg-purple-600 px-6 py-3 rounded-xl flex-row items-center">
+            <TouchableOpacity
+              className="bg-purple-600 px-6 py-3 rounded-xl flex-row items-center"
+              onPress={() => router.push("/contact-us")}
+            >
               <Ionicons name="mail" size={20} color="white" />
               <Text className="text-white font-bold text-base ml-2">
                 Contact Support

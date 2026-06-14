@@ -171,6 +171,186 @@ function BlogCard({
   );
 }
 
+function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
+  const isMedium = size === "medium";
+  const { isDark } = useTheme();
+  return (
+    <Animatable.View animation="fadeIn" duration={600}>
+      <LinearGradient
+        colors={isDark ? ["#1a1a2e", "#16213e"] : ["#f5f3ff", "#ede9fe"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[adStyles.wrap, isMedium && adStyles.wrapMedium, isDark && { borderColor: "#2d2d44" }]}
+      >
+        {/* Top label row */}
+        <View style={adStyles.labelRow}>
+          <View style={adStyles.adTag}>
+            <Text style={adStyles.adTagTxt}>AD</Text>
+          </View>
+          <Text style={adStyles.sponsoredTxt}>Sponsored</Text>
+          <View style={adStyles.flex1} />
+          <Ionicons name="ellipsis-horizontal" size={14} color="#a78bfa" />
+        </View>
+
+        {/* Content area */}
+        <View style={[adStyles.contentArea, isMedium && adStyles.contentMedium]}>
+          <View style={adStyles.adIconWrap}>
+            <LinearGradient
+              colors={["#7c3aed", "#a855f7"]}
+              style={adStyles.adIconGrad}
+            >
+              <Ionicons name="megaphone-outline" size={isMedium ? 28 : 20} color="#fff" />
+            </LinearGradient>
+          </View>
+          <View style={adStyles.adTextWrap}>
+            <Text style={adStyles.adTitle} numberOfLines={1}>
+              Your Ad Here
+            </Text>
+            <Text style={adStyles.adDesc} numberOfLines={isMedium ? 3 : 1}>
+              {isMedium
+                ? "Reach thousands of learners. Connect your Google or Apple ad account to display your ads here."
+                : "Promote your product to active learners."}
+            </Text>
+          </View>
+          {!isMedium && (
+            <View style={adStyles.adBtn}>
+              <Text style={adStyles.adBtnTxt}>Learn</Text>
+            </View>
+          )}
+        </View>
+
+        {isMedium && (
+          <TouchableOpacity style={adStyles.adBtnFull} activeOpacity={0.85}>
+            <Text style={adStyles.adBtnFullTxt}>Learn More</Text>
+            <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
+          </TouchableOpacity>
+        )}
+
+        {/* Decorative dots */}
+        <View style={adStyles.dot1} />
+        <View style={adStyles.dot2} />
+      </LinearGradient>
+    </Animatable.View>
+  );
+}
+
+const adStyles = StyleSheet.create({
+  wrap: {
+    marginHorizontal: 18,
+    marginTop: 14,
+    marginBottom: 0,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ddd6fe",
+    overflow: "hidden",
+    position: "relative",
+  },
+  wrapMedium: {
+    padding: 16,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    gap: 6,
+  },
+  adTag: {
+    backgroundColor: "#7c3aed",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  adTagTxt: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  sponsoredTxt: {
+    fontSize: 11,
+    color: "#8b5cf6",
+    fontWeight: "500",
+  },
+  flex1: { flex: 1 },
+  contentArea: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  contentMedium: {
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  adIconWrap: {},
+  adIconGrad: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adTextWrap: { flex: 1 },
+  adTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#3b0764",
+    marginBottom: 3,
+  },
+  adDesc: {
+    fontSize: 12,
+    color: "#6d28d9",
+    lineHeight: 17,
+    opacity: 0.8,
+  },
+  adBtn: {
+    backgroundColor: "#7c3aed",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  adBtnTxt: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  adBtnFull: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#ddd6fe",
+  },
+  adBtnFullTxt: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#7c3aed",
+  },
+  dot1: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(167,139,250,0.12)",
+    top: -30,
+    right: -20,
+  },
+  dot2: {
+    position: "absolute",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(167,139,250,0.08)",
+    bottom: -18,
+    left: -12,
+  },
+});
+
 function AchievementCard({ item, index }: { item: any; index: number }) {
   return (
     <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
@@ -205,7 +385,7 @@ function AchievementCard({ item, index }: { item: any; index: number }) {
 }
 
 export default function Index() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -224,6 +404,7 @@ export default function Index() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedSet, setSelectedSet] = useState<any>(null);
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolder, setCardHolder] = useState("");
@@ -331,6 +512,10 @@ export default function Index() {
 
   const handleSearchSetAction = (set: any) => {
     if (set.is_paid) {
+      if (!user) {
+        setShowLoginModal(true);
+        return;
+      }
       setSelectedSet(set);
       setShowPaymentModal(true);
     } else startQuestionSetQuiz(set.id);
@@ -460,7 +645,7 @@ export default function Index() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F5F3FF" }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar barStyle="light-content" />
 
       {/* ═══ STICKY COMPACT HEADER ════════════ */}
@@ -474,16 +659,30 @@ export default function Index() {
         <View style={styles.blob2} />
         <View style={styles.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.hiTxt}>Hi {displayName} 👋</Text>
+            <Text style={styles.hiTxt}>
+              {user ? `Hi ${displayName} 👋` : "Welcome, Ikigai Connect"}
+            </Text>
             <Text style={styles.subTxt}>Let's Start Learning</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push("/profile")}>
-            {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.profileImg} />
-            ) : (
-              <Avatar name={displayName} size={36} />
-            )}
-          </TouchableOpacity>
+          {user ? (
+            <TouchableOpacity onPress={() => router.push("/profile")}>
+              {profileImage ? (
+                <Image
+                  source={{ uri: profileImage }}
+                  style={styles.profileImg}
+                />
+              ) : (
+                <Avatar name={displayName} size={36} />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/login")}
+              style={styles.loginIconBtn}
+            >
+              <Ionicons name="person-circle-outline" size={38} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={16} color="#9ca3af" />
@@ -525,7 +724,7 @@ export default function Index() {
           }
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.body}>
+          <View style={[styles.body, { backgroundColor: colors.background }]}>
             {/* Hero Swiper */}
             <Animatable.View
               animation="fadeIn"
@@ -590,6 +789,9 @@ export default function Index() {
               </View>
             </Animatable.View>
 
+            {/* Ad Banner — after hero swiper */}
+            <AdBanner size="banner" />
+
             {/* Categories */}
             <Animatable.View
               animation="fadeInUp"
@@ -598,7 +800,7 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={styles.secTitle}>Categories</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>Categories</Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
                   <Text style={styles.seeAll}>See all</Text>
                 </TouchableOpacity>
@@ -701,7 +903,7 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={styles.secTitle}>This week</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>This week</Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
                   <Text style={styles.seeAll}>See all</Text>
                 </TouchableOpacity>
@@ -748,7 +950,7 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={styles.secTitle}>Achievements</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>Achievements</Text>
                 <TouchableOpacity>
                   <Text style={styles.seeAll}>View all</Text>
                 </TouchableOpacity>
@@ -767,6 +969,9 @@ export default function Index() {
                 ))}
               </ScrollView>
             </Animatable.View>
+
+            {/* Ad Banner — after achievements */}
+            <AdBanner size="medium" />
 
             {/* Quiz Banner */}
             <Animatable.View
@@ -840,7 +1045,7 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={styles.secTitle}>Latest Articles</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>Latest Articles</Text>
                 <TouchableOpacity onPress={() => router.push("/blog")}>
                   <Text style={styles.seeAll}>See all</Text>
                 </TouchableOpacity>
@@ -866,7 +1071,7 @@ export default function Index() {
                 </View>
               ) : (
                 <View style={{ paddingHorizontal: 20, gap: 14 }}>
-                  {blogs.map((blog: any, i: number) => (
+                  {blogs.slice(0, 5).map((blog: any, i: number) => (
                     <BlogCard
                       key={blog.id}
                       blog={blog}
@@ -1142,6 +1347,42 @@ export default function Index() {
           </View>
         </View>
       </Modal>
+
+      {/* ═══ LOGIN REQUIRED MODAL ══════════════ */}
+      <Modal
+        visible={showLoginModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+        <View style={styles.loginModalOverlay}>
+          <View style={styles.loginModalSheet}>
+            <View style={styles.loginModalIconWrap}>
+              <Ionicons name="lock-closed" size={36} color="#7c3aed" />
+            </View>
+            <Text style={styles.loginModalTitle}>Login Required</Text>
+            <Text style={styles.loginModalMsg}>
+              Please login to buy this course.
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowLoginModal(false);
+                router.push("/(auth)/login");
+              }}
+              style={styles.loginModalBtn}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#fff" />
+              <Text style={styles.loginModalBtnText}>Go to Login</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowLoginModal(false)}
+              style={styles.loginModalCancel}
+            >
+              <Text style={styles.loginModalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1192,6 +1433,12 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.5)",
+  },
+  loginIconBtn: {
+    width: 42,
+    height: 42,
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchBar: {
     backgroundColor: "#fff",
@@ -1320,7 +1567,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  swiperSec: { paddingHorizontal: 18, paddingTop: 20, marginBottom: 6 },
+  swiperSec: { paddingHorizontal: 18, paddingTop: 14, marginBottom: 0 },
   swiperWrap: { height: 196, borderRadius: 18, overflow: "hidden" },
   slide: { flex: 1 },
   slideGrad: { flex: 1, justifyContent: "flex-end", padding: 16 },
@@ -1380,7 +1627,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
 
-  sec: { paddingTop: 20, marginBottom: 6 },
+  sec: { paddingTop: 14, marginBottom: 0 },
   secHdr: {
     flexDirection: "row",
     alignItems: "center",
@@ -1389,7 +1636,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   secTitle: {
-    color: "#1e0f4e",
     fontSize: 18,
     fontWeight: "900",
     letterSpacing: -0.2,
@@ -1456,7 +1702,7 @@ const styles = StyleSheet.create({
   achieveBarFill: { height: "100%", borderRadius: 3 },
   achievePct: { fontSize: 11, fontWeight: "800" },
 
-  bannerSec: { paddingHorizontal: 18, paddingTop: 22, marginBottom: 6 },
+  bannerSec: { paddingHorizontal: 18, paddingTop: 14, marginBottom: 0 },
   quizBanner: {
     borderRadius: 18,
     overflow: "hidden",
@@ -1776,5 +2022,67 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     marginLeft: 7,
+  },
+  loginModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  loginModalSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 28,
+    width: "100%",
+    alignItems: "center",
+  },
+  loginModalIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#f5f3ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  loginModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1e293b",
+    marginBottom: 8,
+  },
+  loginModalMsg: {
+    fontSize: 15,
+    color: "#64748b",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  loginModalBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: "100%",
+    gap: 8,
+    marginBottom: 10,
+  },
+  loginModalBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  loginModalCancel: {
+    paddingVertical: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  loginModalCancelText: {
+    fontSize: 15,
+    color: "#94a3b8",
+    fontWeight: "500",
   },
 });

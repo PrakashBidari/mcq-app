@@ -36,34 +36,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const savedUser = await AsyncStorage.getItem("auth_user");
 
       if (savedToken && savedUser) {
-        // Verify token with backend
         try {
           const response = await fetch(`${API_URL}/user`, {
-            headers: {
-              Authorization: `Bearer ${savedToken}`,
-            },
+            headers: { Authorization: `Bearer ${savedToken}` },
           });
+
+          const contentType = response.headers.get("content-type") ?? "";
+          const isJson = contentType.includes("application/json");
+
+          if (!isJson) {
+            // Server returned HTML (down / 404 / 500) — keep cached session
+            setToken(savedToken);
+            setUser(JSON.parse(savedUser));
+            return;
+          }
 
           const data = await response.json();
 
           if (data.success && data.data) {
-            // Token is valid, user exists
             setToken(savedToken);
             setUser(data.data);
           } else {
-            // Token invalid or user not found - clear storage
+            // Token explicitly rejected by server — clear session
             await AsyncStorage.removeItem("auth_token");
             await AsyncStorage.removeItem("auth_user");
             setToken(null);
             setUser(null);
           }
         } catch (error) {
-          // Backend error - clear auth
-          console.error("Token verification failed:", error);
-          await AsyncStorage.removeItem("auth_token");
-          await AsyncStorage.removeItem("auth_user");
-          setToken(null);
-          setUser(null);
+          // Network error — keep cached session so user stays logged in
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
         }
       }
     } catch (error) {

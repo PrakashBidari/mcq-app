@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import ThemeManager from "@/utils/ThemeManager";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -42,7 +43,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   // Inside component:
   const [isDark, setIsDark] = useState(ThemeManager.getIsDark());
 
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
+  const router = useRouter();
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -183,13 +185,14 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           icon: "information-circle-outline",
           label: "About App",
           hasArrow: true,
+          onPress: () => { onNavigate("AboutApp"); onClose(); },
         },
         {
-          icon: "document-text-outline",
-          label: "Terms of Service",
+          icon: "shield-outline",
+          label: "Privacy Policy",
           hasArrow: true,
+          onPress: () => { onNavigate("PrivacyPolicy"); onClose(); },
         },
-        { icon: "shield-outline", label: "Privacy Policy", hasArrow: true },
       ],
     },
   ];
@@ -225,6 +228,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             styles.sidebar,
             {
               transform: [{ translateX: slideAnim }],
+              backgroundColor: isDark ? "#1a1a2e" : "#fff",
             },
           ]}
         >
@@ -270,8 +274,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             contentContainerStyle={styles.scrollContent}
           >
             {/* Quick Menu Items */}
-            <View style={styles.menuContainer}>
-              <Text style={styles.sectionTitle}>QUICK ACCESS</Text>
+            <View style={[styles.menuContainer, { borderBottomColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
+              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>QUICK ACCESS</Text>
               {menuItems.map((item, index) => (
                 <Animated.View
                   key={item.id}
@@ -308,7 +312,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                       />
                     </View>
                     <View style={styles.menuTextContainer}>
-                      <Text style={styles.menuText}>{item.title}</Text>
+                      <Text style={[styles.menuText, { color: isDark ? "#f1f5f9" : "#1e293b" }]}>{item.title}</Text>
                     </View>
                     <Ionicons
                       name="chevron-forward"
@@ -328,7 +332,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   <Text style={styles.settingsSectionTitle}>
                     {section.title}
                   </Text>
-                  <View style={styles.settingsList}>
+                  <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
                     {section.items.map((item, itemIndex) => (
                       <TouchableOpacity
                         key={itemIndex}
@@ -347,7 +351,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                             color="#7c3aed"
                           />
                         </View>
-                        <Text style={styles.settingsLabel}>{item.label}</Text>
+                        <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>{item.label}</Text>
                         {item.hasSwitch && (
                           <Switch
                             value={item.value}
@@ -369,20 +373,34 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </View>
               ))}
 
-              {/* Logout Button */}
-              <TouchableOpacity
-                style={styles.logoutButton}
-                activeOpacity={0.7}
-                onPress={handleLogout} // ← ADD THIS
-              >
-                <Ionicons name="log-out-outline" size={22} color="#dc2626" />
-                <Text style={styles.logoutText}>Log Out</Text>
-              </TouchableOpacity>
+              {/* Login / Logout Button */}
+              {isAuthenticated ? (
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  activeOpacity={0.7}
+                  onPress={handleLogout}
+                >
+                  <Ionicons name="log-out-outline" size={22} color="#dc2626" />
+                  <Text style={styles.logoutText}>Log Out</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    onClose();
+                    router.push("/(auth)/login");
+                  }}
+                >
+                  <Ionicons name="log-in-outline" size={22} color="#7c3aed" />
+                  <Text style={styles.loginText}>Log In</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { backgroundColor: isDark ? "#1a1a2e" : "#fff", borderTopColor: isDark ? "#2d2d44" : "#e2e8f0" }]}>
             <View style={styles.divider} />
             <View style={styles.footerContent}>
               <Ionicons
@@ -598,6 +616,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#dc2626",
+  },
+  loginButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f3ff",
+    borderWidth: 1,
+    borderColor: "#c4b5fd",
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  loginText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#7c3aed",
   },
   footer: {
     paddingHorizontal: 24,

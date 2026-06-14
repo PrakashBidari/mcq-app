@@ -1,12 +1,14 @@
 // app/(tabs)/setting.tsx
+import { useTheme } from "@/hooks/useTheme";
+import ThemeManager from "@/utils/ThemeManager";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingScreen() {
+  const { colors, isDark } = useTheme();
   const [notifications, setNotifications] = React.useState(true);
-  const [darkMode, setDarkMode] = React.useState(false);
 
   const settingsSections = [
     {
@@ -35,8 +37,8 @@ export default function SettingScreen() {
           icon: "moon-outline",
           label: "Dark Mode",
           hasSwitch: true,
-          value: darkMode,
-          onToggle: setDarkMode,
+          value: isDark,
+          onToggle: () => ThemeManager.toggle(),
         },
         { icon: "language-outline", label: "Language", hasArrow: true },
       ],
@@ -68,19 +70,19 @@ export default function SettingScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* Header */}
-      <View className="px-6 py-4 bg-white border-b border-gray-100">
-        <Text className="text-2xl font-bold text-gray-900">Settings</Text>
+      <View className="px-6 py-4 border-b" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
+        <Text className="text-2xl font-bold" style={{ color: colors.text }}>Settings</Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {settingsSections.map((section, sectionIndex) => (
           <View key={sectionIndex} className="mt-6">
-            <Text className="px-6 mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            <Text className="px-6 mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
               {section.title}
             </Text>
-            <View className="bg-white border-y border-gray-100">
+            <View className="border-y" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
@@ -98,7 +100,7 @@ export default function SettingScreen() {
                       color="#7c3aed"
                     />
                   </View>
-                  <Text className="flex-1 ml-4 text-base font-medium text-gray-900">
+                  <Text className="flex-1 ml-4 text-base font-medium" style={{ color: colors.text }}>
                     {item.label}
                   </Text>
                   {item.hasSwitch && (
