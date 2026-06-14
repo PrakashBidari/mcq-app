@@ -105,6 +105,16 @@ export default function RegisterScreen() {
         style={styles.gradientBackground}
       />
 
+      {/* Back Button — always at top, outside scroll */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.replace("/(tabs)")}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="arrow-back" size={20} color="#7c3aed" />
+        <Text style={styles.backButtonText}>Back to Home</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -299,6 +309,19 @@ const styles = StyleSheet.create({
   registerButtonText: {
     color: "#ffffff",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  backButtonText: {
+    color: "#7c3aed",
+    fontSize: 14,
     fontWeight: "600",
   },
   loginLink: {

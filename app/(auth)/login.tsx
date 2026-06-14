@@ -92,6 +92,16 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.replace("/(tabs)")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="arrow-back" size={20} color="#7c3aed" />
+              <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+
             {/* Logo */}
             <View style={styles.logoWrapper}>
               <View style={styles.logoShadow} />
@@ -434,6 +444,18 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 24,
+    gap: 6,
+  },
+  backButtonText: {
+    color: "#7c3aed",
+    fontSize: 14,
+    fontWeight: "600",
+  },
   forgotPasswordLink: {
     alignItems: "flex-end",
     marginTop: 8,
