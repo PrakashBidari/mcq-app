@@ -2,6 +2,7 @@
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
+import { useTheme } from "@/hooks/useTheme";
 import { Tabs } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Image, Text, View } from "react-native";
@@ -10,25 +11,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 
 
-const TabIcon = ({ focused, icon, title, size = 6 }) => {
+const TabIcon = ({ focused, icon, title, size = 6, isDark = false }) => {
   return (
     <View className="flex-1 w-20 justify-center items-center relative">
       <Animatable.View
         animation={focused ? "fadeIn" : undefined}
         className="items-center gap-1"
       >
-        {/* Icon with Light Background when focused */}
+        {/* Icon with Background when focused */}
         <View
-          className={`${focused ? "bg-purple-50" : ""} w-16 h-12 rounded-xl items-center justify-center`}
+          style={{ backgroundColor: focused ? (isDark ? "#2d1f4e" : "#ede9fe") : "transparent" }}
+          className="w-16 h-12 rounded-xl items-center justify-center"
         >
           <Image
             source={icon}
-            tintColor={focused ? "#667eea" : "#9CA3AF"}
+            tintColor={focused ? "#667eea" : (isDark ? "#64748b" : "#9CA3AF")}
             className={`size-${size}`}
             resizeMode="contain"
           />
           <Text
-            className={`text-[10px] font-${focused ? "bold" : "medium"} ${focused ? "text-purple-600" : "text-gray-400"}`}
+            style={{ color: focused ? "#7c3aed" : (isDark ? "#64748b" : "#9CA3AF") }}
+            className={`text-[10px] font-${focused ? "bold" : "medium"}`}
           >
             {title}
           </Text>
@@ -51,6 +54,7 @@ const _Layout = () => {
   const insets = useSafeAreaInsets();
   const { setSidebarVisible } = useSidebar();
   const { isLoading } = useAuth();
+  const { colors, isDark } = useTheme();
 
   if (isLoading) {
     return (
@@ -69,20 +73,21 @@ const _Layout = () => {
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: colors.headerBg,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom + 5,
           paddingTop: 10,
           paddingHorizontal: 5,
-          borderTopWidth: 0,
+          borderTopWidth: isDark ? 1 : 0,
+          borderTopColor: isDark ? colors.border : "transparent",
           shadowColor: "#000",
           shadowOffset: {
             width: 0,
             height: -4,
           },
-          shadowOpacity: 0.08,
+          shadowOpacity: isDark ? 0 : 0.08,
           shadowRadius: 16,
-          elevation: 20,
+          elevation: isDark ? 0 : 20,
         },
         tabBarItemStyle: {
           paddingVertical: 5,
@@ -104,7 +109,7 @@ const _Layout = () => {
           title: "Home",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.home} title="Home" />
+            <TabIcon focused={focused} icon={icons.home} title="Home" isDark={isDark} />
           ),
         }}
       />
@@ -114,7 +119,7 @@ const _Layout = () => {
           title: "Quiz",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.stats} title="MCQ" />
+            <TabIcon focused={focused} icon={icons.stats} title="MCQ" isDark={isDark} />
           ),
         }}
       />
@@ -129,6 +134,7 @@ const _Layout = () => {
               icon={icons.study}
               title="Study"
               size={9}
+              isDark={isDark}
             />
           ),
         }}
@@ -139,7 +145,7 @@ const _Layout = () => {
           title: "Bookmark",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} title="Bookmark" />
+            <TabIcon focused={focused} icon={icons.save} title="Bookmark" isDark={isDark} />
           ),
         }}
       />
@@ -149,7 +155,7 @@ const _Layout = () => {
           title: "Setting",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.setting} title="Setting" />
+            <TabIcon focused={focused} icon={icons.setting} title="Setting" isDark={isDark} />
           ),
         }}
       />

@@ -56,7 +56,6 @@ export default function ResetPasswordScreen() {
       });
 
       const data = await response.json();
-      console.log("Reset password response:", data);
 
       if (data.success) {
         await saveAuth(data.data.user, data.data.token);
@@ -68,8 +67,7 @@ export default function ResetPasswordScreen() {
       } else {
         Alert.alert("Error", data.message || "Password reset failed");
       }
-    } catch (error: any) {
-      console.error("Reset password error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

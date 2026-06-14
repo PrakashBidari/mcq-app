@@ -82,7 +82,6 @@ export default function VerifyResetOtpScreen() {
         });
 
         const data = await response.json();
-        console.log("Verify reset OTP response:", data);
 
         if (data.success) {
           router.push({
@@ -94,8 +93,7 @@ export default function VerifyResetOtpScreen() {
           setOtp(["", "", "", "", "", ""]);
           inputRefs.current[0]?.focus();
         }
-      } catch (error: any) {
-        console.error("Verification error:", error);
+      } catch {
         Alert.alert("Error", "Something went wrong. Please try again.");
       } finally {
         setIsLoading(false);
@@ -119,7 +117,6 @@ export default function VerifyResetOtpScreen() {
     const otpCode = otp.join("");
     if (otpCode.length === 6 && !otp.includes("")) {
       Keyboard.dismiss();
-      console.log("Auto verify triggered:", otpCode);
       handleVerifyWithCode(otpCode);
     }
   }, [otp]);
@@ -167,8 +164,7 @@ export default function VerifyResetOtpScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to resend code");
       }
-    } catch (error: any) {
-      console.error("Resend error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsResending(false);

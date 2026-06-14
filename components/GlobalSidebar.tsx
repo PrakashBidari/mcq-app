@@ -20,17 +20,13 @@ const GlobalSidebar = () => {
     } else if (screen === "FAQs") {
       router.push("/faqs");
     } else if (screen === "MyLearning") {
-      console.log("Navigate to: MyLearning");
       router.push("/my-learning");
     } else if (screen === "ContactUs") {
-      console.log("Navigate to: ContactUs");
       router.push("/contact-us");
     } else if (screen === "AboutApp") {
       router.push("/about");
     } else if (screen === "PrivacyPolicy") {
       router.push("/privacy-policy");
-    } else {
-      console.log(`Navigate to: ${screen}`);
     }
   };
 

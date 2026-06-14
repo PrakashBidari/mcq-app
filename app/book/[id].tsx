@@ -26,8 +26,8 @@ export default function BookReader() {
   if (params.book) {
     try {
       book = JSON.parse(params.book as string);
-    } catch (error) {
-      console.error("Error parsing book:", error);
+    } catch {
+      // book stays null — error state rendered below
     }
   }
 

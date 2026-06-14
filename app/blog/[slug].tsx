@@ -24,13 +24,10 @@ export default function BlogDetailScreen() {
   if (params.blog) {
     try {
       blog = JSON.parse(params.blog as string);
-    } catch (error) {
-      console.error("Error parsing blog:", error);
+    } catch {
+      // blog stays null — error state rendered below
     }
   }
-
-  console.log("Blog params:", params);
-  console.log("Parsed blog:", blog);
 
   if (!blog) {
     return (

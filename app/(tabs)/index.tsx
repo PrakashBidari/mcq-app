@@ -90,8 +90,9 @@ function CategoryItem({
   index: number;
   onPress: () => void;
 }) {
-  const colors = CAT_COLORS[cat.name] ?? [cat.color ?? "#7c3aed", "#4f46e5"];
+  const catColors = CAT_COLORS[cat.name] ?? [cat.color ?? "#7c3aed", "#4f46e5"];
   const icon = (CAT_ICONS[cat.name] ?? cat.icon ?? "grid-outline") as any;
+  const { colors: themeColors } = useTheme();
   return (
     <Animatable.View animation="fadeInUp" delay={index * 60} duration={400}>
       <TouchableOpacity
@@ -100,14 +101,14 @@ function CategoryItem({
         style={styles.catItem}
       >
         <LinearGradient
-          colors={colors as any}
+          colors={catColors as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.catCircle}
         >
           <Ionicons name={icon} size={24} color="#fff" />
         </LinearGradient>
-        <Text style={styles.catLabel} numberOfLines={1}>
+        <Text style={[styles.catLabel, { color: themeColors.text }]} numberOfLines={1}>
           {cat.name}
         </Text>
       </TouchableOpacity>
@@ -124,12 +125,13 @@ function BlogCard({
   index: number;
   onPress: () => void;
 }) {
+  const { colors: themeColors, isDark: blogIsDark } = useTheme();
   return (
     <Animatable.View animation="fadeInUp" delay={index * 55} duration={400}>
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={onPress}
-        style={styles.blogCard}
+        style={[styles.blogCard, { backgroundColor: themeColors.card, borderColor: blogIsDark ? themeColors.border : "#7c3aed3e" }]}
       >
         <View style={styles.blogImgWrap}>
           <Image
@@ -143,25 +145,25 @@ function BlogCard({
           />
         </View>
         <View style={styles.blogCardBody}>
-          <Text style={styles.blogCardTitle} numberOfLines={2}>
+          <Text style={[styles.blogCardTitle, { color: themeColors.text }]} numberOfLines={2}>
             {blog.title}
           </Text>
-          <Text style={styles.blogCardExcerpt} numberOfLines={2}>
+          <Text style={[styles.blogCardExcerpt, { color: themeColors.textSecondary }]} numberOfLines={2}>
             {blog.excerpt}
           </Text>
           <View style={styles.blogCardMeta}>
             <View style={styles.blogMetaItem}>
-              <Ionicons name="time-outline" size={12} color="#a89ec0" />
-              <Text style={styles.blogCardMetaTxt}>{blog.readTime}</Text>
+              <Ionicons name="time-outline" size={12} color={blogIsDark ? "#64748b" : "#a89ec0"} />
+              <Text style={[styles.blogCardMetaTxt, { color: themeColors.textMuted }]}>{blog.readTime}</Text>
             </View>
-            <View style={styles.metaDot} />
+            <View style={[styles.metaDot, { backgroundColor: blogIsDark ? "#374151" : "#c4b8e8" }]} />
             <View style={styles.blogMetaItem}>
-              <Ionicons name="heart-outline" size={12} color="#a89ec0" />
-              <Text style={styles.blogCardMetaTxt}>{blog.likes}</Text>
+              <Ionicons name="heart-outline" size={12} color={blogIsDark ? "#64748b" : "#a89ec0"} />
+              <Text style={[styles.blogCardMetaTxt, { color: themeColors.textMuted }]}>{blog.likes}</Text>
             </View>
             <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <View style={styles.blogArrow}>
-                <Ionicons name="arrow-forward" size={13} color="#7c3aed" />
+              <View style={[styles.blogArrow, { backgroundColor: blogIsDark ? "#2d1f4e" : "#ede8ff" }]}>
+                <Ionicons name="arrow-forward" size={13} color={blogIsDark ? "#a855f7" : "#7c3aed"} />
               </View>
             </View>
           </View>
@@ -203,10 +205,10 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
             </LinearGradient>
           </View>
           <View style={adStyles.adTextWrap}>
-            <Text style={adStyles.adTitle} numberOfLines={1}>
+            <Text style={[adStyles.adTitle, isDark && { color: "#e2d9f3" }]} numberOfLines={1}>
               Your Ad Here
             </Text>
-            <Text style={adStyles.adDesc} numberOfLines={isMedium ? 3 : 1}>
+            <Text style={[adStyles.adDesc, isDark && { color: "#a78bfa" }]} numberOfLines={isMedium ? 3 : 1}>
               {isMedium
                 ? "Reach thousands of learners. Connect your Google or Apple ad account to display your ads here."
                 : "Promote your product to active learners."}
@@ -220,7 +222,7 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
         </View>
 
         {isMedium && (
-          <TouchableOpacity style={adStyles.adBtnFull} activeOpacity={0.85}>
+          <TouchableOpacity style={[adStyles.adBtnFull, isDark && { backgroundColor: "#2d1f4e", borderColor: "#4c1d95" }]} activeOpacity={0.85}>
             <Text style={adStyles.adBtnFullTxt}>Learn More</Text>
             <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
           </TouchableOpacity>
@@ -352,20 +354,21 @@ const adStyles = StyleSheet.create({
 });
 
 function AchievementCard({ item, index }: { item: any; index: number }) {
+  const { colors: themeColors, isDark: achIsDark } = useTheme();
   return (
     <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
-      <View style={[styles.achieveCard, { shadowColor: item.color }]}>
+      <View style={[styles.achieveCard, { shadowColor: item.color, backgroundColor: themeColors.card, borderColor: achIsDark ? themeColors.border : "#ede8ff" }]}>
         <View
           style={[
             styles.achieveIconBox,
-            { backgroundColor: item.color + "18" },
+            { backgroundColor: item.color + (achIsDark ? "30" : "18") },
           ]}
         >
           <Ionicons name={item.icon as any} size={22} color={item.color} />
         </View>
-        <Text style={styles.achieveTitle}>{item.title}</Text>
-        <Text style={styles.achieveDesc}>{item.description}</Text>
-        <View style={styles.achieveBarBg}>
+        <Text style={[styles.achieveTitle, { color: themeColors.text }]}>{item.title}</Text>
+        <Text style={[styles.achieveDesc, { color: themeColors.textSecondary }]}>{item.description}</Text>
+        <View style={[styles.achieveBarBg, { backgroundColor: achIsDark ? "#2d2d44" : "#ede8ff" }]}>
           <View
             style={[
               styles.achieveBarFill,
@@ -406,11 +409,6 @@ export default function Index() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedSet, setSelectedSet] = useState<any>(null);
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardHolder, setCardHolder] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [paymentLoading, setPaymentLoading] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
 
   useEffect(() => {
@@ -521,51 +519,9 @@ export default function Index() {
     } else startQuestionSetQuiz(set.id);
   };
 
-  const handlePayment = () => {
-    if (!cardNumber || cardNumber.replace(/\s/g, "").length < 16) {
-      Alert.alert("Error", "Enter valid card number");
-      return;
-    }
-    if (!cardHolder) {
-      Alert.alert("Error", "Enter card holder name");
-      return;
-    }
-    if (!expiryDate || expiryDate.length < 5) {
-      Alert.alert("Error", "Enter valid expiry date");
-      return;
-    }
-    if (!cvv || cvv.length < 3) {
-      Alert.alert("Error", "Enter valid CVV");
-      return;
-    }
-    setPaymentLoading(true);
-    setTimeout(() => {
-      setPaymentLoading(false);
-      setShowPaymentModal(false);
-      Alert.alert("Success!", "Payment successful!", [
-        {
-          text: "Start Quiz",
-          onPress: () => {
-            if (selectedSet) startQuestionSetQuiz(selectedSet.id);
-          },
-        },
-      ]);
-      setCardNumber("");
-      setCardHolder("");
-      setExpiryDate("");
-      setCvv("");
-    }, 2000);
-  };
-
-  const formatCardNumber = (text: string) => {
-    const c = text.replace(/\s/g, "");
-    setCardNumber(c.match(/.{1,4}/g)?.join(" ") || c);
-  };
-  const formatExpiryDate = (text: string) => {
-    const c = text.replace(/\D/g, "");
-    setExpiryDate(
-      c.length >= 2 ? c.substring(0, 2) + "/" + c.substring(2, 4) : c,
-    );
+  const handlePlayPaidContent = () => {
+    setShowPaymentModal(false);
+    if (selectedSet) startQuestionSetQuiz(selectedSet.id);
   };
 
   const closeSearch = () => {
@@ -684,12 +640,12 @@ export default function Index() {
             </TouchableOpacity>
           )}
         </View>
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={16} color="#9ca3af" />
+        <View style={[styles.searchBar, isDark && { backgroundColor: colors.inputBg }]}>
+          <Ionicons name="search-outline" size={16} color={isDark ? "#64748b" : "#9ca3af"} />
           <TextInput
             placeholder="Search question sets..."
-            placeholderTextColor="#9ca3af"
-            style={styles.searchInput}
+            placeholderTextColor={isDark ? "#64748b" : "#9ca3af"}
+            style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -699,11 +655,11 @@ export default function Index() {
               onPress={closeSearch}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close-circle" size={18} color="#9ca3af" />
+              <Ionicons name="close-circle" size={18} color={isDark ? "#64748b" : "#9ca3af"} />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.filterBtn}>
-              <Ionicons name="options-outline" size={16} color="#7c3aed" />
+            <TouchableOpacity style={[styles.filterBtn, isDark && { backgroundColor: colors.cardAlt }]}>
+              <Ionicons name="options-outline" size={16} color={isDark ? "#a855f7" : "#7c3aed"} />
             </TouchableOpacity>
           )}
         </View>
@@ -856,14 +812,14 @@ export default function Index() {
                 activeOpacity={0.92}
                 onPress={() => router.push("/(tabs)/study")}
               >
-                <View style={styles.adBanner}>
-                  <View style={styles.adBlob1} />
-                  <View style={styles.adBlob2} />
+                <View style={[styles.adBanner, isDark && { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={[styles.adBlob1, isDark && { backgroundColor: "#2d1f4e" }]} />
+                  <View style={[styles.adBlob2, isDark && { backgroundColor: "#1a2e1a" }]} />
                   <View style={styles.adIconStack}>
-                    <View style={styles.adIconTop}>
-                      <Ionicons name="book-outline" size={20} color="#7c3aed" />
+                    <View style={[styles.adIconTop, isDark && { backgroundColor: "#2d1f4e" }]}>
+                      <Ionicons name="book-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
                     </View>
-                    <View style={styles.adIconBottom}>
+                    <View style={[styles.adIconBottom, isDark && { backgroundColor: "#1a2e1a" }]}>
                       <Ionicons
                         name="library-outline"
                         size={20}
@@ -872,13 +828,13 @@ export default function Index() {
                     </View>
                   </View>
                   <View style={{ flex: 1, marginHorizontal: 14 }}>
-                    <View style={styles.adTag}>
-                      <Text style={styles.adTagTxt}>📖 STUDY LIBRARY</Text>
+                    <View style={[styles.adTag, isDark && { backgroundColor: "#2d1f4e" }]}>
+                      <Text style={[styles.adTagTxt, isDark && { color: "#a855f7" }]}>📖 STUDY LIBRARY</Text>
                     </View>
-                    <Text style={styles.adTitle}>
+                    <Text style={[styles.adTitle, { color: colors.text }]}>
                       Unlock 100+{"\n"}Premium Books
                     </Text>
-                    <Text style={styles.adSub}>
+                    <Text style={[styles.adSub, { color: colors.textSecondary }]}>
                       Design, Dev, Business & more
                     </Text>
                   </View>
@@ -1103,13 +1059,13 @@ export default function Index() {
               activeOpacity={1}
               onPress={closeSearch}
             />
-            <View style={styles.searchResultsPanel}>
-              <View style={styles.searchResultsHeader}>
-                <Text style={styles.searchResultsTitle}>
+            <View style={[styles.searchResultsPanel, { backgroundColor: colors.card }]}>
+              <View style={[styles.searchResultsHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
                   {isSearching ? "Searching..." : `"${searchQuery}"`}
                 </Text>
                 <TouchableOpacity onPress={closeSearch}>
-                  <Ionicons name="close" size={18} color="#6b7280" />
+                  <Ionicons name="close" size={18} color={isDark ? "#94a3b8" : "#6b7280"} />
                 </TouchableOpacity>
               </View>
               {isSearching && (
@@ -1119,8 +1075,8 @@ export default function Index() {
               )}
               {!isSearching && searchResults.length === 0 && (
                 <View style={styles.searchEmptyBox}>
-                  <Ionicons name="search-outline" size={28} color="#c4b8e8" />
-                  <Text style={styles.searchEmptyText}>
+                  <Ionicons name="search-outline" size={28} color={isDark ? "#4b5563" : "#c4b8e8"} />
+                  <Text style={[styles.searchEmptyText, { color: colors.textMuted }]}>
                     No question sets found
                   </Text>
                 </View>
@@ -1136,33 +1092,35 @@ export default function Index() {
                       onPress={() => handleSearchSetAction(set)}
                       style={[
                         styles.searchResultItem,
-                        index < searchResults.length - 1 &&
+                        index < searchResults.length - 1 && [
                           styles.searchResultBorder,
+                          { borderBottomColor: colors.border },
+                        ],
                       ]}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.searchResultIcon}>
+                      <View style={[styles.searchResultIcon, isDark && { backgroundColor: "#2d1f4e" }]}>
                         <Ionicons
                           name="help-circle-outline"
                           size={20}
-                          color="#7c3aed"
+                          color={isDark ? "#a855f7" : "#7c3aed"}
                         />
                       </View>
                       <View style={styles.searchResultInfo}>
-                        <Text style={styles.searchResultName} numberOfLines={1}>
+                        <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
                           {set.name}
                         </Text>
                         <View style={styles.searchResultMeta}>
                           <Ionicons
                             name="folder-outline"
                             size={11}
-                            color="#9ca3af"
+                            color={isDark ? "#64748b" : "#9ca3af"}
                           />
-                          <Text style={styles.searchResultCategory}>
+                          <Text style={[styles.searchResultCategory, { color: colors.textMuted }]}>
                             {set.category}
                           </Text>
-                          <Text style={styles.searchResultDot}>·</Text>
-                          <Text style={styles.searchResultCategory}>
+                          <Text style={[styles.searchResultDot, { color: colors.textMuted }]}>·</Text>
+                          <Text style={[styles.searchResultCategory, { color: colors.textMuted }]}>
                             {set.questions_count} Qs
                           </Text>
                         </View>
@@ -1220,130 +1178,43 @@ export default function Index() {
             activeOpacity={1}
             onPress={() => setShowPaymentModal(false)}
           />
-          <View style={styles.paymentModalContent}>
-            <View style={styles.paymentHeader}>
+          <View style={[styles.paymentModalContent, { backgroundColor: colors.card }]}>
+            <View style={[styles.paymentHeader, { borderBottomColor: colors.border }]}>
               <View style={styles.paymentHeaderTop}>
-                <Text style={styles.paymentTitle}>Complete Payment</Text>
+                <Text style={[styles.paymentTitle, { color: colors.text }]}>
+                  {selectedSet?.name ?? "Premium Content"}
+                </Text>
                 <TouchableOpacity
                   onPress={() => setShowPaymentModal(false)}
-                  style={styles.paymentCloseBtn}
+                  style={[styles.paymentCloseBtn, isDark && { backgroundColor: "#2d2d44" }]}
                 >
-                  <Ionicons name="close" size={22} color="#374151" />
+                  <Ionicons name="close" size={22} color={isDark ? "#94a3b8" : "#374151"} />
                 </TouchableOpacity>
               </View>
-              {selectedSet && (
-                <View style={styles.paymentSetInfo}>
-                  <Text style={styles.paymentSetName}>{selectedSet.name}</Text>
-                  <View style={styles.paymentPriceRow}>
-                    <Text style={styles.paymentPriceLabel}>Total Amount:</Text>
-                    <Text style={styles.paymentPriceValue}>
-                      ${selectedSet.price?.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              )}
             </View>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.paymentFormScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Card Number</Text>
-                <View style={styles.formInputContainer}>
-                  <Ionicons name="card-outline" size={18} color="#9ca3af" />
-                  <TextInput
-                    value={cardNumber}
-                    onChangeText={formatCardNumber}
-                    placeholder="1234 5678 9012 3456"
-                    keyboardType="numeric"
-                    maxLength={19}
-                    style={styles.formInput}
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
+            <View style={styles.comingSoonBody}>
+              <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
+                <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
               </View>
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Card Holder Name</Text>
-                <View style={styles.formInputContainer}>
-                  <Ionicons name="person-outline" size={18} color="#9ca3af" />
-                  <TextInput
-                    value={cardHolder}
-                    onChangeText={setCardHolder}
-                    placeholder="John Doe"
-                    autoCapitalize="words"
-                    style={styles.formInput}
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
-              </View>
-              <View style={styles.formRow}>
-                <View style={[styles.formGroup, styles.formGroupHalf]}>
-                  <Text style={styles.formLabel}>Expiry Date</Text>
-                  <View style={styles.formInputContainer}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={18}
-                      color="#9ca3af"
-                    />
-                    <TextInput
-                      value={expiryDate}
-                      onChangeText={formatExpiryDate}
-                      placeholder="MM/YY"
-                      keyboardType="numeric"
-                      maxLength={5}
-                      style={styles.formInput}
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                </View>
-                <View style={[styles.formGroup, styles.formGroupHalf]}>
-                  <Text style={styles.formLabel}>CVV</Text>
-                  <View style={styles.formInputContainer}>
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={18}
-                      color="#9ca3af"
-                    />
-                    <TextInput
-                      value={cvv}
-                      onChangeText={setCvv}
-                      placeholder="123"
-                      keyboardType="numeric"
-                      maxLength={3}
-                      secureTextEntry
-                      style={styles.formInput}
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                </View>
-              </View>
-              <View style={styles.securityNotice}>
-                <Ionicons name="shield-checkmark" size={18} color="#059669" />
-                <Text style={styles.securityText}>
-                  Your payment information is secure and encrypted
-                </Text>
-              </View>
+              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Payment System</Text>
+              <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>Added Later</Text>
+              <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
+                Our subscription system is coming soon. You can play this content for free right now!
+              </Text>
               <TouchableOpacity
-                onPress={handlePayment}
-                disabled={paymentLoading}
-                style={[
-                  styles.payButton,
-                  { opacity: paymentLoading ? 0.6 : 1 },
-                ]}
+                onPress={handlePlayPaidContent}
+                style={styles.comingSoonPlayBtn}
               >
-                {paymentLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="lock-closed" size={18} color="#fff" />
-                    <Text style={styles.payButtonText}>
-                      Pay ${selectedSet?.price?.toFixed(2)}
-                    </Text>
-                  </>
-                )}
+                <Ionicons name="play-circle" size={22} color="#fff" />
+                <Text style={styles.comingSoonPlayText}>Play Now</Text>
               </TouchableOpacity>
-            </ScrollView>
+              <TouchableOpacity
+                onPress={() => setShowPaymentModal(false)}
+                style={styles.comingSoonCancelBtn}
+              >
+                <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1356,12 +1227,12 @@ export default function Index() {
         onRequestClose={() => setShowLoginModal(false)}
       >
         <View style={styles.loginModalOverlay}>
-          <View style={styles.loginModalSheet}>
-            <View style={styles.loginModalIconWrap}>
-              <Ionicons name="lock-closed" size={36} color="#7c3aed" />
+          <View style={[styles.loginModalSheet, { backgroundColor: colors.card }]}>
+            <View style={[styles.loginModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
+              <Ionicons name="lock-closed" size={36} color={isDark ? "#a855f7" : "#7c3aed"} />
             </View>
-            <Text style={styles.loginModalTitle}>Login Required</Text>
-            <Text style={styles.loginModalMsg}>
+            <Text style={[styles.loginModalTitle, { color: colors.text }]}>Login Required</Text>
+            <Text style={[styles.loginModalMsg, { color: colors.textSecondary }]}>
               Please login to buy this course.
             </Text>
             <TouchableOpacity
@@ -1979,49 +1850,64 @@ const styles = StyleSheet.create({
   },
   paymentPriceLabel: { fontSize: 13, color: "#6b7280" },
   paymentPriceValue: { fontSize: 20, fontWeight: "900", color: "#7c3aed" },
-  paymentFormScroll: { padding: 22 },
-  formGroup: { marginBottom: 16 },
-  formLabel: {
-    fontSize: 13,
+  comingSoonBody: {
+    alignItems: "center",
+    padding: 28,
+    paddingTop: 8,
+  },
+  comingSoonIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#f5f3ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  comingSoonTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1e293b",
+    marginBottom: 4,
+  },
+  comingSoonSubtitle: {
+    fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
-    marginBottom: 6,
+    color: "#7c3aed",
+    marginBottom: 14,
   },
-  formInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f9fafb",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 11,
-    paddingHorizontal: 13,
-    paddingVertical: 11,
+  comingSoonMsg: {
+    fontSize: 14,
+    color: "#64748b",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 24,
   },
-  formInput: { flex: 1, fontSize: 14, color: "#111827", marginLeft: 9 },
-  formRow: { flexDirection: "row", marginHorizontal: -6 },
-  formGroupHalf: { flex: 1, marginHorizontal: 6 },
-  securityNotice: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#d1fae5",
-    padding: 11,
-    borderRadius: 11,
-    marginBottom: 18,
-  },
-  securityText: { flex: 1, fontSize: 11, color: "#065f46", marginLeft: 7 },
-  payButton: {
-    backgroundColor: "#7c3aed",
-    paddingVertical: 13,
-    borderRadius: 11,
+  comingSoonPlayBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingVertical: 14,
+    width: "100%",
+    gap: 8,
+    marginBottom: 10,
   },
-  payButtonText: {
+  comingSoonPlayText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
-    marginLeft: 7,
+  },
+  comingSoonCancelBtn: {
+    paddingVertical: 10,
+    width: "100%",
+    alignItems: "center",
+  },
+  comingSoonCancelText: {
+    fontSize: 15,
+    color: "#94a3b8",
+    fontWeight: "500",
   },
   loginModalOverlay: {
     flex: 1,

@@ -292,7 +292,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   }}
                 >
                   <TouchableOpacity
-                    style={styles.menuItem}
+                    style={[styles.menuItem, { backgroundColor: isDark ? "#16213e" : "#fff" }]}
                     onPress={() => {
                       onNavigate(item.screen);
                       onClose();
@@ -302,7 +302,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     <View
                       style={[
                         styles.menuIconContainer,
-                        { backgroundColor: item.bgColor },
+                        { backgroundColor: isDark ? item.color + "22" : item.bgColor },
                       ]}
                     >
                       <Ionicons
@@ -317,7 +317,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     <Ionicons
                       name="chevron-forward"
                       size={20}
-                      color="#cbd5e1"
+                      color={isDark ? "#ffffff50" : "#cbd5e1"}
                     />
                   </TouchableOpacity>
                 </Animated.View>
@@ -326,10 +326,10 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
             {/* Settings Sections */}
             <View style={styles.settingsContainer}>
-              <Text style={styles.sectionTitle}>SETTINGS</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>SETTINGS</Text>
               {settingsSections.map((section, sectionIndex) => (
                 <View key={sectionIndex} style={styles.settingsSection}>
-                  <Text style={styles.settingsSectionTitle}>
+                  <Text style={[styles.settingsSectionTitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
                     {section.title}
                   </Text>
                   <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
@@ -338,17 +338,19 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                         key={itemIndex}
                         style={[
                           styles.settingsItem,
-                          itemIndex !== section.items.length - 1 &&
+                          itemIndex !== section.items.length - 1 && [
                             styles.settingsItemBorder,
+                            { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" },
+                          ],
                         ]}
                         activeOpacity={0.7}
                         onPress={item.onPress}
                       >
-                        <View style={styles.settingsIconContainer}>
+                        <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
                           <Ionicons
                             name={item.icon as any}
                             size={20}
-                            color="#7c3aed"
+                            color={isDark ? "#a855f7" : "#7c3aed"}
                           />
                         </View>
                         <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>{item.label}</Text>
@@ -356,15 +358,15 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                           <Switch
                             value={item.value}
                             onValueChange={item.onToggle}
-                            trackColor={{ false: "#e5e7eb", true: "#c084fc" }}
-                            thumbColor={item.value ? "#7c3aed" : "#f3f4f6"}
+                            trackColor={{ false: isDark ? "#374151" : "#e5e7eb", true: "#c084fc" }}
+                            thumbColor={item.value ? "#7c3aed" : (isDark ? "#94a3b8" : "#f3f4f6")}
                           />
                         )}
                         {item.hasArrow && (
                           <Ionicons
                             name="chevron-forward"
                             size={18}
-                            color="#cbd5e1"
+                            color={isDark ? "#ffffff50" : "#cbd5e1"}
                           />
                         )}
                       </TouchableOpacity>
@@ -376,24 +378,24 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               {/* Login / Logout Button */}
               {isAuthenticated ? (
                 <TouchableOpacity
-                  style={styles.logoutButton}
+                  style={[styles.logoutButton, isDark && { backgroundColor: "#3b1a1a", borderColor: "#7f1d1d" }]}
                   activeOpacity={0.7}
                   onPress={handleLogout}
                 >
-                  <Ionicons name="log-out-outline" size={22} color="#dc2626" />
-                  <Text style={styles.logoutText}>Log Out</Text>
+                  <Ionicons name="log-out-outline" size={22} color={isDark ? "#f87171" : "#dc2626"} />
+                  <Text style={[styles.logoutText, isDark && { color: "#f87171" }]}>Log Out</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  style={styles.loginButton}
+                  style={[styles.loginButton, isDark && { backgroundColor: "#2d1f4e", borderColor: "#6d28d9" }]}
                   activeOpacity={0.7}
                   onPress={() => {
                     onClose();
                     router.push("/(auth)/login");
                   }}
                 >
-                  <Ionicons name="log-in-outline" size={22} color="#7c3aed" />
-                  <Text style={styles.loginText}>Log In</Text>
+                  <Ionicons name="log-in-outline" size={22} color={isDark ? "#a855f7" : "#7c3aed"} />
+                  <Text style={[styles.loginText, isDark && { color: "#a855f7" }]}>Log In</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -401,7 +403,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
           {/* Footer */}
           <View style={[styles.footer, { backgroundColor: isDark ? "#1a1a2e" : "#fff", borderTopColor: isDark ? "#2d2d44" : "#e2e8f0" }]}>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: isDark ? "#2d2d44" : "#e2e8f0" }]} />
             <View style={styles.footerContent}>
               <Ionicons
                 name="information-circle-outline"

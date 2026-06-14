@@ -12,8 +12,8 @@ class ThemeManager {
       const saved = await AsyncStorage.getItem(THEME_KEY);
       this.isDark = saved === "dark";
       this.notifyListeners();
-    } catch (error) {
-      console.log("Error loading theme:", error);
+    } catch {
+      // use default theme if storage unavailable
     }
   }
 
@@ -22,8 +22,8 @@ class ThemeManager {
     try {
       await AsyncStorage.setItem(THEME_KEY, this.isDark ? "dark" : "light");
       this.notifyListeners();
-    } catch (error) {
-      console.log("Error saving theme:", error);
+    } catch {
+      // silent — theme will reset on next app open
     }
   }
 

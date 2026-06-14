@@ -79,8 +79,8 @@ export default function Study() {
       const booksResponse = await fetch(`${API_URL}/books`);
       const booksData = await booksResponse.json();
       if (booksData.success) setAllBooks(booksData.data);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch {
+      // silent — empty list shown
     } finally {
       setIsLoading(false);
     }

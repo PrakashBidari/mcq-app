@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Ikigai connect",
-    "slug": "test-mobile-app",
+    "name": "Ikigai Connect",
+    "slug": "ikigai-connect",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo-new.png",
-    "scheme": "testmobileapp",
+    "scheme": "ikigaiconnect",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

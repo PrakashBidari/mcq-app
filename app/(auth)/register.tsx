@@ -60,7 +60,6 @@ export default function RegisterScreen() {
       });
 
       const data = await response.json();
-      console.log("Response:", data);
 
       if (data.success) {
         Alert.alert("Success!", data.message, [
@@ -90,8 +89,7 @@ export default function RegisterScreen() {
           Alert.alert("Error", data.message || "Registration failed");
         }
       }
-    } catch (error: any) {
-      console.error("Registration error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

@@ -53,7 +53,6 @@ export default function LoginScreen() {
       });
 
       const data = await response.json();
-      console.log("Login response:", data);
 
       if (data.success) {
         // Save auth data
@@ -68,8 +67,7 @@ export default function LoginScreen() {
       } else {
         Alert.alert("Error", data.message || "Login failed");
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

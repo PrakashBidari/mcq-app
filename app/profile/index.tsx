@@ -48,8 +48,6 @@ export default function ProfileScreen() {
       setIsLoading(true);
       const token = await AsyncStorage.getItem("auth_token");
 
-      console.log("Token exists:", !!token);
-
       // Don't redirect if no token, just show error and let user try again
       if (!token) {
         Alert.alert("Error", "Session not found. Please restart the app.");
@@ -66,16 +64,12 @@ export default function ProfileScreen() {
         },
       });
 
-      console.log("Response status:", response.status);
-
       const text = await response.text();
-      console.log("Raw response (first 200 chars):", text.substring(0, 200));
 
       let data;
       try {
         data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("JSON parse error. Response was:", text);
+      } catch {
         Alert.alert("Error", "Invalid response from server. Please try again.");
         setIsLoading(false);
         return;
@@ -93,8 +87,7 @@ export default function ProfileScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to load profile");
       }
-    } catch (error) {
-      console.error("Error fetching profile:", error);
+    } catch {
       Alert.alert(
         "Error",
         "Failed to connect to server. Please check your connection.",
@@ -175,8 +168,7 @@ export default function ProfileScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to upload image");
       }
-    } catch (error) {
-      console.error("Upload error:", error);
+    } catch {
       Alert.alert("Error", "Failed to upload image");
     } finally {
       setUploading(false);
@@ -228,8 +220,7 @@ export default function ProfileScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to change password");
       }
-    } catch (error) {
-      console.error("Password change error:", error);
+    } catch {
       Alert.alert("Error", "Failed to change password");
     } finally {
       setPasswordLoading(false);

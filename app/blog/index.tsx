@@ -31,15 +31,14 @@ export default function BlogListScreen() {
   const fetchBlogs = async () => {
     try {
       setIsLoading(true);
-      console.log("Fetching from:", `${API_URL}/blogs`); // ← Add this
       const response = await fetch(`${API_URL}/blogs`);
       const data = await response.json();
 
       if (data.success) {
         setBlogsData(data.data);
       }
-    } catch (error) {
-      console.error("Error fetching blogs:", error);
+    } catch {
+      // silent — empty list shown
     } finally {
       setIsLoading(false);
     }

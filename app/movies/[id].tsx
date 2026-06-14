@@ -52,8 +52,8 @@ export default function MovieDetails() {
         message: `🎬 ${movie.title || movie.original_title}\n\n⭐ Rating: ${movie.vote_average?.toFixed(1)}/10\n📅 Released: ${movie.release_date ? new Date(movie.release_date).getFullYear() : "N/A"}\n\n${movie.overview || "No overview available"}\n\n🔗 https://www.themoviedb.org/movie/${movie.id}`,
         title: movie.title || movie.original_title,
       });
-    } catch (error) {
-      console.error("Error sharing:", error);
+    } catch {
+      // share cancelled or unavailable
     }
   };
 

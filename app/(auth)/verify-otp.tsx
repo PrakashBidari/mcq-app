@@ -86,7 +86,6 @@ export default function VerifyOtpScreen() {
         });
 
         const data = await response.json();
-        console.log("Verify response:", data);
 
         if (data.success) {
           await saveAuth(data.data.user, data.data.token);
@@ -100,8 +99,7 @@ export default function VerifyOtpScreen() {
           setOtp(["", "", "", "", "", ""]);
           inputRefs.current[0]?.focus();
         }
-      } catch (error: any) {
-        console.error("Verification error:", error);
+      } catch {
         Alert.alert("Error", "Something went wrong. Please try again.");
       } finally {
         setIsLoading(false);
@@ -115,7 +113,6 @@ export default function VerifyOtpScreen() {
     const otpCode = otp.join("");
     if (otpCode.length === 6 && !otp.includes("")) {
       Keyboard.dismiss();
-      console.log("Auto verify triggered:", otpCode);
       handleVerifyWithCode(otpCode);
     }
   }, [otp, handleVerifyWithCode]);
@@ -175,8 +172,7 @@ export default function VerifyOtpScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to resend OTP");
       }
-    } catch (error: any) {
-      console.error("Resend error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsResending(false);

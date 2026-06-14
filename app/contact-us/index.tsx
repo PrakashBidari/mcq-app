@@ -50,8 +50,8 @@ export default function ContactUsScreen() {
       if (data.success) {
         setSettings(data.data);
       }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
+    } catch {
+      // silent — contact info stays null
     } finally {
       setIsFetching(false);
     }
@@ -161,8 +161,7 @@ export default function ContactUsScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to send message");
       }
-    } catch (error) {
-      console.error("Submit error:", error);
+    } catch {
       Alert.alert("Error", "Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);

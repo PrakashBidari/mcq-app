@@ -40,7 +40,6 @@ export default function ForgotPasswordScreen() {
       });
 
       const data = await response.json();
-      console.log("Forgot password response:", data);
 
       if (data.success) {
         Alert.alert("Success!", "Password reset code sent to your email.", [
@@ -56,8 +55,7 @@ export default function ForgotPasswordScreen() {
       } else {
         Alert.alert("Error", data.message || "Failed to send reset code");
       }
-    } catch (error: any) {
-      console.error("Forgot password error:", error);
+    } catch {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

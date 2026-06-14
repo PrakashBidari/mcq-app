@@ -60,8 +60,8 @@ export default function FAQsScreen() {
       if (faqsData.success) {
         setFaqData(faqsData.data);
       }
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch {
+      // silent — empty list shown
     } finally {
       setIsLoading(false);
     }

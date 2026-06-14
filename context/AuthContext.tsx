@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(JSON.parse(savedUser));
         }
       }
-    } catch (error) {
-      console.error("Error loading auth data:", error);
+    } catch {
+      // silent — storage unavailable
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem("auth_token", authToken);
       await AsyncStorage.setItem("auth_user", JSON.stringify(userData));
     } catch (error) {
-      console.error("Error saving auth data:", error);
       throw error;
     }
   };
@@ -103,8 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               Authorization: `Bearer ${token}`,
             },
           });
-        } catch (error) {
-          console.error("Logout API error:", error);
+        } catch {
+          // network error during logout — continue to clear local session
         }
       }
 
@@ -115,8 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear AsyncStorage
       await AsyncStorage.removeItem("auth_token");
       await AsyncStorage.removeItem("auth_user");
-    } catch (error) {
-      console.error("Error during logout:", error);
+    } catch {
+      // silent
     }
   };
 
@@ -136,8 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(data.data);
         await AsyncStorage.setItem("auth_user", JSON.stringify(data.data));
       }
-    } catch (error) {
-      console.error("Error refreshing user:", error);
+    } catch {
+      // silent — keep existing user state on network error
     }
   };
 
