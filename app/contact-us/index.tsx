@@ -1,4 +1,5 @@
 // app/contact-us/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -407,6 +408,7 @@ export default function ContactUsScreen() {
           </View>
         </View>
       </ScrollView>
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

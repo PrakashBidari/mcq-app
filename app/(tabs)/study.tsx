@@ -1,4 +1,5 @@
 // app/(tabs)/study.tsx
+import AppHeader from "@/components/AppHeader";
 import BookCard from "@/components/BookCard";
 import { API_URL } from "@/config/constants";
 import { useTheme } from "@/hooks/useTheme";
@@ -11,14 +12,25 @@ import {
   Modal,
   RefreshControl,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import * as Animatable from "react-native-animatable";
+
+const CAT_ICONS: Record<string, string> = {
+  Design: "color-palette-outline",
+  Development: "code-slash-outline",
+  Business: "briefcase-outline",
+  Marketing: "megaphone-outline",
+  Photography: "camera-outline",
+  Music: "musical-notes-outline",
+};
+
+function getCatIcon(cat: any): string {
+  return CAT_ICONS[cat.name] ?? cat.icon ?? "folder-outline";
+}
 
 export default function Study() {
   const { t } = useTranslation();
@@ -128,34 +140,16 @@ export default function Study() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <AppHeader
+        title={t("study.title")}
+        subtitle={`${filteredBooks.length} ${t("study.booksAvailable")}`}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder={t("study.searchPlaceholder")}
+      />
 
-      {/* ─── Header ─── */}
-      <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{t("study.title")}</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          {filteredBooks.length} {t("study.booksAvailable")}
-        </Text>
-      </View>
-
-      {/* ─── Search & Filter ─── */}
+      {/* ─── Filter Row ─── */}
       <View style={[styles.searchSection, { backgroundColor: colors.headerBg }]}>
-        <View style={[styles.searchBar, { backgroundColor: colors.inputBg }]}>
-          <Ionicons name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            placeholder={t("study.searchPlaceholder")}
-            placeholderTextColor="#9CA3AF"
-            style={[styles.searchInput, { color: colors.text }]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-
         <View style={styles.filterRow}>
           <TouchableOpacity
             onPress={() => setShowCategoryModal(true)}
@@ -172,7 +166,7 @@ export default function Study() {
                 ]}
               >
                 <Ionicons
-                  name={selectedCategoryInfo?.icon as any}
+                  name={getCatIcon(selectedCategoryInfo ?? {}) as any}
                   size={18}
                   color={selectedCategoryInfo?.color ?? "#667eea"}
                 />
@@ -306,7 +300,7 @@ export default function Study() {
                         ]}
                       >
                         <Ionicons
-                          name={category.icon as any}
+                          name={getCatIcon(category) as any}
                           size={24}
                           color={category.color}
                         />
@@ -375,6 +369,7 @@ const styles = StyleSheet.create({
   searchSection: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 24,
+    paddingTop: 12,
     paddingBottom: 16,
   },
   searchBar: {

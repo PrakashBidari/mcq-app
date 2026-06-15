@@ -1,4 +1,5 @@
 // app/(tabs)/bookmark.tsx
+import AppHeader from "@/components/AppHeader";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -6,8 +7,8 @@ import { useTranslation } from "react-i18next";
 import {
   Dimensions,
   ScrollView,
+  StatusBar,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -384,51 +385,71 @@ export default function BookmarkScreen() {
     </View>
   );
 
+  const q = searchQuery.toLowerCase();
+  const filteredBooks = q
+    ? bookmarkedBooks.filter(
+        (b) =>
+          b.title.toLowerCase().includes(q) ||
+          b.author.toLowerCase().includes(q) ||
+          b.category.toLowerCase().includes(q),
+      )
+    : bookmarkedBooks;
+  const filteredNotes = q
+    ? bookmarkedNotes.filter(
+        (n) =>
+          n.title.toLowerCase().includes(q) ||
+          n.subject.toLowerCase().includes(q),
+      )
+    : bookmarkedNotes;
+  const filteredQuizzes = q
+    ? bookmarkedQuizzes.filter((qz) => qz.title.toLowerCase().includes(q))
+    : bookmarkedQuizzes;
+
   const renderContent = () => {
     if (activeTab === "all") {
       return (
         <View key="all-content">
-          {bookmarkedBooks.length > 0 && (
+          {filteredBooks.length > 0 && (
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {t("bookmark.books")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedBooks.length} {t("bookmark.items")}
+                  {filteredBooks.length} {t("bookmark.items")}
                 </Text>
               </View>
-              {bookmarkedBooks.map((book, index) =>
+              {filteredBooks.map((book, index) =>
                 renderBookCard(book, index),
               )}
             </View>
           )}
-          {bookmarkedNotes.length > 0 && (
+          {filteredNotes.length > 0 && (
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {t("bookmark.notes")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedNotes.length} {t("bookmark.items")}
+                  {filteredNotes.length} {t("bookmark.items")}
                 </Text>
               </View>
-              {bookmarkedNotes.map((note, index) =>
+              {filteredNotes.map((note, index) =>
                 renderNoteCard(note, index),
               )}
             </View>
           )}
-          {bookmarkedQuizzes.length > 0 && (
+          {filteredQuizzes.length > 0 && (
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                   {t("bookmark.quizzes")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedQuizzes.length} {t("bookmark.items")}
+                  {filteredQuizzes.length} {t("bookmark.items")}
                 </Text>
               </View>
-              {bookmarkedQuizzes.map((quiz, index) =>
+              {filteredQuizzes.map((quiz, index) =>
                 renderQuizCard(quiz, index),
               )}
             </View>
@@ -440,7 +461,7 @@ export default function BookmarkScreen() {
     if (activeTab === "books") {
       return (
         <View key="books-content">
-          {bookmarkedBooks.map((book, index) => renderBookCard(book, index))}
+          {filteredBooks.map((book, index) => renderBookCard(book, index))}
         </View>
       );
     }
@@ -448,7 +469,7 @@ export default function BookmarkScreen() {
     if (activeTab === "notes") {
       return (
         <View key="notes-content">
-          {bookmarkedNotes.map((note, index) => renderNoteCard(note, index))}
+          {filteredNotes.map((note, index) => renderNoteCard(note, index))}
         </View>
       );
     }
@@ -456,7 +477,7 @@ export default function BookmarkScreen() {
     if (activeTab === "quizzes") {
       return (
         <View key="quizzes-content">
-          {bookmarkedQuizzes.map((quiz, index) => renderQuizCard(quiz, index))}
+          {filteredQuizzes.map((quiz, index) => renderQuizCard(quiz, index))}
         </View>
       );
     }
@@ -466,38 +487,15 @@ export default function BookmarkScreen() {
     bookmarkedBooks.length + bookmarkedNotes.length + bookmarkedQuizzes.length;
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
-      {/* Header */}
-      <View className="px-5 pt-3 pb-4" style={{ backgroundColor: colors.headerBg }}>
-        <View className="flex-row items-center justify-between mb-3">
-          <View>
-            <Text className="text-2xl font-bold" style={{ color: colors.text }}>{t("bookmark.title")}</Text>
-            <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-              {totalBookmarks} {t("bookmark.saved")} {totalBookmarks === 1 ? t("bookmark.item") : t("bookmark.items")}
-            </Text>
-          </View>
-          <TouchableOpacity className="w-9 h-9 bg-purple-50 rounded-full items-center justify-center">
-            <Ionicons name="options-outline" size={18} color="#7c3aed" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
-        <View className="flex-row items-center bg-gray-50 rounded-lg px-3 py-2.5">
-          <Ionicons name="search" size={18} color="#9ca3af" />
-          <TextInput
-            className="flex-1 ml-2 text-sm text-gray-900"
-            placeholder={t("bookmark.searchPlaceholder")}
-            placeholderTextColor="#9ca3af"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Ionicons name="close-circle" size={18} color="#9ca3af" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }} edges={[]}>
+      <StatusBar barStyle="light-content" />
+      <AppHeader
+        title={t("bookmark.title")}
+        subtitle={`${totalBookmarks} ${t("bookmark.saved")} ${totalBookmarks === 1 ? t("bookmark.item") : t("bookmark.items")}`}
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder={t("bookmark.searchPlaceholder")}
+      />
 
       {/* Compact Tabs */}
       <View className="flex-row px-5 py-2 border-b" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>

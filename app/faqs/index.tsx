@@ -1,4 +1,5 @@
 // app/faqs/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -316,6 +317,7 @@ export default function FAQsScreen() {
           </View>
         </View>
       </ScrollView>
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

@@ -1,4 +1,5 @@
 // app/blog/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -174,7 +175,7 @@ export default function BlogListScreen() {
       {/* Blog List - 2 Columns */}
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -283,6 +284,7 @@ export default function BlogListScreen() {
           </View>
         )}
       </ScrollView>
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

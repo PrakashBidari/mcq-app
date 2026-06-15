@@ -1,4 +1,5 @@
 // app/(tabs)/quiz.tsx
+import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
@@ -44,12 +45,26 @@ interface QuestionSet {
   is_free: boolean; // ← derived from is_paid
 }
 
+const CAT_ICONS: Record<string, string> = {
+  Design: "color-palette-outline",
+  Development: "code-slash-outline",
+  Business: "briefcase-outline",
+  Marketing: "megaphone-outline",
+  Photography: "camera-outline",
+  Music: "musical-notes-outline",
+};
+
+function getCatIcon(name: string, fallback?: string | null): string {
+  return CAT_ICONS[name] ?? fallback ?? "grid-outline";
+}
+
 export default function QuizScreen() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categorySearch, setCategorySearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
@@ -240,20 +255,13 @@ export default function QuizScreen() {
   if (!selectedCategory) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle="light-content" />
-
-        <LinearGradient
-          colors={["#7c3aed", "#a855f7"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientHeader}
-        >
-          <Text style={styles.gradientLabel}>{t("quiz.label")}</Text>
-          <Text style={styles.gradientTitle}>{t("quiz.title")}</Text>
-          <Text style={styles.gradientSubtitle}>
-            {t("quiz.subtitle")}
-          </Text>
-        </LinearGradient>
+        <AppHeader
+          title="MCQ"
+          subtitle={t("quiz.subtitle")}
+          searchValue={categorySearch}
+          onSearchChange={setCategorySearch}
+          searchPlaceholder={t("quiz.searchPlaceholder")}
+        />
 
         <Modal
           visible={showPaymentModal}
@@ -352,8 +360,13 @@ export default function QuizScreen() {
           }
         >
           <View>
-            {categories.map((category) => {
-              const icon = category.icon || "help-circle";
+            {categories
+              .filter((c) =>
+                categorySearch.trim().length === 0 ||
+                c.name.toLowerCase().includes(categorySearch.toLowerCase()),
+              )
+              .map((category) => {
+              const icon = getCatIcon(category.name, category.icon);
               return (
                 <TouchableOpacity
                   key={category.id}
@@ -488,7 +501,7 @@ export default function QuizScreen() {
   }
 
   // ─── Question Sets View ───
-  const categoryIcon = selectedCategory.icon || "help-circle";
+  const categoryIcon = getCatIcon(selectedCategory.name, selectedCategory.icon);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

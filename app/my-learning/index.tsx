@@ -1,4 +1,5 @@
 // app/my-learning/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -334,7 +335,7 @@ export default function MyLearningScreen() {
         </View>
       </ScrollView>
 
-      {/* <BottomTabBar /> */}
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

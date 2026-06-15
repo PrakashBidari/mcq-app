@@ -1,4 +1,5 @@
 // app/profile/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { API_URL } from "@/config/constants";
 import { useSidebar } from "@/context/SidebarContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ export default function ProfileScreen() {
   const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notLoggedIn, setNotLoggedIn] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -50,9 +52,8 @@ export default function ProfileScreen() {
       setIsLoading(true);
       const token = await AsyncStorage.getItem("auth_token");
 
-      // Don't redirect if no token, just show error and let user try again
       if (!token) {
-        Alert.alert(t("common.error"), t("profile.errorSession"));
+        setNotLoggedIn(true);
         setIsLoading(false);
         return;
       }
@@ -225,6 +226,54 @@ export default function ProfileScreen() {
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
         <Text className="text-gray-600 mt-4 text-base">{t("profile.loadingProfile")}</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (notLoggedIn) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {/* Header */}
+        <View className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
+            >
+              <Ionicons name="arrow-back" size={22} color="#374151" />
+            </TouchableOpacity>
+            <Text className="text-lg font-bold text-gray-900">{t("profile.title")}</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </View>
+
+        {/* Login prompt */}
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-24 h-24 bg-purple-50 rounded-full items-center justify-center mb-6">
+            <Ionicons name="person-circle-outline" size={56} color="#a855f7" />
+          </View>
+          <Text className="text-gray-900 text-2xl font-bold mb-2 text-center">
+            {t("profile.notLoggedInTitle")}
+          </Text>
+          <Text className="text-gray-500 text-sm text-center mb-8 leading-5">
+            {t("profile.notLoggedInDesc")}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(auth)/login")}
+            className="bg-purple-600 px-10 py-4 rounded-2xl w-full items-center mb-3"
+            activeOpacity={0.85}
+          >
+            <Text className="text-white font-bold text-base">{t("profile.loginBtn")}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/(auth)/register")}
+            className="border border-purple-600 px-10 py-4 rounded-2xl w-full items-center"
+            activeOpacity={0.85}
+          >
+            <Text className="text-purple-600 font-bold text-base">{t("profile.registerBtn")}</Text>
+          </TouchableOpacity>
+        </View>
+        <AppBottomTabBar />
       </SafeAreaView>
     );
   }
@@ -492,6 +541,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

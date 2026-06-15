@@ -105,7 +105,7 @@
     }
   },
   "sidebar": {
-    "appName": "MCQ Hub",
+    "appName": "Ikigai Connect",
     "tagline": "探索とマスター",
     "quickAccess": "クイックアクセス",
     "settings": "設定",
@@ -199,6 +199,7 @@
     "title": "カテゴリーを選択",
     "label": "クイズタイム",
     "subtitle": "クイズを始めるカテゴリーを選択してください",
+    "searchPlaceholder": "カテゴリーを検索…",
     "backToCategories": "カテゴリーへ戻る",
     "categoryLabel": "カテゴリー",
     "questionSets": "問題セット",
@@ -297,7 +298,11 @@
     "successImageUpdate": "プロフィール画像を更新しました！",
     "errorImageUpload": "画像のアップロードに失敗しました",
     "successPasswordChange": "パスワードを変更しました！",
-    "errorPasswordChange": "パスワードの変更に失敗しました"
+    "errorPasswordChange": "パスワードの変更に失敗しました",
+    "notLoggedInTitle": "ログインしていません",
+    "notLoggedInDesc": "プロフィールの確認・管理、進捗の追跡、すべての機能へのアクセスにはサインインが必要です。",
+    "loginBtn": "サインイン",
+    "registerBtn": "アカウントを作成"
   },
   "quizPlay": {
     "question": "問題",

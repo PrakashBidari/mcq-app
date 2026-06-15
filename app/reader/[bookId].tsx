@@ -1,4 +1,5 @@
 // app/reader/[bookId].tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -181,7 +182,7 @@ export default function Reader() {
       {/* Footer */}
       <View
         className="px-6 py-4 border-t border-gray-200 bg-white items-center"
-        style={{ paddingBottom: insets.bottom + 16 }}
+        style={{ paddingBottom: insets.bottom + 70 }}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -190,6 +191,7 @@ export default function Reader() {
           <Text className="text-white font-bold text-base">{t("reader.goBack")}</Text>
         </TouchableOpacity>
       </View>
+      <AppBottomTabBar />
     </View>
   );
 }

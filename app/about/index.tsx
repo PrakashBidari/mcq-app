@@ -1,4 +1,5 @@
 // app/about/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -89,7 +90,7 @@ export default function AboutScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       >
         {/* Stats */}
         <View style={styles.statsRow}>
@@ -171,6 +172,7 @@ export default function AboutScreen() {
 
         <Text style={styles.copyright}>{t("about.copyright")}</Text>
       </ScrollView>
+      <AppBottomTabBar />
     </View>
   );
 }

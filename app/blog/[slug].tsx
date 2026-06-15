@@ -1,4 +1,5 @@
 // app/blog/[slug].tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
@@ -78,7 +79,7 @@ export default function BlogDetailScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Cover Image */}
         <Image
@@ -215,6 +216,7 @@ export default function BlogDetailScreen() {
           </Text>
         </View>
       </ScrollView>
+      <AppBottomTabBar />
     </SafeAreaView>
   );
 }

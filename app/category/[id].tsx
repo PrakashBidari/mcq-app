@@ -1,4 +1,5 @@
 // app/category/[id].tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -382,6 +383,7 @@ export default function CategoryBooks() {
           </View>
         )}
       </ScrollView>
+      <AppBottomTabBar />
     </View>
   );
 }

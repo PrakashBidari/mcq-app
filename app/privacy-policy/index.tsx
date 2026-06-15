@@ -1,4 +1,5 @@
 // app/privacy-policy/index.tsx
+import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -149,7 +150,7 @@ export default function PrivacyPolicyScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 32 },
+          { paddingBottom: insets.bottom + 90 },
         ]}
       >
         {/* Intro */}
@@ -185,6 +186,7 @@ export default function PrivacyPolicyScreen() {
           </LinearGradient>
         </View>
       </ScrollView>
+      <AppBottomTabBar />
     </View>
   );
 }
