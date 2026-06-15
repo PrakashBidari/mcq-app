@@ -3,6 +3,7 @@ import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Image,
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BlogListScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -71,7 +73,7 @@ export default function BlogListScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text className="text-gray-600 mt-4 text-base">Loading blogs...</Text>
+        <Text className="text-gray-600 mt-4 text-base">{t("blog.loading")}</Text>
       </SafeAreaView>
     );
   }
@@ -87,7 +89,7 @@ export default function BlogListScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">Blog</Text>
+          <Text className="text-2xl font-bold text-gray-900">{t("blog.title")}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -95,7 +97,7 @@ export default function BlogListScreen() {
         <View className="bg-gray-50 rounded-xl flex-row items-center px-4 py-3">
           <Ionicons name="search-outline" size={20} color="#9CA3AF" />
           <TextInput
-            placeholder="Search articles..."
+            placeholder={t("blog.searchPlaceholder")}
             placeholderTextColor="#9CA3AF"
             className="flex-1 ml-3 text-base text-gray-900"
             value={searchQuery}
@@ -184,8 +186,7 @@ export default function BlogListScreen() {
         }
       >
         <Text className="text-gray-500 text-sm mb-4">
-          {filteredBlogs.length} article{filteredBlogs.length !== 1 ? "s" : ""}{" "}
-          found
+          {filteredBlogs.length} {filteredBlogs.length !== 1 ? t("blog.articlePlural") : t("blog.articleSingular")}
         </Text>
 
         {filteredBlogs.length > 0 ? (
@@ -274,10 +275,10 @@ export default function BlogListScreen() {
               />
             </View>
             <Text className="text-gray-900 font-bold text-lg mb-2">
-              No articles found
+              {t("blog.noArticlesFound")}
             </Text>
             <Text className="text-gray-500 text-sm text-center">
-              Try adjusting your search or filters
+              {t("blog.tryAdjusting")}
             </Text>
           </View>
         )}

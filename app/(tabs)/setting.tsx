@@ -3,68 +3,58 @@ import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [notifications, setNotifications] = React.useState(true);
 
   const settingsSections = [
     {
-      title: "Account",
+      title: t("settings.account"),
       items: [
-        { icon: "person-outline", label: "Edit Profile", hasArrow: true },
-        {
-          icon: "lock-closed-outline",
-          label: "Change Password",
-          hasArrow: true,
-        },
-        { icon: "mail-outline", label: "Email Preferences", hasArrow: true },
+        { icon: "person-outline", label: t("settings.editProfile"), hasArrow: true },
+        { icon: "lock-closed-outline", label: t("settings.changePassword"), hasArrow: true },
+        { icon: "mail-outline", label: t("settings.emailPreferences"), hasArrow: true },
       ],
     },
     {
-      title: "Preferences",
+      title: t("settings.preferences"),
       items: [
         {
           icon: "notifications-outline",
-          label: "Push Notifications",
+          label: t("settings.pushNotifications"),
           hasSwitch: true,
           value: notifications,
           onToggle: setNotifications,
         },
         {
           icon: "moon-outline",
-          label: "Dark Mode",
+          label: t("settings.darkMode"),
           hasSwitch: true,
           value: isDark,
           onToggle: () => ThemeManager.toggle(),
         },
-        { icon: "language-outline", label: "Language", hasArrow: true },
+        { icon: "language-outline", label: t("settings.language"), hasArrow: true },
       ],
     },
     {
-      title: "Support",
+      title: t("settings.support"),
       items: [
-        { icon: "help-circle-outline", label: "Help Center", hasArrow: true },
-        { icon: "chatbubble-outline", label: "Contact Us", hasArrow: true },
-        { icon: "star-outline", label: "Rate App", hasArrow: true },
+        { icon: "help-circle-outline", label: t("settings.helpCenter"), hasArrow: true },
+        { icon: "chatbubble-outline", label: t("settings.contactUs"), hasArrow: true },
+        { icon: "star-outline", label: t("settings.rateApp"), hasArrow: true },
       ],
     },
     {
-      title: "About",
+      title: t("settings.about"),
       items: [
-        {
-          icon: "information-circle-outline",
-          label: "About App",
-          hasArrow: true,
-        },
-        {
-          icon: "document-text-outline",
-          label: "Terms of Service",
-          hasArrow: true,
-        },
-        { icon: "shield-outline", label: "Privacy Policy", hasArrow: true },
+        { icon: "information-circle-outline", label: t("settings.aboutApp"), hasArrow: true },
+        { icon: "document-text-outline", label: t("settings.termsOfService"), hasArrow: true },
+        { icon: "shield-outline", label: t("settings.privacyPolicy"), hasArrow: true },
       ],
     },
   ];
@@ -73,7 +63,7 @@ export default function SettingScreen() {
     <SafeAreaView className="flex-1" style={{ backgroundColor: colors.background }}>
       {/* Header */}
       <View className="px-6 py-4 border-b" style={{ backgroundColor: colors.headerBg, borderColor: colors.border }}>
-        <Text className="text-2xl font-bold" style={{ color: colors.text }}>Settings</Text>
+        <Text className="text-2xl font-bold" style={{ color: colors.text }}>{t("settings.title")}</Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -134,14 +124,14 @@ export default function SettingScreen() {
             <View className="flex-row items-center">
               <Ionicons name="log-out-outline" size={22} color={isDark ? "#f87171" : "#dc2626"} />
               <Text className="ml-2 text-base font-semibold" style={{ color: isDark ? "#f87171" : "#dc2626" }}>
-                Log Out
+                {t("settings.logOut")}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
 
         <View className="items-center pb-8">
-          <Text className="text-sm" style={{ color: colors.textMuted }}>Version 1.0.0</Text>
+          <Text className="text-sm" style={{ color: colors.textMuted }}>{t("settings.version")}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -2,13 +2,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Import questions data
 import questionsData from "@/assets/data/questions.json";
 
 export default function MyLearningScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   // Question sets configuration
@@ -140,7 +142,7 @@ export default function MyLearningScreen() {
     );
 
     if (setQuestions.length === 0) {
-      alert("No questions available for this set");
+      Alert.alert(t("common.error"), t("myLearning.noQuestionsAlert"));
       return;
     }
 
@@ -170,7 +172,7 @@ export default function MyLearningScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">My Learning</Text>
+          <Text className="text-2xl font-bold text-gray-900">{t("myLearning.title")}</Text>
           <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
             <Ionicons name="stats-chart-outline" size={22} color="#374151" />
           </TouchableOpacity>
@@ -183,7 +185,7 @@ export default function MyLearningScreen() {
               {totalSets}
             </Text>
             <Text className="text-purple-600 text-xs font-medium">
-              Question Sets
+              {t("myLearning.questionSets")}
             </Text>
           </View>
           <View className="w-px h-8 bg-purple-200" />
@@ -192,14 +194,14 @@ export default function MyLearningScreen() {
               {totalQuestions}
             </Text>
             <Text className="text-purple-600 text-xs font-medium">
-              Questions
+              {t("myLearning.questions")}
             </Text>
           </View>
           <View className="w-px h-8 bg-purple-200" />
           <View className="items-center">
             <Text className="text-purple-600 text-2xl font-bold">45</Text>
             <Text className="text-purple-600 text-xs font-medium">
-              Completed
+              {t("myLearning.completed")}
             </Text>
           </View>
         </View>
@@ -212,7 +214,7 @@ export default function MyLearningScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text className="text-gray-900 font-bold text-lg mb-4">
-          Practice Question Sets
+          {t("myLearning.practiceQuestionSets")}
         </Text>
 
         <View className="gap-3">
@@ -263,7 +265,7 @@ export default function MyLearningScreen() {
                             color="#6b7280"
                           />
                           <Text className="text-gray-600 text-xs ml-1">
-                            {questionCount} questions
+                            {questionCount} {t("myLearning.questionsCount")}
                           </Text>
                         </View>
                         <View className="flex-row items-center">
@@ -305,7 +307,7 @@ export default function MyLearningScreen() {
                   >
                     <Ionicons name="play-circle" size={20} color="white" />
                     <Text className="text-white font-bold text-sm ml-2">
-                      {questionCount === 0 ? "No Questions" : "Start Quiz"}
+                      {questionCount === 0 ? t("myLearning.noQuestions") : t("myLearning.startQuiz")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -322,12 +324,10 @@ export default function MyLearningScreen() {
             </View>
             <View className="flex-1">
               <Text className="text-gray-900 font-bold text-base mb-2">
-                How it works
+                {t("myLearning.howItWorks")}
               </Text>
               <Text className="text-gray-600 text-sm leading-5">
-                Practice with curated question sets organized by topic and
-                difficulty. Track your progress and improve your knowledge with
-                each attempt.
+                {t("myLearning.howItWorksDesc")}
               </Text>
             </View>
           </View>

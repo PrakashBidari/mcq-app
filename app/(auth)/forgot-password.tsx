@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -18,13 +19,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ForgotPasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendOtp = async () => {
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address");
+      Alert.alert(t("common.error"), t("auth.forgotPassword.errorEmail"));
       return;
     }
 
@@ -42,9 +44,9 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert("Success!", "Password reset code sent to your email.", [
+        Alert.alert(t("common.success"), t("auth.forgotPassword.codeSent"), [
           {
-            text: "OK",
+            text: t("common.ok"),
             onPress: () =>
               router.push({
                 pathname: "/(auth)/verify-reset-otp",
@@ -53,10 +55,10 @@ export default function ForgotPasswordScreen() {
           },
         ]);
       } else {
-        Alert.alert("Error", data.message || "Failed to send reset code");
+        Alert.alert(t("common.error"), data.message || t("auth.forgotPassword.failedToSend"));
       }
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert(t("common.error"), t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -91,11 +93,8 @@ export default function ForgotPasswordScreen() {
                   color="#7c3aed"
                 />
               </View>
-              <Text style={styles.title}>Forgot Password?</Text>
-              <Text style={styles.subtitle}>
-                Enter your email address and we'll send you a code to reset your
-                password
-              </Text>
+              <Text style={styles.title}>{t("auth.forgotPassword.title")}</Text>
+              <Text style={styles.subtitle}>{t("auth.forgotPassword.subtitle")}</Text>
             </View>
 
             {/* Email Input */}
@@ -109,7 +108,7 @@ export default function ForgotPasswordScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email Address"
+                  placeholder={t("auth.forgotPassword.emailPlaceholder")}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -127,7 +126,7 @@ export default function ForgotPasswordScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.sendButtonText}>Send Reset Code</Text>
+                  <Text style={styles.sendButtonText}>{t("auth.forgotPassword.sendCode")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -138,7 +137,7 @@ export default function ForgotPasswordScreen() {
               onPress={() => router.back()}
             >
               <Ionicons name="arrow-back" size={20} color="#6b7280" />
-              <Text style={styles.backButtonText}>Back to Login</Text>
+              <Text style={styles.backButtonText}>{t("auth.forgotPassword.backToLogin")}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

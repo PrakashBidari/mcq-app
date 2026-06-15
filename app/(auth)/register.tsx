@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +19,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -26,21 +28,20 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Validation
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter your name");
+      Alert.alert(t("common.error"), t("auth.register.errorName"));
       return;
     }
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
+      Alert.alert(t("common.error"), t("auth.register.errorEmail"));
       return;
     }
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
+      Alert.alert(t("common.error"), t("auth.register.errorPassword"));
       return;
     }
     if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+      Alert.alert(t("common.error"), t("auth.register.errorPasswordLength"));
       return;
     }
 
@@ -62,9 +63,9 @@ export default function RegisterScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert("Success!", data.message, [
+        Alert.alert(t("common.success"), data.message, [
           {
-            text: "OK",
+            text: t("common.ok"),
             onPress: () =>
               router.push({
                 pathname: "/(auth)/verify-otp",
@@ -73,24 +74,23 @@ export default function RegisterScreen() {
           },
         ]);
       } else {
-        // Check if error is "already registered"
         if (data.message && data.message.includes("already registered")) {
-          Alert.alert("Already Registered", data.message, [
+          Alert.alert(t("auth.register.alreadyRegistered"), data.message, [
             {
-              text: "Go to Login",
+              text: t("auth.register.goToLogin"),
               onPress: () => router.push("/(auth)/login"),
             },
             {
-              text: "Cancel",
+              text: t("common.cancel"),
               style: "cancel",
             },
           ]);
         } else {
-          Alert.alert("Error", data.message || "Registration failed");
+          Alert.alert(t("common.error"), data.message || t("auth.register.registrationFailed"));
         }
       }
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert(t("common.error"), t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +112,7 @@ export default function RegisterScreen() {
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="arrow-back" size={20} color="#7c3aed" />
-        <Text style={styles.backButtonText}>Back to Home</Text>
+        <Text style={styles.backButtonText}>{t("auth.register.backToHome")}</Text>
       </TouchableOpacity>
 
       <KeyboardAvoidingView
@@ -129,8 +129,8 @@ export default function RegisterScreen() {
               <View style={styles.logoContainer}>
                 <Ionicons name="school" size={60} color="#7c3aed" />
               </View>
-              <Text style={styles.title}>Create Account</Text>
-              <Text style={styles.subtitle}>Sign up to get started</Text>
+              <Text style={styles.title}>{t("auth.register.title")}</Text>
+              <Text style={styles.subtitle}>{t("auth.register.subtitle")}</Text>
             </View>
 
             {/* Form */}
@@ -145,7 +145,7 @@ export default function RegisterScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Full Name"
+                  placeholder={t("auth.register.fullName")}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -163,7 +163,7 @@ export default function RegisterScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email Address"
+                  placeholder={t("auth.register.emailPlaceholder")}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -182,7 +182,7 @@ export default function RegisterScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Password (min 8 characters)"
+                  placeholder={t("auth.register.passwordPlaceholder")}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -212,17 +212,15 @@ export default function RegisterScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.registerButtonText}>Create Account</Text>
+                  <Text style={styles.registerButtonText}>{t("auth.register.createAccount")}</Text>
                 )}
               </TouchableOpacity>
 
               {/* Login Link */}
               <View style={styles.loginLink}>
-                <Text style={styles.loginLinkText}>
-                  Already have an account?{" "}
-                </Text>
+                <Text style={styles.loginLinkText}>{t("auth.register.alreadyHaveAccount")} </Text>
                 <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                  <Text style={styles.loginLinkButton}>Sign In</Text>
+                  <Text style={styles.loginLinkButton}>{t("auth.register.signIn")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

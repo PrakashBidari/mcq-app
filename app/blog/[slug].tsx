@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   Image,
   ScrollView,
@@ -14,6 +15,7 @@ import RenderHtml from "react-native-render-html";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BlogDetailScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
@@ -36,16 +38,16 @@ export default function BlogDetailScreen() {
           <Ionicons name="document-text-outline" size={40} color="#9ca3af" />
         </View>
         <Text className="text-gray-900 font-bold text-lg mb-2">
-          Blog not found
+          {t("blog.blogNotFound")}
         </Text>
         <Text className="text-gray-500 text-sm mb-4">
-          Unable to load blog content
+          {t("blog.unableToLoad")}
         </Text>
         <TouchableOpacity
           onPress={() => router.back()}
           className="px-6 py-3 bg-purple-600 rounded-xl"
         >
-          <Text className="text-white font-bold">Go Back</Text>
+          <Text className="text-white font-bold">{t("blog.goBack")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -206,10 +208,10 @@ export default function BlogDetailScreen() {
         {/* Related Articles Section (Optional) */}
         <View className="px-6 py-6 bg-gray-50 mt-6">
           <Text className="text-gray-900 font-bold text-lg mb-4">
-            More from {blog.category}
+            {t("blog.moreFrom")} {blog.category}
           </Text>
           <Text className="text-gray-500 text-sm">
-            Related articles will appear here
+            {t("blog.relatedArticles")}
           </Text>
         </View>
       </ScrollView>

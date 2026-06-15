@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
@@ -50,7 +52,7 @@ export default function ProfileScreen() {
 
       // Don't redirect if no token, just show error and let user try again
       if (!token) {
-        Alert.alert("Error", "Session not found. Please restart the app.");
+        Alert.alert(t("common.error"), t("profile.errorSession"));
         setIsLoading(false);
         return;
       }
@@ -70,13 +72,13 @@ export default function ProfileScreen() {
       try {
         data = JSON.parse(text);
       } catch {
-        Alert.alert("Error", "Invalid response from server. Please try again.");
+        Alert.alert(t("common.error"), t("profile.errorInvalidResponse"));
         setIsLoading(false);
         return;
       }
 
       if (response.status === 401) {
-        Alert.alert("Session Expired", "Please login again.");
+        Alert.alert(t("profile.errorSessionExpired"), t("profile.errorLoginAgain"));
         await AsyncStorage.removeItem("auth_token");
         router.replace("/(tabs)");
         return;
@@ -85,13 +87,10 @@ export default function ProfileScreen() {
       if (data.success) {
         setUser(data.data);
       } else {
-        Alert.alert("Error", data.message || "Failed to load profile");
+        Alert.alert(t("common.error"), data.message || t("profile.errorFailedLoad"));
       }
     } catch {
-      Alert.alert(
-        "Error",
-        "Failed to connect to server. Please check your connection.",
-      );
+      Alert.alert(t("common.error"), t("profile.errorConnection"));
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +102,7 @@ export default function ProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        "Sorry, we need camera roll permissions to upload profile picture!",
-      );
+      Alert.alert(t("profile.errorPermission"), t("profile.errorPermissionMsg"));
       return;
     }
 
@@ -133,10 +129,7 @@ export default function ProfileScreen() {
 
       // Check file size (300KB = 300 * 1024 bytes)
       if (blob.size > 300 * 1024) {
-        Alert.alert(
-          "File Too Large",
-          "Please select an image smaller than 300KB",
-        );
+        Alert.alert(t("profile.errorFileTooLarge"), t("profile.errorFileTooLargeMsg"));
         setUploading(false);
         return;
       }
@@ -163,13 +156,13 @@ export default function ProfileScreen() {
       const data = await uploadResponse.json();
 
       if (data.success) {
-        Alert.alert("Success", "Profile image updated successfully!");
-        fetchProfile(); // Refresh profile
+        Alert.alert(t("common.success"), t("profile.successImageUpdate"));
+        fetchProfile();
       } else {
-        Alert.alert("Error", data.message || "Failed to upload image");
+        Alert.alert(t("common.error"), data.message || t("profile.errorImageUpload"));
       }
     } catch {
-      Alert.alert("Error", "Failed to upload image");
+      Alert.alert(t("common.error"), t("profile.errorImageUpload"));
     } finally {
       setUploading(false);
     }
@@ -178,17 +171,17 @@ export default function ProfileScreen() {
   // Change password
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert(t("common.error"), t("profile.errorFillFields"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "New passwords do not match");
+      Alert.alert(t("common.error"), t("profile.errorMismatch"));
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+      Alert.alert(t("common.error"), t("profile.errorLength"));
       return;
     }
 
@@ -212,16 +205,16 @@ export default function ProfileScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert("Success", "Password changed successfully!");
+        Alert.alert(t("common.success"), t("profile.successPasswordChange"));
         setShowPasswordModal(false);
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        Alert.alert("Error", data.message || "Failed to change password");
+        Alert.alert(t("common.error"), data.message || t("profile.errorPasswordChange"));
       }
     } catch {
-      Alert.alert("Error", "Failed to change password");
+      Alert.alert(t("common.error"), t("profile.errorPasswordChange"));
     } finally {
       setPasswordLoading(false);
     }
@@ -231,7 +224,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text className="text-gray-600 mt-4 text-base">Loading profile...</Text>
+        <Text className="text-gray-600 mt-4 text-base">{t("profile.loadingProfile")}</Text>
       </SafeAreaView>
     );
   }
@@ -241,22 +234,22 @@ export default function ProfileScreen() {
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center px-6">
         <Ionicons name="person-circle-outline" size={80} color="#D1D5DB" />
         <Text className="text-gray-800 text-xl font-bold mt-4 mb-2">
-          Failed to Load Profile
+          {t("profile.failedLoad")}
         </Text>
         <Text className="text-gray-600 text-sm text-center mb-6">
-          We couldn't load your profile information. Please try again.
+          {t("profile.failedLoadDesc")}
         </Text>
         <TouchableOpacity
           onPress={fetchProfile}
           className="bg-purple-600 px-8 py-3 rounded-2xl"
         >
-          <Text className="text-white font-bold text-base">Retry</Text>
+          <Text className="text-white font-bold text-base">{t("profile.retry")}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.back()}
           className="mt-4 px-8 py-3"
         >
-          <Text className="text-gray-600 font-semibold">Go Back</Text>
+          <Text className="text-gray-600 font-semibold">{t("profile.goBack")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -273,7 +266,7 @@ export default function ProfileScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">My Profile</Text>
+          <Text className="text-2xl font-bold text-gray-900">{t("profile.title")}</Text>
           <TouchableOpacity
             className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
             onPress={() => setSidebarVisible(true)}
@@ -331,7 +324,7 @@ export default function ProfileScreen() {
               <Text className="text-gray-500 text-sm mb-3">{user.email}</Text>
               <View className="bg-purple-50 px-4 py-1.5 rounded-full">
                 <Text className="text-purple-600 text-sm font-semibold">
-                  Member since {user.created_at}
+                  {t("profile.memberSince")} {user.created_at}
                 </Text>
               </View>
             </View>
@@ -347,7 +340,7 @@ export default function ProfileScreen() {
                     <Ionicons name="lock-closed" size={18} color="#7c3aed" />
                   </View>
                   <Text className="text-purple-700 font-bold text-base">
-                    Change Password
+                    {t("profile.changePassword")}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#7c3aed" />
@@ -362,7 +355,7 @@ export default function ProfileScreen() {
                     <Ionicons name="image" size={18} color="#2563eb" />
                   </View>
                   <Text className="text-blue-700 font-bold text-base">
-                    Update Profile Picture
+                    {t("profile.updatePicture")}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#2563eb" />
@@ -390,7 +383,7 @@ export default function ProfileScreen() {
           <View className="bg-white rounded-t-3xl p-6">
             <View className="flex-row items-center justify-between mb-6">
               <Text className="text-gray-800 text-xl font-bold">
-                Change Password
+                {t("profile.changePasswordTitle")}
               </Text>
               <TouchableOpacity
                 onPress={() => setShowPasswordModal(false)}
@@ -403,14 +396,14 @@ export default function ProfileScreen() {
             {/* Current Password */}
             <View className="mb-4">
               <Text className="text-gray-700 font-semibold mb-2">
-                Current Password
+                {t("profile.currentPassword")}
               </Text>
               <View className="relative">
                 <TextInput
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   secureTextEntry={!showCurrentPassword}
-                  placeholder="Enter current password"
+                  placeholder={t("profile.enterCurrentPassword")}
                   className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
                 />
                 <TouchableOpacity
@@ -431,14 +424,14 @@ export default function ProfileScreen() {
             {/* New Password */}
             <View className="mb-4">
               <Text className="text-gray-700 font-semibold mb-2">
-                New Password
+                {t("profile.newPassword")}
               </Text>
               <View className="relative">
                 <TextInput
                   value={newPassword}
                   onChangeText={setNewPassword}
                   secureTextEntry={!showNewPassword}
-                  placeholder="Enter new password (min 8 characters)"
+                  placeholder={t("profile.enterNewPassword")}
                   className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
                 />
                 <TouchableOpacity
@@ -457,14 +450,14 @@ export default function ProfileScreen() {
             {/* Confirm Password */}
             <View className="mb-6">
               <Text className="text-gray-700 font-semibold mb-2">
-                Confirm New Password
+                {t("profile.confirmPassword")}
               </Text>
               <View className="relative">
                 <TextInput
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
-                  placeholder="Confirm new password"
+                  placeholder={t("profile.confirmNewPassword")}
                   className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
                 />
                 <TouchableOpacity
@@ -492,7 +485,7 @@ export default function ProfileScreen() {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <Text className="text-white font-bold text-center text-base">
-                  Change Password
+                  {t("profile.changePasswordBtn")}
                 </Text>
               )}
             </TouchableOpacity>

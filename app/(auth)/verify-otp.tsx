@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   ActivityIndicator,
@@ -21,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VerifyOtpScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -69,10 +71,7 @@ export default function VerifyOtpScreen() {
   const handleVerifyWithCode = useCallback(
     async (otpCode: string) => {
       if (isExpiredRef.current) {
-        Alert.alert(
-          "OTP Expired",
-          "Your OTP has expired. Please request a new one.",
-        );
+        Alert.alert(t("common.error"), t("auth.verifyOtp.otpExpiredAlert"));
         return;
       }
 
@@ -90,17 +89,17 @@ export default function VerifyOtpScreen() {
         if (data.success) {
           await saveAuth(data.data.user, data.data.token);
           Alert.alert(
-            "Success!",
-            "Email verified successfully! You are now logged in.",
-            [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
+            t("common.success"),
+            t("auth.verifyOtp.verifiedSuccess"),
+            [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)") }],
           );
         } else {
-          Alert.alert("Error", data.message || "Invalid OTP");
+          Alert.alert(t("common.error"), data.message || t("auth.verifyOtp.invalidOtp"));
           setOtp(["", "", "", "", "", ""]);
           inputRefs.current[0]?.focus();
         }
       } catch {
-        Alert.alert("Error", "Something went wrong. Please try again.");
+        Alert.alert(t("common.error"), t("common.somethingWrong"));
       } finally {
         setIsLoading(false);
       }
@@ -146,7 +145,7 @@ export default function VerifyOtpScreen() {
   const handleVerify = async () => {
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
-      Alert.alert("Error", "Please enter the complete 6-digit OTP");
+      Alert.alert(t("common.error"), t("auth.verifyOtp.errorIncomplete"));
       return;
     }
     await handleVerifyWithCode(otpCode);
@@ -164,16 +163,16 @@ export default function VerifyOtpScreen() {
       const data = await response.json();
 
       if (data.success) {
-        Alert.alert("Success", "OTP resent successfully! Check your email.");
+        Alert.alert(t("common.success"), t("auth.verifyOtp.resendSuccess"));
         setOtp(["", "", "", "", "", ""]);
         setTimeLeft(600);
         setIsExpired(false);
         inputRefs.current[0]?.focus();
       } else {
-        Alert.alert("Error", data.message || "Failed to resend OTP");
+        Alert.alert(t("common.error"), data.message || t("auth.verifyOtp.failedResend"));
       }
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert(t("common.error"), t("common.somethingWrong"));
     } finally {
       setIsResending(false);
     }
@@ -204,9 +203,9 @@ export default function VerifyOtpScreen() {
               <View style={styles.iconContainer}>
                 <Ionicons name="mail-outline" size={60} color="#7c3aed" />
               </View>
-              <Text style={styles.title}>Verify Email</Text>
+              <Text style={styles.title}>{t("auth.verifyOtp.title")}</Text>
               <Text style={styles.subtitle}>
-                We've sent a 6-digit code to{"\n"}
+                {t("auth.verifyOtp.subtitle")}{"\n"}
                 <Text style={styles.email}>{email}</Text>
               </Text>
             </View>
@@ -220,7 +219,7 @@ export default function VerifyOtpScreen() {
                   color={getTimerColor()}
                 />
                 <Text style={[styles.timerText, { color: getTimerColor() }]}>
-                  {isExpired ? "Expired" : formatTime(timeLeft)}
+                  {isExpired ? t("auth.verifyOtp.expired") : formatTime(timeLeft)}
                 </Text>
               </View>
 
@@ -242,9 +241,7 @@ export default function VerifyOtpScreen() {
 
             {isExpired && (
               <View style={styles.expiredBanner}>
-                <Text style={styles.expiredText}>
-                  OTP has expired. Please request a new one.
-                </Text>
+                <Text style={styles.expiredText}>{t("auth.verifyOtp.otpExpiredMsg")}</Text>
               </View>
             )}
 
@@ -279,13 +276,13 @@ export default function VerifyOtpScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.verifyButtonText}>Verify Email</Text>
+                <Text style={styles.verifyButtonText}>{t("auth.verifyOtp.verifyEmail")}</Text>
               )}
             </TouchableOpacity>
 
             {/* Resend OTP */}
             <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>Didn't receive the code? </Text>
+              <Text style={styles.resendText}>{t("auth.verifyOtp.didntReceive")} </Text>
               <TouchableOpacity
                 onPress={handleResendOtp}
                 disabled={isResending}
@@ -296,18 +293,18 @@ export default function VerifyOtpScreen() {
                     isResending && styles.resendButtonDisabled,
                   ]}
                 >
-                  {isResending ? "Sending..." : "Resend OTP"}
+                  {isResending ? t("auth.verifyOtp.sending") : t("auth.verifyOtp.resendOtp")}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Back to Login */}
+            {/* Back */}
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => router.back()}
             >
               <Ionicons name="arrow-back" size={20} color="#6b7280" />
-              <Text style={styles.backButtonText}>Back</Text>
+              <Text style={styles.backButtonText}>{t("auth.verifyOtp.back")}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

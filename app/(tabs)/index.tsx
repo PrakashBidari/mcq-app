@@ -8,6 +8,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -388,6 +389,7 @@ function AchievementCard({ item, index }: { item: any; index: number }) {
 }
 
 export default function Index() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
@@ -500,9 +502,9 @@ export default function Index() {
             total: data.data.questions.length,
           },
         });
-      } else Alert.alert("Error", "No questions available");
+      } else Alert.alert(t("common.error"), t("quiz.errorNoQuestions"));
     } catch {
-      Alert.alert("Error", "Failed to load questions");
+      Alert.alert(t("common.error"), t("quiz.errorLoadQuestions"));
     } finally {
       setQuizLoading(false);
     }
@@ -535,24 +537,24 @@ export default function Index() {
   const heroSlides = [
     {
       id: 1,
-      title: "Master Your\nSkills Today",
-      subtitle: "Learn from world-class instructors",
+      title: t("home.heroSlide1Title"),
+      subtitle: t("home.heroSlide1Sub"),
       image:
         "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800",
       type: "learning",
     },
     {
       id: 2,
-      title: "Test Your\nKnowledge",
-      subtitle: "Challenge yourself with smart quizzes",
+      title: t("home.heroSlide2Title"),
+      subtitle: t("home.heroSlide2Sub"),
       image:
         "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800",
       type: "quiz",
     },
     {
       id: 3,
-      title: "Achieve\nExcellence",
-      subtitle: "Get certified and grow your career",
+      title: t("home.heroSlide3Title"),
+      subtitle: t("home.heroSlide3Sub"),
       image:
         "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
       type: "learning",
@@ -561,32 +563,32 @@ export default function Index() {
   const achievements = [
     {
       id: 1,
-      title: "Quick Learner",
-      description: "Complete 5 courses",
+      title: t("home.quickLearner"),
+      description: t("home.quickLearnerDesc"),
       progress: 80,
       icon: "rocket-outline",
       color: "#7c3aed",
     },
     {
       id: 2,
-      title: "Quiz Master",
-      description: "Score 90% in 10 quizzes",
+      title: t("home.quizMaster"),
+      description: t("home.quizMasterDesc"),
       progress: 60,
       icon: "trophy-outline",
       color: "#f59e0b",
     },
     {
       id: 3,
-      title: "Bookworm",
-      description: "Read 20 books",
+      title: t("home.bookworm"),
+      description: t("home.bookwormDesc"),
       progress: 45,
       icon: "book-outline",
       color: "#059669",
     },
     {
       id: 4,
-      title: "Streak Champion",
-      description: "30 day streak",
+      title: t("home.streakChampion"),
+      description: t("home.streakChampionDesc"),
       progress: 70,
       icon: "flame-outline",
       color: "#ef4444",
@@ -618,7 +620,7 @@ export default function Index() {
             <Text style={styles.hiTxt}>
               {user ? `Hi ${displayName} 👋` : "Welcome, Ikigai Connect"}
             </Text>
-            <Text style={styles.subTxt}>Let's Start Learning</Text>
+            <Text style={styles.subTxt}>{t("home.letsLearn")}</Text>
           </View>
           {user ? (
             <TouchableOpacity onPress={() => router.push("/profile")}>
@@ -643,7 +645,7 @@ export default function Index() {
         <View style={[styles.searchBar, isDark && { backgroundColor: colors.inputBg }]}>
           <Ionicons name="search-outline" size={16} color={isDark ? "#64748b" : "#9ca3af"} />
           <TextInput
-            placeholder="Search question sets..."
+            placeholder={t("home.searchPlaceholder")}
             placeholderTextColor={isDark ? "#64748b" : "#9ca3af"}
             style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
@@ -729,7 +731,7 @@ export default function Index() {
                             }
                           >
                             <Text style={styles.slideBtnTxt}>
-                              {slide.type === "quiz" ? "Start Quiz" : "Explore"}
+                              {slide.type === "quiz" ? t("home.startQuiz") : t("home.explore")}
                             </Text>
                             <Ionicons
                               name="arrow-forward"
@@ -756,9 +758,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>Categories</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.categories")}</Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
-                  <Text style={styles.seeAll}>See all</Text>
+                  <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
               </View>
               {loading ? (
@@ -829,13 +831,13 @@ export default function Index() {
                   </View>
                   <View style={{ flex: 1, marginHorizontal: 14 }}>
                     <View style={[styles.adTag, isDark && { backgroundColor: "#2d1f4e" }]}>
-                      <Text style={[styles.adTagTxt, isDark && { color: "#a855f7" }]}>📖 STUDY LIBRARY</Text>
+                      <Text style={[styles.adTagTxt, isDark && { color: "#a855f7" }]}>{t("home.studyLibraryTag")}</Text>
                     </View>
                     <Text style={[styles.adTitle, { color: colors.text }]}>
-                      Unlock 100+{"\n"}Premium Books
+                      {t("home.unlockBooks")}
                     </Text>
                     <Text style={[styles.adSub, { color: colors.textSecondary }]}>
-                      Design, Dev, Business & more
+                      {t("home.booksSubtitle")}
                     </Text>
                   </View>
                   <View style={styles.adCta}>
@@ -843,7 +845,7 @@ export default function Index() {
                       colors={["#7c3aed", "#6d28d9"]}
                       style={styles.adCtaBtn}
                     >
-                      <Text style={styles.adCtaTxt}>Browse</Text>
+                      <Text style={styles.adCtaTxt}>{t("home.browse")}</Text>
                       <Ionicons name="arrow-forward" size={12} color="#fff" />
                     </LinearGradient>
                   </View>
@@ -859,9 +861,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>This week</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.thisWeek")}</Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
-                  <Text style={styles.seeAll}>See all</Text>
+                  <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
               </View>
               {loading ? (
@@ -906,9 +908,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>Achievements</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.achievements")}</Text>
                 <TouchableOpacity>
-                  <Text style={styles.seeAll}>View all</Text>
+                  <Text style={styles.seeAll}>{t("home.viewAll")}</Text>
                 </TouchableOpacity>
               </View>
               <ScrollView
@@ -961,13 +963,13 @@ export default function Index() {
                       <View style={styles.qDecor2} />
                       <View style={{ flex: 1, marginRight: 18 }}>
                         <View style={styles.quizTag}>
-                          <Text style={styles.quizTagTxt}>🎯 CHALLENGE</Text>
+                          <Text style={styles.quizTagTxt}>{t("home.challengeTag")}</Text>
                         </View>
                         <Text style={styles.quizTitle}>
-                          Test Your{"\n"}Knowledge
+                          {t("home.testKnowledge")}
                         </Text>
                         <Text style={styles.quizSub}>
-                          Smart MCQ quizzes across all topics
+                          {t("home.quizSubtitle")}
                         </Text>
                         <View style={styles.quizBtn}>
                           <Ionicons
@@ -975,7 +977,7 @@ export default function Index() {
                             size={15}
                             color="#7c3aed"
                           />
-                          <Text style={styles.quizBtnTxt}>Start Quiz</Text>
+                          <Text style={styles.quizBtnTxt}>{t("home.startQuiz")}</Text>
                         </View>
                       </View>
                       <View style={styles.quizIconOuter}>
@@ -1001,9 +1003,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>Latest Articles</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.latestArticles")}</Text>
                 <TouchableOpacity onPress={() => router.push("/blog")}>
-                  <Text style={styles.seeAll}>See all</Text>
+                  <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
               </View>
               {loading ? (
@@ -1023,7 +1025,7 @@ export default function Index() {
                     size={34}
                     color="#c4b8e8"
                   />
-                  <Text style={styles.emptyTxt}>No articles yet</Text>
+                  <Text style={styles.emptyTxt}>{t("home.noArticles")}</Text>
                 </View>
               ) : (
                 <View style={{ paddingHorizontal: 20, gap: 14 }}>
@@ -1062,7 +1064,7 @@ export default function Index() {
             <View style={[styles.searchResultsPanel, { backgroundColor: colors.card }]}>
               <View style={[styles.searchResultsHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
-                  {isSearching ? "Searching..." : `"${searchQuery}"`}
+                  {isSearching ? t("home.searching") : `"${searchQuery}"`}
                 </Text>
                 <TouchableOpacity onPress={closeSearch}>
                   <Ionicons name="close" size={18} color={isDark ? "#94a3b8" : "#6b7280"} />
@@ -1077,7 +1079,7 @@ export default function Index() {
                 <View style={styles.searchEmptyBox}>
                   <Ionicons name="search-outline" size={28} color={isDark ? "#4b5563" : "#c4b8e8"} />
                   <Text style={[styles.searchEmptyText, { color: colors.textMuted }]}>
-                    No question sets found
+                    {t("home.noSetsFound")}
                   </Text>
                 </View>
               )}
@@ -1144,7 +1146,7 @@ export default function Index() {
                         ) : (
                           <>
                             <View style={styles.freeBadge}>
-                              <Text style={styles.freeBadgeText}>FREE</Text>
+                              <Text style={styles.freeBadgeText}>{t("home.free")}</Text>
                             </View>
                             <View style={styles.playBtn}>
                               {quizLoading ? (
@@ -1196,23 +1198,23 @@ export default function Index() {
               <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
                 <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
               </View>
-              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Payment System</Text>
-              <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>Added Later</Text>
+              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>{t("home.paymentSystem")}</Text>
+              <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>{t("home.addedLater")}</Text>
               <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
-                Our subscription system is coming soon. You can play this content for free right now!
+                {t("home.paymentComingSoon")}
               </Text>
               <TouchableOpacity
                 onPress={handlePlayPaidContent}
                 style={styles.comingSoonPlayBtn}
               >
                 <Ionicons name="play-circle" size={22} color="#fff" />
-                <Text style={styles.comingSoonPlayText}>Play Now</Text>
+                <Text style={styles.comingSoonPlayText}>{t("home.playNow")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowPaymentModal(false)}
                 style={styles.comingSoonCancelBtn}
               >
-                <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>Cancel</Text>
+                <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>{t("home.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1231,9 +1233,9 @@ export default function Index() {
             <View style={[styles.loginModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
               <Ionicons name="lock-closed" size={36} color={isDark ? "#a855f7" : "#7c3aed"} />
             </View>
-            <Text style={[styles.loginModalTitle, { color: colors.text }]}>Login Required</Text>
+            <Text style={[styles.loginModalTitle, { color: colors.text }]}>{t("home.loginRequired")}</Text>
             <Text style={[styles.loginModalMsg, { color: colors.textSecondary }]}>
-              Please login to buy this course.
+              {t("home.loginToBuy")}
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -1243,13 +1245,13 @@ export default function Index() {
               style={styles.loginModalBtn}
             >
               <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.loginModalBtnText}>Go to Login</Text>
+              <Text style={styles.loginModalBtnText}>{t("home.goToLogin")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowLoginModal(false)}
               style={styles.loginModalCancel}
             >
-              <Text style={styles.loginModalCancelText}>Cancel</Text>
+              <Text style={styles.loginModalCancelText}>{t("home.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>

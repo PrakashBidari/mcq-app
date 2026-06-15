@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ScrollView,
   StatusBar,
@@ -41,6 +42,7 @@ const getDifficultyColor = (d: string) => {
 };
 
 export default function QuizPlay() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
 
@@ -189,9 +191,9 @@ export default function QuizPlay() {
             </View>
           )}
           <Text style={styles.finishEmoji}>🎉</Text>
-          <Text style={styles.finishTitle}>All Questions Done!</Text>
+          <Text style={styles.finishTitle}>{t("quizPlay.allDone")}</Text>
           <Text style={styles.finishSub}>
-            {answeredCount} of {totalQuestions} answered
+            {answeredCount} {t("quizPlay.of")} {totalQuestions} {t("quizPlay.answered")}
           </Text>
         </LinearGradient>
         <View style={styles.finishBody}>
@@ -200,21 +202,21 @@ export default function QuizPlay() {
               <Text style={[styles.statNum, { color: "#667eea" }]}>
                 {answeredCount}
               </Text>
-              <Text style={styles.statLabel}>Answered</Text>
+              <Text style={styles.statLabel}>{t("quizPlay.answered")}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
               <Text style={[styles.statNum, { color: "#ef4444" }]}>
                 {skipped}
               </Text>
-              <Text style={styles.statLabel}>Skipped</Text>
+              <Text style={styles.statLabel}>{t("quizPlay.skipped")}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
               <Text style={[styles.statNum, { color: "#f59e0b" }]}>
                 {totalQuestions}
               </Text>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statLabel}>{t("quizPlay.total")}</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -226,10 +228,8 @@ export default function QuizPlay() {
           >
             <Ionicons name="list-outline" size={22} color="#667eea" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.reviewBtnTitle}>Review Answers</Text>
-              <Text style={styles.reviewBtnSub}>
-                Edit your answers before submitting
-              </Text>
+              <Text style={styles.reviewBtnTitle}>{t("quizPlay.reviewAnswers")}</Text>
+              <Text style={styles.reviewBtnSub}>{t("quizPlay.editBeforeSubmit")}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#667eea" />
           </TouchableOpacity>
@@ -244,7 +244,7 @@ export default function QuizPlay() {
               style={styles.showResultGrad}
             >
               <Ionicons name="trophy-outline" size={22} color="#fff" />
-              <Text style={styles.showResultText}>Show Result</Text>
+              <Text style={styles.showResultText}>{t("quizPlay.showResult")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -273,10 +273,8 @@ export default function QuizPlay() {
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.reviewBarTitle}>Review Answers</Text>
-            <Text style={styles.reviewBarSub}>
-              Tap any option to change your answer
-            </Text>
+            <Text style={styles.reviewBarTitle}>{t("quizPlay.reviewAnswers")}</Text>
+            <Text style={styles.reviewBarSub}>{t("quizPlay.tapToChange")}</Text>
           </View>
           <TimerBadge />
         </LinearGradient>
@@ -326,7 +324,7 @@ export default function QuizPlay() {
                   </View>
                   {sel === undefined && (
                     <View style={styles.skippedBadge}>
-                      <Text style={styles.skippedText}>Skipped</Text>
+                      <Text style={styles.skippedText}>{t("quizPlay.skipped")}</Text>
                     </View>
                   )}
                 </View>
@@ -399,7 +397,7 @@ export default function QuizPlay() {
               style={styles.submitGrad}
             >
               <Ionicons name="checkmark-circle" size={22} color="#fff" />
-              <Text style={styles.submitText}>Submit & Show Result</Text>
+              <Text style={styles.submitText}>{t("quizPlay.submitShowResult")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
@@ -429,7 +427,7 @@ export default function QuizPlay() {
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text style={styles.qCounter}>
-              Question {currentIndex + 1} / {totalQuestions}
+              {t("quizPlay.question")} {currentIndex + 1} / {totalQuestions}
             </Text>
           </View>
           {hasTimer ? (
@@ -632,7 +630,7 @@ export default function QuizPlay() {
               currentIndex === 0 ? styles.prevTxtDis : styles.prevTxtEn,
             ]}
           >
-            Previous
+            {t("quizPlay.previous")}
           </Text>
         </TouchableOpacity>
 
@@ -651,8 +649,8 @@ export default function QuizPlay() {
           >
             <Text style={styles.nextTxt}>
               {currentIndex === totalQuestions - 1
-                ? "Finish Quiz"
-                : "Next Question"}
+                ? t("quizPlay.finishQuiz")
+                : t("quizPlay.nextQuestion")}
             </Text>
             <Ionicons
               name={

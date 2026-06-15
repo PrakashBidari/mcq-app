@@ -3,8 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
-  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -14,47 +14,48 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const FEATURES = [
-  {
-    icon: "school-outline",
-    title: "Smart MCQ Practice",
-    desc: "Practice thousands of multiple choice questions across all major subjects and categories.",
-    color: "#7c3aed",
-    bg: "#f5f3ff",
-  },
-  {
-    icon: "book-outline",
-    title: "Rich Study Library",
-    desc: "Access a curated collection of books and study materials to deepen your knowledge.",
-    color: "#2563eb",
-    bg: "#eff6ff",
-  },
-  {
-    icon: "trophy-outline",
-    title: "Track Progress",
-    desc: "Monitor your performance, streaks, and achievements as you improve every day.",
-    color: "#059669",
-    bg: "#ecfdf5",
-  },
-  {
-    icon: "shield-checkmark-outline",
-    title: "Secure & Private",
-    desc: "Your data is protected. We never sell your personal information to third parties.",
-    color: "#dc2626",
-    bg: "#fef2f2",
-  },
-];
-
-const STATS = [
-  { value: "10K+", label: "Questions" },
-  { value: "50+", label: "Categories" },
-  { value: "5K+", label: "Learners" },
-  { value: "4.8★", label: "Rating" },
-];
-
 export default function AboutScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const FEATURES = [
+    {
+      icon: "school-outline",
+      title: t("about.feature1Title"),
+      desc: t("about.feature1Desc"),
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+    },
+    {
+      icon: "book-outline",
+      title: t("about.feature2Title"),
+      desc: t("about.feature2Desc"),
+      color: "#2563eb",
+      bg: "#eff6ff",
+    },
+    {
+      icon: "trophy-outline",
+      title: t("about.feature3Title"),
+      desc: t("about.feature3Desc"),
+      color: "#059669",
+      bg: "#ecfdf5",
+    },
+    {
+      icon: "shield-checkmark-outline",
+      title: t("about.feature4Title"),
+      desc: t("about.feature4Desc"),
+      color: "#dc2626",
+      bg: "#fef2f2",
+    },
+  ];
+
+  const STATS = [
+    { value: "10K+", label: t("about.questionsLabel") },
+    { value: "50+", label: t("about.categoriesLabel") },
+    { value: "5K+", label: t("about.learnersLabel") },
+    { value: "4.8★", label: t("about.ratingLabel") },
+  ];
 
   return (
     <View style={styles.root}>
@@ -80,9 +81,9 @@ export default function AboutScreen() {
           </LinearGradient>
         </View>
         <Text style={styles.appName}>MCQ Hub</Text>
-        <Text style={styles.appTagline}>Learn · Practice · Succeed</Text>
+        <Text style={styles.appTagline}>{t("about.appTagline")}</Text>
         <View style={styles.versionBadge}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
+          <Text style={styles.versionText}>{t("common.version")}</Text>
         </View>
       </LinearGradient>
 
@@ -102,22 +103,14 @@ export default function AboutScreen() {
 
         {/* About */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About MCQ Hub</Text>
-          <Text style={styles.bodyText}>
-            MCQ Hub is a modern learning platform designed to help students,
-            professionals, and lifelong learners master any subject through
-            smart practice, curated content, and progress tracking.
-          </Text>
-          <Text style={[styles.bodyText, { marginTop: 10 }]}>
-            Whether you're preparing for exams, upgrading your skills, or
-            exploring new topics — MCQ Hub gives you the tools to learn faster
-            and retain more.
-          </Text>
+          <Text style={styles.sectionTitle}>{t("about.aboutTitle")}</Text>
+          <Text style={styles.bodyText}>{t("about.aboutText1")}</Text>
+          <Text style={[styles.bodyText, { marginTop: 10 }]}>{t("about.aboutText2")}</Text>
         </View>
 
         {/* Features */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Key Features</Text>
+          <Text style={styles.sectionTitle}>{t("about.featuresTitle")}</Text>
           {FEATURES.map((f) => (
             <View key={f.title} style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: f.bg }]}>
@@ -133,7 +126,7 @@ export default function AboutScreen() {
 
         {/* Developer */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Developer</Text>
+          <Text style={styles.sectionTitle}>{t("about.developerTitle")}</Text>
           <View style={styles.devCard}>
             <LinearGradient
               colors={["#7c3aed", "#a855f7"]}
@@ -162,7 +155,7 @@ export default function AboutScreen() {
             onPress={() => router.push("/privacy-policy")}
           >
             <Ionicons name="shield-outline" size={20} color="#7c3aed" />
-            <Text style={styles.linkText}>Privacy Policy</Text>
+            <Text style={styles.linkText}>{t("about.privacyPolicy")}</Text>
             <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
           </TouchableOpacity>
           <View style={styles.divider} />
@@ -171,14 +164,12 @@ export default function AboutScreen() {
             onPress={() => router.push("/contact-us")}
           >
             <Ionicons name="mail-outline" size={20} color="#7c3aed" />
-            <Text style={styles.linkText}>Contact Us</Text>
+            <Text style={styles.linkText}>{t("about.contactUs")}</Text>
             <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>
-          © 2025 Ikigai Job Placement. All rights reserved.
-        </Text>
+        <Text style={styles.copyright}>{t("about.copyright")}</Text>
       </ScrollView>
     </View>
   );

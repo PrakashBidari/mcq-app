@@ -1,10 +1,12 @@
 // components/SettingsSidebar.tsx
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import ThemeManager from "@/utils/ThemeManager";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Alert,
   Animated,
@@ -32,33 +34,30 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onClose,
   onNavigate,
 }) => {
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguage();
   const slideAnim = React.useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const [modalVisible, setModalVisible] = React.useState(false);
   const [notifications, setNotifications] = React.useState(true);
-  // const [darkMode, setDarkMode] = React.useState(false);
 
-  // const [colors, setColors] = useState(ThemeManager.getColors());
-
-  // Inside component:
   const [isDark, setIsDark] = useState(ThemeManager.getIsDark());
 
   const { logout, user, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
+    Alert.alert(t("sidebar.logoutTitle"), t("sidebar.logoutMessage"), [
       {
-        text: "Cancel",
+        text: t("common.cancel"),
         style: "cancel",
       },
       {
-        text: "Logout",
+        text: t("sidebar.logOut"),
         style: "destructive",
         onPress: async () => {
           await logout();
           onClose();
-          // Note: Navigation to login will happen automatically via index.tsx
         },
       },
     ]);
@@ -103,9 +102,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   useEffect(() => {
     const unsubscribe = ThemeManager.subscribe(() => {
       setIsDark(ThemeManager.getIsDark());
-      // alert(
-      //   `Theme changed to ${ThemeManager.getIsDark() ? ThemeManager.getColors().primary : "Light"} Mode`,
-      // );
     });
     return unsubscribe;
   }, []);
@@ -117,7 +113,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const menuItems = [
     {
       id: "profile",
-      title: "My Profile",
+      title: t("sidebar.myProfile"),
       icon: "person",
       screen: "Profile",
       color: "#7c3aed",
@@ -125,7 +121,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     },
     {
       id: "learning",
-      title: "My Learning",
+      title: t("sidebar.myLearning"),
       icon: "book",
       screen: "MyLearning",
       color: "#2563eb",
@@ -133,7 +129,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     },
     {
       id: "faqs",
-      title: "FAQs",
+      title: t("sidebar.faqs"),
       icon: "help-circle",
       screen: "FAQs",
       color: "#059669",
@@ -141,59 +137,11 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     },
     {
       id: "blogs",
-      title: "Blogs",
+      title: t("sidebar.blogs"),
       icon: "newspaper",
       screen: "Blogs",
       color: "#dc2626",
       bgColor: "#fee2e2",
-    },
-  ];
-
-  const settingsSections = [
-    {
-      title: "Preferences",
-      items: [
-        {
-          icon: "moon-outline",
-          label: "Dark Mode",
-          hasSwitch: true,
-          value: isDark,
-          onToggle: handleToggle,
-        },
-        { icon: "language-outline", label: "Language", hasArrow: true },
-      ],
-    },
-    {
-      title: "Support",
-      items: [
-        {
-          icon: "chatbubble-outline",
-          label: "Contact Us",
-          hasArrow: true,
-          onPress: () => {
-            onNavigate("ContactUs"); // ← Add this
-            onClose();
-          },
-        },
-        { icon: "star-outline", label: "Rate App", hasArrow: true },
-      ],
-    },
-    {
-      title: "About",
-      items: [
-        {
-          icon: "information-circle-outline",
-          label: "About App",
-          hasArrow: true,
-          onPress: () => { onNavigate("AboutApp"); onClose(); },
-        },
-        {
-          icon: "shield-outline",
-          label: "Privacy Policy",
-          hasArrow: true,
-          onPress: () => { onNavigate("PrivacyPolicy"); onClose(); },
-        },
-      ],
     },
   ];
 
@@ -250,16 +198,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
             {/* Profile Section */}
             <View style={styles.profileSection}>
-              {/* <View style={styles.avatarContainer}>
-                <LinearGradient
-                  colors={["#fbbf24", "#f59e0b"]}
-                  style={styles.avatarGradient}
-                >
-                  <Ionicons name="school" size={40} color="#fff" />
-                </LinearGradient>
-              </View> */}
-              <Text style={styles.userName}>MCQ Hub</Text>
-              <Text style={styles.userEmail}>Explore & Master</Text>
+              <Text style={styles.userName}>{t("sidebar.appName")}</Text>
+              <Text style={styles.userEmail}>{t("sidebar.tagline")}</Text>
             </View>
 
             {/* Decorative Circles */}
@@ -275,7 +215,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           >
             {/* Quick Menu Items */}
             <View style={[styles.menuContainer, { borderBottomColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
-              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>QUICK ACCESS</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>
+                {t("sidebar.quickAccess")}
+              </Text>
               {menuItems.map((item, index) => (
                 <Animated.View
                   key={item.id}
@@ -326,54 +268,139 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
             {/* Settings Sections */}
             <View style={styles.settingsContainer}>
-              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>SETTINGS</Text>
-              {settingsSections.map((section, sectionIndex) => (
-                <View key={sectionIndex} style={styles.settingsSection}>
-                  <Text style={[styles.settingsSectionTitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
-                    {section.title}
-                  </Text>
-                  <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
-                    {section.items.map((item, itemIndex) => (
+              <Text style={[styles.sectionTitle, { color: isDark ? "#64748b" : "#94a3b8" }]}>
+                {t("sidebar.settings")}
+              </Text>
+
+              {/* Preferences Section */}
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
+                  {t("sidebar.preferences")}
+                </Text>
+                <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
+                  {/* Dark Mode */}
+                  <View style={[styles.settingsItem, styles.settingsItemBorder, { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" }]}>
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="moon-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.darkMode")}
+                    </Text>
+                    <Switch
+                      value={isDark}
+                      onValueChange={handleToggle}
+                      trackColor={{ false: isDark ? "#374151" : "#e5e7eb", true: "#c084fc" }}
+                      thumbColor={isDark ? "#7c3aed" : "#f3f4f6"}
+                    />
+                  </View>
+
+                  {/* Language Picker */}
+                  <View style={styles.settingsItem}>
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="language-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.language")}
+                    </Text>
+                    <View style={styles.languageToggle}>
                       <TouchableOpacity
-                        key={itemIndex}
                         style={[
-                          styles.settingsItem,
-                          itemIndex !== section.items.length - 1 && [
-                            styles.settingsItemBorder,
-                            { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" },
-                          ],
+                          styles.langBtn,
+                          language === "en" && styles.langBtnActive,
+                          isDark && language !== "en" && styles.langBtnDark,
                         ]}
-                        activeOpacity={0.7}
-                        onPress={item.onPress}
+                        onPress={() => setLanguage("en")}
                       >
-                        <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
-                          <Ionicons
-                            name={item.icon as any}
-                            size={20}
-                            color={isDark ? "#a855f7" : "#7c3aed"}
-                          />
-                        </View>
-                        <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>{item.label}</Text>
-                        {item.hasSwitch && (
-                          <Switch
-                            value={item.value}
-                            onValueChange={item.onToggle}
-                            trackColor={{ false: isDark ? "#374151" : "#e5e7eb", true: "#c084fc" }}
-                            thumbColor={item.value ? "#7c3aed" : (isDark ? "#94a3b8" : "#f3f4f6")}
-                          />
-                        )}
-                        {item.hasArrow && (
-                          <Ionicons
-                            name="chevron-forward"
-                            size={18}
-                            color={isDark ? "#ffffff50" : "#cbd5e1"}
-                          />
-                        )}
+                        <Text style={[
+                          styles.langBtnText,
+                          language === "en" && styles.langBtnTextActive,
+                          isDark && language !== "en" && { color: "#94a3b8" },
+                        ]}>EN</Text>
                       </TouchableOpacity>
-                    ))}
+                      <TouchableOpacity
+                        style={[
+                          styles.langBtn,
+                          language === "ja" && styles.langBtnActive,
+                          isDark && language !== "ja" && styles.langBtnDark,
+                        ]}
+                        onPress={() => setLanguage("ja")}
+                      >
+                        <Text style={[
+                          styles.langBtnText,
+                          language === "ja" && styles.langBtnTextActive,
+                          isDark && language !== "ja" && { color: "#94a3b8" },
+                        ]}>日本語</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              ))}
+              </View>
+
+              {/* Support Section */}
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
+                  {t("sidebar.support")}
+                </Text>
+                <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
+                  <TouchableOpacity
+                    style={[styles.settingsItem, styles.settingsItemBorder, { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" }]}
+                    activeOpacity={0.7}
+                    onPress={() => { onNavigate("ContactUs"); onClose(); }}
+                  >
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="chatbubble-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.contactUs")}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="star-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.rateApp")}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* About Section */}
+              <View style={styles.settingsSection}>
+                <Text style={[styles.settingsSectionTitle, { color: isDark ? "#94a3b8" : "#64748b" }]}>
+                  {t("sidebar.about")}
+                </Text>
+                <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
+                  <TouchableOpacity
+                    style={[styles.settingsItem, styles.settingsItemBorder, { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" }]}
+                    activeOpacity={0.7}
+                    onPress={() => { onNavigate("AboutApp"); onClose(); }}
+                  >
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="information-circle-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.aboutApp")}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.settingsItem}
+                    activeOpacity={0.7}
+                    onPress={() => { onNavigate("PrivacyPolicy"); onClose(); }}
+                  >
+                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
+                      <Ionicons name="shield-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    </View>
+                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
+                      {t("sidebar.privacyPolicy")}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
+                  </TouchableOpacity>
+                </View>
+              </View>
 
               {/* Login / Logout Button */}
               {isAuthenticated ? (
@@ -383,7 +410,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   onPress={handleLogout}
                 >
                   <Ionicons name="log-out-outline" size={22} color={isDark ? "#f87171" : "#dc2626"} />
-                  <Text style={[styles.logoutText, isDark && { color: "#f87171" }]}>Log Out</Text>
+                  <Text style={[styles.logoutText, isDark && { color: "#f87171" }]}>{t("sidebar.logOut")}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -395,7 +422,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   }}
                 >
                   <Ionicons name="log-in-outline" size={22} color={isDark ? "#a855f7" : "#7c3aed"} />
-                  <Text style={[styles.loginText, isDark && { color: "#a855f7" }]}>Log In</Text>
+                  <Text style={[styles.loginText, isDark && { color: "#a855f7" }]}>{t("sidebar.logIn")}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -410,7 +437,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 size={16}
                 color="#94a3b8"
               />
-              <Text style={styles.footerText}>Version 1.0.0</Text>
+              <Text style={styles.footerText}>{t("sidebar.version")}</Text>
             </View>
           </View>
         </Animated.View>
@@ -600,6 +627,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
     color: "#334155",
+  },
+  languageToggle: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  langBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f9fafb",
+  },
+  langBtnActive: {
+    backgroundColor: "#7c3aed",
+    borderColor: "#7c3aed",
+  },
+  langBtnDark: {
+    backgroundColor: "#1a1a2e",
+    borderColor: "#2d2d44",
+  },
+  langBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  langBtnTextActive: {
+    color: "#ffffff",
   },
   logoutButton: {
     flexDirection: "row",

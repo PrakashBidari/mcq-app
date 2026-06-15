@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -28,6 +29,7 @@ interface ContactSettings {
 }
 
 export default function ContactUsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -68,7 +70,7 @@ export default function ContactUsScreen() {
         {
           id: 1,
           icon: "mail",
-          title: "Email",
+          title: t("contact.email"),
           value: settings.email,
           action: () => Linking.openURL(`mailto:${settings.email}`),
           color: "#7c3aed",
@@ -77,7 +79,7 @@ export default function ContactUsScreen() {
         {
           id: 2,
           icon: "call",
-          title: "Phone",
+          title: t("contact.phone"),
           value: settings.phone,
           action: () =>
             Linking.openURL(`tel:${settings.phone.replace(/\s/g, "")}`),
@@ -87,7 +89,7 @@ export default function ContactUsScreen() {
         {
           id: 3,
           icon: "location",
-          title: "Address",
+          title: t("contact.address"),
           value: settings.address,
           action: null,
           color: "#059669",
@@ -99,29 +101,28 @@ export default function ContactUsScreen() {
   const handleSubmit = async () => {
     // Validation
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter your name");
+      Alert.alert(t("common.error"), t("contact.errorName"));
       return;
     }
 
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
+      Alert.alert(t("common.error"), t("contact.errorEmail"));
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert("Error", "Please enter a valid email address");
+      Alert.alert(t("common.error"), t("contact.errorInvalidEmail"));
       return;
     }
 
     if (!message.trim()) {
-      Alert.alert("Error", "Please enter your message");
+      Alert.alert(t("common.error"), t("contact.errorMessage"));
       return;
     }
 
     if (message.length > 1000) {
-      Alert.alert("Error", "Message is too long (max 1000 characters)");
+      Alert.alert(t("common.error"), t("contact.errorMessageLong"));
       return;
     }
 
@@ -144,12 +145,11 @@ export default function ContactUsScreen() {
 
       if (data.success) {
         Alert.alert(
-          "Success!",
-          data.message ||
-            "Thank you for contacting us! We'll get back to you soon.",
+          t("common.success"),
+          data.message || t("contact.successMessage"),
           [
             {
-              text: "OK",
+              text: t("common.ok"),
               onPress: () => {
                 setName("");
                 setEmail("");
@@ -159,10 +159,10 @@ export default function ContactUsScreen() {
           ],
         );
       } else {
-        Alert.alert("Error", data.message || "Failed to send message");
+        Alert.alert(t("common.error"), data.message || t("contact.errorSend"));
       }
     } catch {
-      Alert.alert("Error", "Failed to send message. Please try again.");
+      Alert.alert(t("common.error"), t("contact.errorSendRetry"));
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +172,7 @@ export default function ContactUsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text className="text-gray-600 mt-4 text-base">Loading...</Text>
+        <Text className="text-gray-600 mt-4 text-base">{t("contact.loading")}</Text>
       </SafeAreaView>
     );
   }
@@ -182,16 +182,16 @@ export default function ContactUsScreen() {
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center px-6">
         <Ionicons name="alert-circle-outline" size={60} color="#D1D5DB" />
         <Text className="text-gray-800 text-xl font-bold mt-4 mb-2">
-          Settings Not Available
+          {t("contact.settingsNotAvailable")}
         </Text>
         <Text className="text-gray-600 text-sm text-center mb-6">
-          Contact settings are not configured yet.
+          {t("contact.settingsNotConfigured")}
         </Text>
         <TouchableOpacity
           onPress={fetchSettings}
           className="bg-purple-600 px-8 py-3 rounded-2xl"
         >
-          <Text className="text-white font-bold text-base">Retry</Text>
+          <Text className="text-white font-bold text-base">{t("contact.retry")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -208,7 +208,7 @@ export default function ContactUsScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">Contact Us</Text>
+          <Text className="text-2xl font-bold text-gray-900">{t("contact.title")}</Text>
           <View style={{ width: 40 }} />
         </View>
       </View>
@@ -301,12 +301,12 @@ export default function ContactUsScreen() {
           {/* Name Input */}
           <View className="mb-4">
             <Text className="text-gray-700 font-semibold mb-2">
-              Your Name <Text className="text-red-500">*</Text>
+              {t("contact.yourName")} <Text className="text-red-500">*</Text>
             </Text>
             <View className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex-row items-center">
               <Ionicons name="person-outline" size={20} color="#9ca3af" />
               <TextInput
-                placeholder="Enter your full name"
+                placeholder={t("contact.namePlaceholder")}
                 value={name}
                 onChangeText={setName}
                 className="flex-1 ml-3 text-gray-900 text-base"
@@ -319,12 +319,12 @@ export default function ContactUsScreen() {
           {/* Email Input */}
           <View className="mb-4">
             <Text className="text-gray-700 font-semibold mb-2">
-              Email Address <Text className="text-red-500">*</Text>
+              {t("contact.emailAddress")} <Text className="text-red-500">*</Text>
             </Text>
             <View className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex-row items-center">
               <Ionicons name="mail-outline" size={20} color="#9ca3af" />
               <TextInput
-                placeholder="your.email@example.com"
+                placeholder={t("contact.emailPlaceholder")}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -339,11 +339,11 @@ export default function ContactUsScreen() {
           {/* Message Input */}
           <View className="mb-6">
             <Text className="text-gray-700 font-semibold mb-2">
-              Your Message <Text className="text-red-500">*</Text>
+              {t("contact.yourMessage")} <Text className="text-red-500">*</Text>
             </Text>
             <View className="bg-white border border-gray-200 rounded-xl px-4 py-3">
               <TextInput
-                placeholder="Type your message here..."
+                placeholder={t("contact.messagePlaceholder")}
                 value={message}
                 onChangeText={setMessage}
                 multiline
@@ -356,7 +356,7 @@ export default function ContactUsScreen() {
               />
             </View>
             <Text className="text-gray-400 text-xs mt-1 ml-1">
-              {message.length} / 1000 characters
+              {message.length} / 1000 {t("contact.characters")}
             </Text>
           </View>
 
@@ -375,7 +375,7 @@ export default function ContactUsScreen() {
               <>
                 <Ionicons name="send" size={20} color="#fff" />
                 <Text className="text-white font-bold text-base ml-2">
-                  Send Message
+                  {t("contact.sendMessage")}
                 </Text>
               </>
             )}
@@ -390,18 +390,17 @@ export default function ContactUsScreen() {
             </View>
             <View className="flex-1">
               <Text className="text-gray-900 font-bold text-base mb-1">
-                Looking for Quick Answers?
+                {t("contact.lookingForAnswers")}
               </Text>
               <Text className="text-gray-600 text-sm mb-3">
-                Check out our FAQ section for instant answers to common
-                questions.
+                {t("contact.faqSuggestion")}
               </Text>
               <TouchableOpacity
                 onPress={() => router.push("/faqs")}
                 className="bg-purple-600 px-4 py-2 rounded-lg self-start"
               >
                 <Text className="text-white font-semibold text-sm">
-                  Visit FAQs
+                  {t("contact.visitFaqs")}
                 </Text>
               </TouchableOpacity>
             </View>

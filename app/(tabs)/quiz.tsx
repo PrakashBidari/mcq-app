@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -44,6 +45,7 @@ interface QuestionSet {
 }
 
 export default function QuizScreen() {
+  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
@@ -76,9 +78,9 @@ export default function QuizScreen() {
       const data = await response.json();
       if (data.success) {
         setCategories(data.data); // ← use raw API data directly
-      } else Alert.alert("Error", "Failed to load categories");
+      } else Alert.alert(t("common.error"), t("quiz.errorCategories"));
     } catch {
-      Alert.alert("Error", "Something went wrong");
+      Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -94,9 +96,9 @@ export default function QuizScreen() {
       if (data.success) {
         const sets = data.data.question_sets.map((set: any) => ({
           ...set,
-          is_paid: set.is_paid ?? false, // ← from API
-          price: set.price ?? 0, // ← from API
-          is_free: !set.is_paid, // ← derived
+          is_paid: set.is_paid ?? false,
+          price: set.price ?? 0,
+          is_free: !set.is_paid,
         }));
         setQuestionSets(sets);
         const total = sets.reduce(
@@ -105,10 +107,10 @@ export default function QuizScreen() {
         );
         setTotalQuestionsInCategory(total);
       } else {
-        Alert.alert("Error", "Failed to load question sets");
+        Alert.alert(t("common.error"), t("quiz.errorSets"));
       }
     } catch {
-      Alert.alert("Error", "Something went wrong");
+      Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -156,10 +158,10 @@ export default function QuizScreen() {
           },
         });
       } else {
-        Alert.alert("Error", "No questions available");
+        Alert.alert(t("common.error"), t("quiz.errorNoQuestions"));
       }
     } catch {
-      Alert.alert("Error", "Failed to load questions");
+      Alert.alert(t("common.error"), t("quiz.errorLoadQuestions"));
     } finally {
       setIsLoading(false);
     }
@@ -206,10 +208,10 @@ export default function QuizScreen() {
           },
         });
       } else {
-        Alert.alert("Error", "No questions available in this set");
+        Alert.alert(t("common.error"), t("quiz.errorNoQuestionsSet"));
       }
     } catch {
-      Alert.alert("Error", "Failed to load question set");
+      Alert.alert(t("common.error"), t("quiz.errorLoadSet"));
     } finally {
       setIsLoading(false);
     }
@@ -229,7 +231,7 @@ export default function QuizScreen() {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text style={styles.loadingText}>Loading categories...</Text>
+        <Text style={styles.loadingText}>{t("quiz.loadingCategories")}</Text>
       </View>
     );
   }
@@ -246,10 +248,10 @@ export default function QuizScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
         >
-          <Text style={styles.gradientLabel}>QUIZ TIME</Text>
-          <Text style={styles.gradientTitle}>Choose Category</Text>
+          <Text style={styles.gradientLabel}>{t("quiz.label")}</Text>
+          <Text style={styles.gradientTitle}>{t("quiz.title")}</Text>
           <Text style={styles.gradientSubtitle}>
-            Select a category to start your quiz
+            {t("quiz.subtitle")}
           </Text>
         </LinearGradient>
 
@@ -285,7 +287,7 @@ export default function QuizScreen() {
                     </Text>
                     <View style={styles.paymentPriceRow}>
                       <Text style={[styles.paymentPriceLabel, { color: colors.textSecondary }]}>
-                        Total Amount:
+                        {t("quiz.totalAmount")}
                       </Text>
                       <Text style={styles.paymentPriceValue}>
                         ${selectedSet.price.toFixed(2)}
@@ -300,7 +302,7 @@ export default function QuizScreen() {
                     </Text>
                     <View style={styles.paymentPriceRow}>
                       <Text style={[styles.paymentPriceLabel, { color: colors.textSecondary }]}>
-                        Total Amount:
+                        {t("quiz.totalAmount")}
                       </Text>
                       <Text style={styles.paymentPriceValue}>
                         ${selectedCategoryForPayment.min_price?.toFixed(2)}
@@ -314,23 +316,23 @@ export default function QuizScreen() {
                 <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
                   <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
                 </View>
-                <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Payment System</Text>
-                <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>Added Later</Text>
+                <Text style={[styles.comingSoonTitle, { color: colors.text }]}>{t("quiz.paymentSystem")}</Text>
+                <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>{t("quiz.addedLater")}</Text>
                 <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
-                  Our subscription system is coming soon. You can play this content for free right now!
+                  {t("quiz.paymentComingSoon")}
                 </Text>
                 <TouchableOpacity
                   onPress={handlePlayPaidContent}
                   style={styles.comingSoonPlayBtn}
                 >
                   <Ionicons name="play-circle" size={22} color="#fff" />
-                  <Text style={styles.comingSoonPlayText}>Play Now</Text>
+                  <Text style={styles.comingSoonPlayText}>{t("quiz.playNow")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setShowPaymentModal(false)}
                   style={styles.comingSoonCancelBtn}
                 >
-                  <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>Cancel</Text>
+                  <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>{t("quiz.cancel")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -399,7 +401,7 @@ export default function QuizScreen() {
                           color={isDark ? "#64748b" : "#6b7280"}
                         />
                         <Text style={[styles.categoryMetaText, { color: colors.textSecondary }]}>
-                          {category.question_sets_count} question sets
+                          {category.question_sets_count} {t("quiz.questionSets")}
                         </Text>
                       </View>
                     </View>
@@ -436,7 +438,7 @@ export default function QuizScreen() {
                           },
                         ]}
                       >
-                        {category.has_paid_sets ? "Buy" : "Start"}
+                        {category.has_paid_sets ? t("quiz.buy") : t("quiz.start")}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -458,9 +460,9 @@ export default function QuizScreen() {
               <View style={[styles.loginModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
                 <Ionicons name="lock-closed" size={36} color={isDark ? "#a855f7" : "#7c3aed"} />
               </View>
-              <Text style={[styles.loginModalTitle, { color: colors.text }]}>Login Required</Text>
+              <Text style={[styles.loginModalTitle, { color: colors.text }]}>{t("quiz.loginRequired")}</Text>
               <Text style={[styles.loginModalMsg, { color: colors.textSecondary }]}>
-                Please login to buy this course.
+                {t("quiz.loginToBuy")}
               </Text>
               <TouchableOpacity
                 onPress={() => {
@@ -470,13 +472,13 @@ export default function QuizScreen() {
                 style={styles.loginModalBtn}
               >
                 <Ionicons name="log-in-outline" size={20} color="#fff" />
-                <Text style={styles.loginModalBtnText}>Go to Login</Text>
+                <Text style={styles.loginModalBtnText}>{t("quiz.goToLogin")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowLoginModal(false)}
                 style={styles.loginModalCancel}
               >
-                <Text style={[styles.loginModalCancelText, { color: colors.textMuted }]}>Cancel</Text>
+                <Text style={[styles.loginModalCancelText, { color: colors.textMuted }]}>{t("quiz.cancel")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -503,7 +505,7 @@ export default function QuizScreen() {
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
-          <Text style={styles.backButtonText}>Back to Categories</Text>
+          <Text style={styles.backButtonText}>{t("quiz.backToCategories")}</Text>
         </TouchableOpacity>
 
         <View style={styles.gradientCategoryRow}>
@@ -511,13 +513,12 @@ export default function QuizScreen() {
             <Ionicons name={categoryIcon as any} size={24} color="white" />
           </View>
           <View>
-            <Text style={styles.gradientLabel}>CATEGORY</Text>
+            <Text style={styles.gradientLabel}>{t("quiz.categoryLabel")}</Text>
             <Text style={styles.gradientTitle}>{selectedCategory.name}</Text>
           </View>
         </View>
         <Text style={styles.gradientSubtitle}>
-          {questionSets.length} question sets • {totalQuestionsInCategory} total
-          questions
+          {questionSets.length} {t("quiz.questionSets")} • {totalQuestionsInCategory} {t("quiz.totalQuestions")}
         </Text>
       </LinearGradient>
 
@@ -557,9 +558,9 @@ export default function QuizScreen() {
                 />
               </View>
               <View style={styles.fullQuizText}>
-                <Text style={[styles.fullQuizTitle, { color: colors.text }]}>Full Category Quiz</Text>
+                <Text style={[styles.fullQuizTitle, { color: colors.text }]}>{t("quiz.fullCategoryQuiz")}</Text>
                 <Text style={[styles.fullQuizSubtitle, { color: colors.textSecondary }]}>
-                  Random questions from all sets
+                  {t("quiz.randomQuestions")}
                 </Text>
               </View>
             </View>
@@ -567,7 +568,7 @@ export default function QuizScreen() {
             <View style={styles.fullQuizMeta}>
               <Ionicons name="help-circle-outline" size={16} color={isDark ? "#64748b" : "#6b7280"} />
               <Text style={[styles.fullQuizMetaText, { color: colors.textSecondary }]}>
-                {totalQuestionsInCategory} questions available
+                {totalQuestionsInCategory} {t("quiz.questionsAvailable")}
               </Text>
             </View>
 
@@ -578,13 +579,13 @@ export default function QuizScreen() {
               ]}
             >
               <Ionicons name="play-circle" size={20} color="white" />
-              <Text style={styles.fullQuizStartText}>Start Full Quiz</Text>
+              <Text style={styles.fullQuizStartText}>{t("quiz.startFullQuiz")}</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Question Sets */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Question Sets</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("quiz.questionSetsSection")}</Text>
 
         <View>
           {questionSets.map((set) => (
@@ -593,7 +594,7 @@ export default function QuizScreen() {
                 {/* Price Badge */}
                 {set.is_free ? (
                   <View style={styles.freeBadge}>
-                    <Text style={styles.freeBadgeText}>FREE</Text>
+                    <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
                   </View>
                 ) : (
                   <View style={[styles.priceBadge, isDark && { backgroundColor: "#2d1f4e" }]}>
@@ -641,7 +642,7 @@ export default function QuizScreen() {
                       { color: set.is_free ? selectedCategory.color : "#fff" },
                     ]}
                   >
-                    {set.is_free ? "Start This Set" : "Buy Set"}
+                    {set.is_free ? t("quiz.startThisSet") : t("quiz.buySet")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -672,9 +673,9 @@ export default function QuizScreen() {
                   color={selectedCategory.color}
                 />
               </View>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>How many questions?</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t("quiz.howManyQuestions")}</Text>
               <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
-                Max: {totalQuestionsInCategory} questions available
+                {t("quiz.max")} {totalQuestionsInCategory} {t("quiz.questionsAvailable")}
               </Text>
             </View>
 
@@ -785,7 +786,7 @@ export default function QuizScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.modalStartText}>Start Quiz</Text>
+                <Text style={styles.modalStartText}>{t("quiz.startQuiz")}</Text>
               )}
             </TouchableOpacity>
 
@@ -793,7 +794,7 @@ export default function QuizScreen() {
               onPress={() => setShowQuestionModal(false)}
               style={styles.modalCancelButton}
             >
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={styles.modalCancelText}>{t("quiz.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -900,9 +901,9 @@ export default function QuizScreen() {
             <View style={styles.loginModalIconWrap}>
               <Ionicons name="lock-closed" size={36} color="#7c3aed" />
             </View>
-            <Text style={styles.loginModalTitle}>Login Required</Text>
+            <Text style={styles.loginModalTitle}>{t("quiz.loginRequired")}</Text>
             <Text style={styles.loginModalMsg}>
-              Please login to buy this course.
+              {t("quiz.loginToBuy")}
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -912,13 +913,13 @@ export default function QuizScreen() {
               style={styles.loginModalBtn}
             >
               <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.loginModalBtnText}>Go to Login</Text>
+              <Text style={styles.loginModalBtnText}>{t("quiz.goToLogin")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowLoginModal(false)}
               style={styles.loginModalCancel}
             >
-              <Text style={styles.loginModalCancelText}>Cancel</Text>
+              <Text style={styles.loginModalCancelText}>{t("quiz.cancel")}</Text>
             </TouchableOpacity>
           </View>
         </View>

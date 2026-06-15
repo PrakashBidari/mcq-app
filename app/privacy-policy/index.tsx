@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ScrollView,
   StyleSheet,
@@ -12,63 +13,19 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SECTIONS = [
-  {
-    icon: "person-outline",
-    title: "Information We Collect",
-    color: "#7c3aed",
-    bg: "#f5f3ff",
-    content: `We collect information you provide directly to us when you create an account, such as your name, email address, and profile details.\n\nWe also automatically collect certain information when you use our app, including:\n\n• Device information (model, OS version)\n• Usage data (screens visited, quizzes taken)\n• Performance and crash data to improve stability`,
-  },
-  {
-    icon: "server-outline",
-    title: "How We Use Your Information",
-    color: "#2563eb",
-    bg: "#eff6ff",
-    content: `We use the information we collect to:\n\n• Provide, maintain, and improve our services\n• Personalize your learning experience\n• Track your progress and achievements\n• Send you updates and notifications (with your consent)\n• Respond to your comments and questions\n• Monitor and analyze usage patterns to enhance the app`,
-  },
-  {
-    icon: "share-social-outline",
-    title: "Information Sharing",
-    color: "#059669",
-    bg: "#ecfdf5",
-    content: `We do not sell, trade, or rent your personal information to third parties.\n\nWe may share your information only in these limited circumstances:\n\n• With service providers who assist us in operating our app\n• When required by law or to protect our legal rights\n• In connection with a merger or acquisition (you will be notified)\n\nAll third-party partners are bound by strict data protection agreements.`,
-  },
-  {
-    icon: "lock-closed-outline",
-    title: "Data Security",
-    color: "#dc2626",
-    bg: "#fef2f2",
-    content: `We take the security of your data seriously. We implement industry-standard security measures including:\n\n• SSL/TLS encryption for all data transmission\n• Secure token-based authentication\n• Regular security audits and vulnerability testing\n• Encrypted storage of sensitive information\n\nHowever, no method of transmission over the internet is 100% secure. We encourage you to use a strong, unique password.`,
-  },
-  {
-    icon: "archive-outline",
-    title: "Data Retention",
-    color: "#d97706",
-    bg: "#fffbeb",
-    content: `We retain your personal information for as long as your account is active or as needed to provide our services.\n\nYou may request deletion of your account and associated data at any time by contacting us. We will process your request within 30 days.\n\nSome information may be retained for legal or legitimate business purposes even after account deletion.`,
-  },
-  {
-    icon: "phone-portrait-outline",
-    title: "Your Rights",
-    color: "#0891b2",
-    bg: "#ecfeff",
-    content: `You have the following rights regarding your personal data:\n\n• Access: Request a copy of the data we hold about you\n• Correction: Update or correct inaccurate information\n• Deletion: Request removal of your personal data\n• Portability: Receive your data in a machine-readable format\n• Objection: Opt out of certain data processing activities\n\nTo exercise any of these rights, please contact us through the app.`,
-  },
-  {
-    icon: "refresh-outline",
-    title: "Changes to This Policy",
-    color: "#7c3aed",
-    bg: "#f5f3ff",
-    content: `We may update this Privacy Policy from time to time to reflect changes in our practices or for legal reasons.\n\nWhen we make significant changes, we will notify you through the app or by email. The "Last Updated" date at the bottom of this page indicates when the policy was last revised.\n\nContinued use of the app after changes constitutes acceptance of the updated policy.`,
-  },
-];
+type SectionItem = {
+  icon: string;
+  title: string;
+  color: string;
+  bg: string;
+  content: string;
+};
 
 function PolicySection({
   section,
   index,
 }: {
-  section: (typeof SECTIONS)[0];
+  section: SectionItem;
   index: number;
 }) {
   const [expanded, setExpanded] = useState(index === 0);
@@ -101,8 +58,61 @@ function PolicySection({
 }
 
 export default function PrivacyPolicyScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  const SECTIONS: SectionItem[] = [
+    {
+      icon: "person-outline",
+      title: t("privacy.section1Title"),
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+      content: t("privacy.section1Content"),
+    },
+    {
+      icon: "server-outline",
+      title: t("privacy.section2Title"),
+      color: "#2563eb",
+      bg: "#eff6ff",
+      content: t("privacy.section2Content"),
+    },
+    {
+      icon: "share-social-outline",
+      title: t("privacy.section3Title"),
+      color: "#059669",
+      bg: "#ecfdf5",
+      content: t("privacy.section3Content"),
+    },
+    {
+      icon: "lock-closed-outline",
+      title: t("privacy.section4Title"),
+      color: "#dc2626",
+      bg: "#fef2f2",
+      content: t("privacy.section4Content"),
+    },
+    {
+      icon: "archive-outline",
+      title: t("privacy.section5Title"),
+      color: "#d97706",
+      bg: "#fffbeb",
+      content: t("privacy.section5Content"),
+    },
+    {
+      icon: "phone-portrait-outline",
+      title: t("privacy.section6Title"),
+      color: "#0891b2",
+      bg: "#ecfeff",
+      content: t("privacy.section6Content"),
+    },
+    {
+      icon: "refresh-outline",
+      title: t("privacy.section7Title"),
+      color: "#7c3aed",
+      bg: "#f5f3ff",
+      content: t("privacy.section7Content"),
+    },
+  ];
 
   return (
     <View style={styles.root}>
@@ -127,13 +137,11 @@ export default function PrivacyPolicyScreen() {
             <Ionicons name="shield-checkmark" size={40} color="#fff" />
           </LinearGradient>
         </View>
-        <Text style={styles.headerTitle}>Privacy Policy</Text>
-        <Text style={styles.headerSubtitle}>
-          Your privacy is our priority
-        </Text>
+        <Text style={styles.headerTitle}>{t("privacy.title")}</Text>
+        <Text style={styles.headerSubtitle}>{t("privacy.subtitle")}</Text>
         <View style={styles.dateBadge}>
           <Ionicons name="calendar-outline" size={12} color="#fff" />
-          <Text style={styles.dateText}>Last updated: January 2025</Text>
+          <Text style={styles.dateText}>{t("privacy.lastUpdated")}</Text>
         </View>
       </LinearGradient>
 
@@ -147,10 +155,7 @@ export default function PrivacyPolicyScreen() {
         {/* Intro */}
         <View style={styles.introCard}>
           <Ionicons name="information-circle" size={20} color="#7c3aed" />
-          <Text style={styles.introText}>
-            This policy explains how MCQ Hub collects, uses, and protects your
-            personal information. Tap any section to expand it.
-          </Text>
+          <Text style={styles.introText}>{t("privacy.introText")}</Text>
         </View>
 
         {/* Sections */}
@@ -167,16 +172,14 @@ export default function PrivacyPolicyScreen() {
             style={styles.contactGrad}
           >
             <Ionicons name="mail-outline" size={28} color="#fff" />
-            <Text style={styles.contactTitle}>Questions about privacy?</Text>
-            <Text style={styles.contactDesc}>
-              Contact our privacy team and we'll respond within 48 hours.
-            </Text>
+            <Text style={styles.contactTitle}>{t("privacy.questionsTitle")}</Text>
+            <Text style={styles.contactDesc}>{t("privacy.questionsDesc")}</Text>
             <TouchableOpacity
               style={styles.contactBtn}
               onPress={() => router.push("/contact-us")}
               activeOpacity={0.85}
             >
-              <Text style={styles.contactBtnText}>Contact Us</Text>
+              <Text style={styles.contactBtnText}>{t("privacy.contactUs")}</Text>
               <Ionicons name="arrow-forward" size={16} color="#7c3aed" />
             </TouchableOpacity>
           </LinearGradient>

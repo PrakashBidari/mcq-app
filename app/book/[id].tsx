@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Image,
   ScrollView,
@@ -17,6 +18,7 @@ import * as Animatable from "react-native-animatable";
 import RenderHtml from "react-native-render-html";
 
 export default function BookReader() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
 
@@ -40,12 +42,12 @@ export default function BookReader() {
       <View style={styles.container}>
         <View style={styles.emptyState}>
           <Ionicons name="book-outline" size={64} color="#D1D5DB" />
-          <Text style={styles.emptyStateText}>Book not found</Text>
+          <Text style={styles.emptyStateText}>{t("book.notFound")}</Text>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.emptyStateButton}
           >
-            <Text style={styles.emptyStateButtonText}>Go Back</Text>
+            <Text style={styles.emptyStateButtonText}>{t("book.goBack")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -154,7 +156,7 @@ export default function BookReader() {
               style={styles.ctaGradient}
             >
               <Ionicons name="book-outline" size={24} color="white" />
-              <Text style={styles.ctaText}>Start Reading</Text>
+              <Text style={styles.ctaText}>{t("book.startReading")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -180,7 +182,7 @@ export default function BookReader() {
                       : styles.tabTextInactive,
                   ]}
                 >
-                  Chapters
+                  {t("book.chapters")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -203,7 +205,7 @@ export default function BookReader() {
                       : styles.tabTextInactive,
                   ]}
                 >
-                  Details
+                  {t("book.details")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -214,7 +216,7 @@ export default function BookReader() {
         {activeTab === "chapters" && (
           <View style={styles.emptyChapters}>
             <Ionicons name="book-outline" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyChaptersText}>No chapters available</Text>
+            <Text style={styles.emptyChaptersText}>{t("book.noChapters")}</Text>
           </View>
         )}
 
@@ -224,7 +226,7 @@ export default function BookReader() {
             {/* About this book */}
             {book.description && (
               <Animatable.View animation="fadeIn" style={styles.detailsCard}>
-                <Text style={styles.detailsCardTitle}>About this book</Text>
+                <Text style={styles.detailsCardTitle}>{t("book.aboutThisBook")}</Text>
                 <RenderHtml
                   contentWidth={width - 88}
                   source={{ html: book.description }}
@@ -260,22 +262,22 @@ export default function BookReader() {
               delay={100}
               style={styles.detailsCard}
             >
-              <Text style={styles.detailsCardTitle}>Book Information</Text>
+              <Text style={styles.detailsCardTitle}>{t("book.bookInformation")}</Text>
 
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Category</Text>
+                <Text style={styles.infoLabel}>{t("book.category")}</Text>
                 <Text style={styles.infoValue}>{book.category}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Difficulty</Text>
+                <Text style={styles.infoLabel}>{t("book.difficulty")}</Text>
                 <Text style={styles.infoValue}>{book.difficulty}</Text>
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Pages</Text>
+                <Text style={styles.infoLabel}>{t("book.pages")}</Text>
                 <Text style={styles.infoValue}>{book.pages}</Text>
               </View>
               <View style={styles.infoRowLast}>
-                <Text style={styles.infoLabel}>Duration</Text>
+                <Text style={styles.infoLabel}>{t("book.duration")}</Text>
                 <Text style={styles.infoValue}>{book.duration}</Text>
               </View>
             </Animatable.View>

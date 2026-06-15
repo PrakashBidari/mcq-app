@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +21,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,13 +30,12 @@ export default function LoginScreen() {
   const { login: saveAuth } = useAuth();
 
   const handleLogin = async () => {
-    // Validation
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
+      Alert.alert(t("common.error"), t("auth.login.errorEmail"));
       return;
     }
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
+      Alert.alert(t("common.error"), t("auth.login.errorPassword"));
       return;
     }
 
@@ -55,20 +56,19 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (data.success) {
-        // Save auth data
         await saveAuth(data.data.user, data.data.token);
 
-        Alert.alert("Success!", "Login successful!", [
+        Alert.alert(t("common.success"), t("auth.login.loginSuccess"), [
           {
-            text: "OK",
+            text: t("common.ok"),
             onPress: () => router.replace("/(tabs)"),
           },
         ]);
       } else {
-        Alert.alert("Error", data.message || "Login failed");
+        Alert.alert(t("common.error"), data.message || t("auth.login.loginFailed"));
       }
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert(t("common.error"), t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +99,7 @@ export default function LoginScreen() {
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="arrow-back" size={20} color="#7c3aed" />
-              <Text style={styles.backButtonText}>Back to Home</Text>
+              <Text style={styles.backButtonText}>{t("auth.login.backToHome")}</Text>
             </TouchableOpacity>
 
             {/* Logo */}
@@ -112,10 +112,8 @@ export default function LoginScreen() {
 
             {/* Title */}
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>Welcome Back!</Text>
-              <Text style={styles.subtitle}>
-                Sign in to continue your learning journey
-              </Text>
+              <Text style={styles.title}>{t("auth.login.title")}</Text>
+              <Text style={styles.subtitle}>{t("auth.login.subtitle")}</Text>
             </View>
 
             {/* Login Form */}
@@ -130,7 +128,7 @@ export default function LoginScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Email Address"
+                  placeholder={t("auth.login.emailPlaceholder")}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -149,7 +147,7 @@ export default function LoginScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Password"
+                  placeholder={t("auth.login.passwordPlaceholder")}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -176,7 +174,7 @@ export default function LoginScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <Text style={styles.loginButtonText}>{t("auth.login.signIn")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -186,28 +184,24 @@ export default function LoginScreen() {
               style={styles.forgotPasswordLink}
               onPress={() => router.push("/(auth)/forgot-password")}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>{t("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
 
             {/* Divider */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
+              <Text style={styles.dividerText}>{t("auth.login.or")}</Text>
               <View style={styles.dividerLine} />
             </View>
 
             {/* Social Buttons (Coming Soon) */}
-            <Text style={styles.socialComingSoon}>
-              Social login coming soon
-            </Text>
+            <Text style={styles.socialComingSoon}>{t("auth.login.socialComingSoon")}</Text>
 
             {/* Register Link */}
             <View style={styles.registerLink}>
-              <Text style={styles.registerLinkText}>
-                Don't have an account?{" "}
-              </Text>
+              <Text style={styles.registerLinkText}>{t("auth.login.noAccount")} </Text>
               <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-                <Text style={styles.registerLinkButton}>Sign Up</Text>
+                <Text style={styles.registerLinkButton}>{t("auth.login.signUp")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -397,8 +391,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-
-  // Add these new styles:
   form: {
     gap: 16,
     marginBottom: 24,
@@ -443,7 +435,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 24,
   },
-
   backButton: {
     flexDirection: "row",
     alignItems: "center",

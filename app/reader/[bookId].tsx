@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ScrollView,
   StatusBar,
@@ -15,6 +16,7 @@ import RenderHtml from "react-native-render-html";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Reader() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -36,12 +38,12 @@ export default function Reader() {
   if (!book) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <Text className="text-gray-800 text-lg font-bold">Book not found</Text>
+        <Text className="text-gray-800 text-lg font-bold">{t("reader.notFound")}</Text>
         <TouchableOpacity
           onPress={() => router.back()}
           className="mt-4 px-6 py-3 bg-purple-600 rounded-xl"
         >
-          <Text className="text-white font-bold">Go Back</Text>
+          <Text className="text-white font-bold">{t("reader.goBack")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -170,7 +172,7 @@ export default function Reader() {
             />
           ) : (
             <Text className="text-gray-700 leading-8" style={{ fontSize }}>
-              No description available for this book.
+              {t("reader.noDescription")}
             </Text>
           )}
         </Animatable.View>
@@ -185,7 +187,7 @@ export default function Reader() {
           onPress={() => router.back()}
           className="bg-purple-600 px-10 py-3 rounded-2xl"
         >
-          <Text className="text-white font-bold text-base">Go Back</Text>
+          <Text className="text-white font-bold text-base">{t("reader.goBack")}</Text>
         </TouchableOpacity>
       </View>
     </View>

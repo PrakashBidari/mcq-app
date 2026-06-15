@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
     Image,
     ScrollView,
@@ -168,6 +169,7 @@ const categoryInfo = {
 };
 
 export default function CategoryBooks() {
+  const { t } = useTranslation();
   const { id, name } = useLocalSearchParams();
   const categoryId = parseInt(id as string);
   const books = booksData[categoryId] || [];
@@ -218,7 +220,7 @@ export default function CategoryBooks() {
           </View>
           <View className="flex-1">
             <Text className="text-white/80 text-sm font-semibold mb-1">
-              CATEGORY
+              {t("category.label")}
             </Text>
             <Text className="text-white text-3xl font-black">
               {name || category?.name}
@@ -230,11 +232,11 @@ export default function CategoryBooks() {
         <View className="flex-row gap-4 mt-2">
           <View className="bg-white/20 backdrop-blur px-4 py-2 rounded-full">
             <Text className="text-white font-bold text-sm">
-              {books.length} Books
+              {books.length} {t("category.booksCount")}
             </Text>
           </View>
           <View className="bg-white/20 backdrop-blur px-4 py-2 rounded-full">
-            <Text className="text-white font-bold text-sm">All Levels</Text>
+            <Text className="text-white font-bold text-sm">{t("category.allLevels")}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -359,7 +361,7 @@ export default function CategoryBooks() {
                   <View className="flex-row items-center mt-2">
                     <Ionicons name="people-outline" size={14} color="#667eea" />
                     <Text className="text-purple-600 text-xs font-bold ml-1">
-                      {book.students.toLocaleString()} students
+                      {book.students.toLocaleString()} {t("category.students")}
                     </Text>
                   </View>
                 </View>
@@ -372,10 +374,10 @@ export default function CategoryBooks() {
           <View className="items-center justify-center py-20">
             <Ionicons name="book-outline" size={64} color="#D1D5DB" />
             <Text className="text-gray-400 text-lg font-bold mt-4">
-              No books available
+              {t("category.noBooksAvailable")}
             </Text>
             <Text className="text-gray-400 text-sm mt-2">
-              Check back later for new content
+              {t("category.checkBackLater")}
             </Text>
           </View>
         )}

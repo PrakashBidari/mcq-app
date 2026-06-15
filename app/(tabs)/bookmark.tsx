@@ -2,6 +2,7 @@
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dimensions,
   ScrollView,
@@ -15,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 export default function BookmarkScreen() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<
     "all" | "books" | "notes" | "quizzes"
@@ -178,15 +180,15 @@ export default function BookmarkScreen() {
   const tabs = [
     {
       id: "all",
-      label: "All",
+      label: t("bookmark.all"),
       count:
         bookmarkedBooks.length +
         bookmarkedNotes.length +
         bookmarkedQuizzes.length,
     },
-    { id: "books", label: "Books", count: bookmarkedBooks.length },
-    { id: "notes", label: "Notes", count: bookmarkedNotes.length },
-    { id: "quizzes", label: "Quizzes", count: bookmarkedQuizzes.length },
+    { id: "books", label: t("bookmark.books"), count: bookmarkedBooks.length },
+    { id: "notes", label: t("bookmark.notes"), count: bookmarkedNotes.length },
+    { id: "quizzes", label: t("bookmark.quizzes"), count: bookmarkedQuizzes.length },
   ];
 
   const renderBookCard = (book: any, index: number) => (
@@ -223,7 +225,7 @@ export default function BookmarkScreen() {
           <View className="mt-2">
             <View className="flex-row justify-between items-center mb-1">
               <Text className="text-xs text-gray-400">
-                {book.progress}% complete
+                {book.progress}{t("bookmark.percentComplete")}
               </Text>
               <Text className="text-xs text-gray-400">{book.bookmarkedAt}</Text>
             </View>
@@ -287,7 +289,7 @@ export default function BookmarkScreen() {
               className="text-xs font-semibold mr-1"
               style={{ color: note.color }}
             >
-              View
+              {t("bookmark.view")}
             </Text>
             <Ionicons name="arrow-forward" size={12} color={note.color} />
           </TouchableOpacity>
@@ -374,7 +376,7 @@ export default function BookmarkScreen() {
             style={{ backgroundColor: quiz.color }}
           >
             <Text className="text-xs font-semibold text-white">
-              {quiz.score ? "Retake" : "Start"}
+              {quiz.score ? t("bookmark.retake") : t("bookmark.start")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -390,10 +392,10 @@ export default function BookmarkScreen() {
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Books
+                  {t("bookmark.books")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedBooks.length} items
+                  {bookmarkedBooks.length} {t("bookmark.items")}
                 </Text>
               </View>
               {bookmarkedBooks.map((book, index) =>
@@ -405,10 +407,10 @@ export default function BookmarkScreen() {
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Notes
+                  {t("bookmark.notes")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedNotes.length} items
+                  {bookmarkedNotes.length} {t("bookmark.items")}
                 </Text>
               </View>
               {bookmarkedNotes.map((note, index) =>
@@ -420,10 +422,10 @@ export default function BookmarkScreen() {
             <View className="mb-4">
               <View className="flex-row items-center justify-between mb-2">
                 <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-                  Quizzes
+                  {t("bookmark.quizzes")}
                 </Text>
                 <Text className="text-xs text-gray-400">
-                  {bookmarkedQuizzes.length} items
+                  {bookmarkedQuizzes.length} {t("bookmark.items")}
                 </Text>
               </View>
               {bookmarkedQuizzes.map((quiz, index) =>
@@ -469,9 +471,9 @@ export default function BookmarkScreen() {
       <View className="px-5 pt-3 pb-4" style={{ backgroundColor: colors.headerBg }}>
         <View className="flex-row items-center justify-between mb-3">
           <View>
-            <Text className="text-2xl font-bold" style={{ color: colors.text }}>Bookmarks</Text>
+            <Text className="text-2xl font-bold" style={{ color: colors.text }}>{t("bookmark.title")}</Text>
             <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
-              {totalBookmarks} saved {totalBookmarks === 1 ? "item" : "items"}
+              {totalBookmarks} {t("bookmark.saved")} {totalBookmarks === 1 ? t("bookmark.item") : t("bookmark.items")}
             </Text>
           </View>
           <TouchableOpacity className="w-9 h-9 bg-purple-50 rounded-full items-center justify-center">
@@ -484,7 +486,7 @@ export default function BookmarkScreen() {
           <Ionicons name="search" size={18} color="#9ca3af" />
           <TextInput
             className="flex-1 ml-2 text-sm text-gray-900"
-            placeholder="Search bookmarks..."
+            placeholder={t("bookmark.searchPlaceholder")}
             placeholderTextColor="#9ca3af"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -547,10 +549,10 @@ export default function BookmarkScreen() {
               <Ionicons name="bookmarks-outline" size={48} color="#c084fc" />
             </View>
             <Text className="text-lg font-bold text-gray-900 mb-1">
-              No Bookmarks Yet
+              {t("bookmark.noBookmarks")}
             </Text>
             <Text className="text-center text-sm text-gray-500 px-8">
-              Start saving your favorite content here for quick access
+              {t("bookmark.noBookmarksDesc")}
             </Text>
           </View>
         ) : (

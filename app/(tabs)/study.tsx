@@ -5,6 +5,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Modal,
@@ -20,6 +21,7 @@ import {
 import * as Animatable from "react-native-animatable";
 
 export default function Study() {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   // ── Read optional incoming params (from Home category tap) ──
   const params = useLocalSearchParams<{
@@ -62,7 +64,7 @@ export default function Study() {
         const formattedCategories = [
           {
             id: 0,
-            name: "All Categories",
+            name: t("study.allCategories"),
             icon: "grid-outline",
             color: "#667eea",
           },
@@ -119,7 +121,7 @@ export default function Study() {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#667eea" />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading books...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t("study.loadingBooks")}</Text>
       </View>
     );
   }
@@ -130,9 +132,9 @@ export default function Study() {
 
       {/* ─── Header ─── */}
       <View style={[styles.header, { backgroundColor: colors.headerBg, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Study Library</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t("study.title")}</Text>
         <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-          {filteredBooks.length} books available
+          {filteredBooks.length} {t("study.booksAvailable")}
         </Text>
       </View>
 
@@ -141,7 +143,7 @@ export default function Study() {
         <View style={[styles.searchBar, { backgroundColor: colors.inputBg }]}>
           <Ionicons name="search" size={20} color="#9CA3AF" />
           <TextInput
-            placeholder="Search books, authors, categories..."
+            placeholder={t("study.searchPlaceholder")}
             placeholderTextColor="#9CA3AF"
             style={[styles.searchInput, { color: colors.text }]}
             value={searchQuery}
@@ -176,7 +178,7 @@ export default function Study() {
                 />
               </View>
               <Text style={styles.categoryDropdownText} numberOfLines={1}>
-                {selectedCategoryInfo?.name ?? "All Categories"}
+                {selectedCategoryInfo?.name ?? t("study.allCategories")}
               </Text>
             </View>
             <Ionicons name="chevron-down" size={20} color="#7c3aed" />
@@ -221,10 +223,8 @@ export default function Study() {
         {sortedBooks.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No books found</Text>
-            <Text style={styles.emptySubtitle}>
-              Try adjusting your search or filter criteria
-            </Text>
+            <Text style={styles.emptyTitle}>{t("study.noBooks")}</Text>
+            <Text style={styles.emptySubtitle}>{t("study.tryAdjusting")}</Text>
             <TouchableOpacity
               onPress={() => {
                 setSearchQuery("");
@@ -232,7 +232,7 @@ export default function Study() {
               }}
               style={styles.clearButton}
             >
-              <Text style={styles.clearButtonText}>Clear Filters</Text>
+              <Text style={styles.clearButtonText}>{t("study.clearFilters")}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -265,7 +265,7 @@ export default function Study() {
             style={styles.modalSheet}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Category</Text>
+              <Text style={styles.modalTitle}>{t("study.selectCategory")}</Text>
               <TouchableOpacity
                 onPress={() => setShowCategoryModal(false)}
                 style={styles.modalCloseButton}
@@ -322,8 +322,8 @@ export default function Study() {
                         </Text>
                         <Text style={styles.categoryItemCount}>
                           {category.id === 0
-                            ? `${allBooks.length} books`
-                            : `${allBooks.filter((b: any) => (b.categoryId ?? b.category_id) === category.id).length} books`}
+                            ? `${allBooks.length} ${t("study.books")}`
+                            : `${allBooks.filter((b: any) => (b.categoryId ?? b.category_id) === category.id).length} ${t("study.books")}`}
                         </Text>
                       </View>
                       {isSelected && (

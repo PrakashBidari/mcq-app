@@ -3,6 +3,7 @@ import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FAQsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -41,7 +43,7 @@ export default function FAQsScreen() {
         const formattedCategories = [
           {
             id: "all",
-            name: "All",
+            name: t("bookmark.all"),
             icon: "apps-outline",
           },
           ...categoriesData.data.map((cat: any) => ({
@@ -93,7 +95,7 @@ export default function FAQsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="large" color="#7c3aed" />
-        <Text className="text-gray-600 mt-4 text-base">Loading FAQs...</Text>
+        <Text className="text-gray-600 mt-4 text-base">{t("faqs.loading")}</Text>
       </SafeAreaView>
     );
   }
@@ -109,7 +111,7 @@ export default function FAQsScreen() {
           >
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">FAQs</Text>
+          <Text className="text-2xl font-bold text-gray-900">{t("faqs.title")}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -117,7 +119,7 @@ export default function FAQsScreen() {
         <View className="bg-gray-50 rounded-xl flex-row items-center px-4 py-3">
           <Ionicons name="search-outline" size={20} color="#9CA3AF" />
           <TextInput
-            placeholder="Search questions..."
+            placeholder={t("faqs.searchPlaceholder")}
             placeholderTextColor="#9CA3AF"
             className="flex-1 ml-3 text-base text-gray-900"
             value={searchQuery}
@@ -213,8 +215,7 @@ export default function FAQsScreen() {
         }
       >
         <Text className="text-gray-500 text-sm mb-4">
-          {filteredFaqs.length} question{filteredFaqs.length !== 1 ? "s" : ""}{" "}
-          found
+          {filteredFaqs.length} {filteredFaqs.length !== 1 ? t("faqs.questionPlural") : t("faqs.questionSingular")}
         </Text>
 
         {filteredFaqs.length > 0 ? (
@@ -283,10 +284,10 @@ export default function FAQsScreen() {
               <Ionicons name="help-circle-outline" size={40} color="#9ca3af" />
             </View>
             <Text className="text-gray-900 font-bold text-lg mb-2">
-              No questions found
+              {t("faqs.noQuestionsFound")}
             </Text>
             <Text className="text-gray-500 text-sm text-center">
-              Try adjusting your search or filters
+              {t("faqs.tryAdjusting")}
             </Text>
           </View>
         )}
@@ -298,11 +299,10 @@ export default function FAQsScreen() {
               <Ionicons name="chatbubble-ellipses" size={32} color="#7c3aed" />
             </View>
             <Text className="text-gray-900 font-bold text-lg mb-2 text-center">
-              Still have questions?
+              {t("faqs.stillHaveQuestions")}
             </Text>
             <Text className="text-gray-600 text-sm text-center mb-4">
-              Can not find the answer you are looking for? Our support team is
-              here to help.
+              {t("faqs.contactSupportDesc")}
             </Text>
             <TouchableOpacity
               className="bg-purple-600 px-6 py-3 rounded-xl flex-row items-center"
@@ -310,7 +310,7 @@ export default function FAQsScreen() {
             >
               <Ionicons name="mail" size={20} color="white" />
               <Text className="text-white font-bold text-base ml-2">
-                Contact Support
+                {t("faqs.contactSupport")}
               </Text>
             </TouchableOpacity>
           </View>

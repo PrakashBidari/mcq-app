@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ScrollView,
   StatusBar,
@@ -14,6 +15,7 @@ import {
 import * as Animatable from "react-native-animatable";
 
 export default function QuizResults() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
 
   const score = parseInt(params.score as string);
@@ -27,14 +29,14 @@ export default function QuizResults() {
 
   const getGrade = () => {
     if (percentage >= 90)
-      return { grade: "A+", color: "#10b981", message: "Outstanding!" };
+      return { grade: "A+", color: "#10b981", message: t("quizResults.outstanding") };
     if (percentage >= 80)
-      return { grade: "A", color: "#10b981", message: "Excellent!" };
+      return { grade: "A", color: "#10b981", message: t("quizResults.excellent") };
     if (percentage >= 70)
-      return { grade: "B", color: "#3b82f6", message: "Good Job!" };
+      return { grade: "B", color: "#3b82f6", message: t("quizResults.goodJob") };
     if (percentage >= 60)
-      return { grade: "C", color: "#f59e0b", message: "Passed!" };
-    return { grade: "F", color: "#ef4444", message: "Keep Practicing!" };
+      return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
+    return { grade: "F", color: "#ef4444", message: t("quizResults.keepPracticing") };
   };
 
   const gradeInfo = getGrade();
@@ -63,11 +65,11 @@ export default function QuizResults() {
                 color="white"
               />
             </Animatable.View>
-            <Text style={styles.completedLabel}>Quiz Completed!</Text>
+            <Text style={styles.completedLabel}>{t("quizResults.quizCompleted")}</Text>
             <Text style={styles.gradeMessage}>{gradeInfo.message}</Text>
             <Text style={styles.scoreLabel}>
-              You scored {score} out of {total}
-              {unanswered > 0 && ` • ${unanswered} unanswered`}
+              {t("quizResults.youScored")} {score} {t("quizResults.outOf")} {total}
+              {unanswered > 0 && ` • ${unanswered} ${t("quizResults.unanswered")}`}
             </Text>
           </View>
         </Animatable.View>
@@ -95,7 +97,7 @@ export default function QuizResults() {
                   {gradeInfo.grade}
                 </Text>
               </View>
-              <Text style={styles.scoreCardLabel}>Your Grade</Text>
+              <Text style={styles.scoreCardLabel}>{t("quizResults.yourGrade")}</Text>
             </View>
           </Animatable.View>
           <Animatable.View
@@ -107,7 +109,7 @@ export default function QuizResults() {
               <View style={styles.percentageBox}>
                 <Text style={styles.percentageText}>{percentage}%</Text>
               </View>
-              <Text style={styles.scoreCardLabel}>Accuracy</Text>
+              <Text style={styles.scoreCardLabel}>{t("quizResults.accuracy")}</Text>
             </View>
           </Animatable.View>
         </View>
@@ -118,14 +120,14 @@ export default function QuizResults() {
           delay={600}
           style={styles.statsCard}
         >
-          <Text style={styles.cardTitle}>Quiz Statistics</Text>
+          <Text style={styles.cardTitle}>{t("quizResults.quizStats")}</Text>
 
           <View style={styles.statRow}>
             <View style={styles.statLeft}>
               <View style={[styles.statIcon, { backgroundColor: "#dcfce7" }]}>
                 <Ionicons name="checkmark-circle" size={20} color="#10b981" />
               </View>
-              <Text style={styles.statLabel}>Correct Answers</Text>
+              <Text style={styles.statLabel}>{t("quizResults.correctAnswers")}</Text>
             </View>
             <Text style={[styles.statValue, { color: "#16a34a" }]}>
               {score}
@@ -137,7 +139,7 @@ export default function QuizResults() {
               <View style={[styles.statIcon, { backgroundColor: "#fee2e2" }]}>
                 <Ionicons name="close-circle" size={20} color="#ef4444" />
               </View>
-              <Text style={styles.statLabel}>Wrong Answers</Text>
+              <Text style={styles.statLabel}>{t("quizResults.wrongAnswers")}</Text>
             </View>
             <Text style={[styles.statValue, { color: "#dc2626" }]}>
               {total - score - unanswered}
@@ -150,7 +152,7 @@ export default function QuizResults() {
                 <View style={[styles.statIcon, { backgroundColor: "#f3f4f6" }]}>
                   <Ionicons name="remove-circle" size={20} color="#9ca3af" />
                 </View>
-                <Text style={styles.statLabel}>Unanswered</Text>
+                <Text style={styles.statLabel}>{t("quizResults.unansweredCount")}</Text>
               </View>
               <Text style={[styles.statValue, { color: "#6b7280" }]}>
                 {unanswered}
@@ -163,7 +165,7 @@ export default function QuizResults() {
               <View style={[styles.statIcon, { backgroundColor: "#dbeafe" }]}>
                 <Ionicons name="help-circle" size={20} color="#3b82f6" />
               </View>
-              <Text style={styles.statLabel}>Total Questions</Text>
+              <Text style={styles.statLabel}>{t("quizResults.totalQuestions")}</Text>
             </View>
             <Text style={[styles.statValue, { color: "#2563eb" }]}>
               {total}
@@ -177,7 +179,7 @@ export default function QuizResults() {
           delay={700}
           style={styles.reviewCard}
         >
-          <Text style={styles.cardTitle}>Answer Review</Text>
+          <Text style={styles.cardTitle}>{t("quizResults.answerReview")}</Text>
           <View>
             {questions.map((question: any, index: number) => {
               const userAnswer = userAnswers[index];
@@ -242,19 +244,19 @@ export default function QuizResults() {
                         },
                       ]}
                     >
-                      Your answer:{" "}
+                      {t("quizResults.yourAnswer")}{" "}
                       {isUnanswered
-                        ? "Not answered"
+                        ? t("quizResults.notAnswered")
                         : question.options[userAnswer]}
                     </Text>
                     {!isCorrect && !isUnanswered && (
                       <Text style={styles.reviewCorrectAnswer}>
-                        Correct: {question.options[question.correctAnswer]}
+                        {t("quizResults.correct")} {question.options[question.correctAnswer]}
                       </Text>
                     )}
                     {isUnanswered && (
                       <Text style={styles.reviewCorrectAnswer}>
-                        Correct: {question.options[question.correctAnswer]}
+                        {t("quizResults.correct")} {question.options[question.correctAnswer]}
                       </Text>
                     )}
                   </View>
@@ -279,7 +281,7 @@ export default function QuizResults() {
                 style={styles.primaryButton}
               >
                 <Ionicons name="refresh" size={24} color="white" />
-                <Text style={styles.primaryButtonText}>Try Another Quiz</Text>
+                <Text style={styles.primaryButtonText}>{t("quizResults.tryAnother")}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </Animatable.View>
@@ -289,7 +291,7 @@ export default function QuizResults() {
               onPress={() => router.push("/(tabs)")}
               style={styles.secondaryButton}
             >
-              <Text style={styles.secondaryButtonText}>Back to Home</Text>
+              <Text style={styles.secondaryButtonText}>{t("quizResults.backToHome")}</Text>
             </TouchableOpacity>
           </Animatable.View>
         </View>

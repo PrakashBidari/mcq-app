@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ResetPasswordScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { email, otp } = useLocalSearchParams<{ email: string; otp: string }>();
   const { login: saveAuth } = useAuth();
@@ -30,15 +32,15 @@ export default function ResetPasswordScreen() {
 
   const handleResetPassword = async () => {
     if (!password.trim()) {
-      Alert.alert("Error", "Please enter your new password");
+      Alert.alert(t("common.error"), t("auth.resetPassword.errorEmpty"));
       return;
     }
     if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters");
+      Alert.alert(t("common.error"), t("auth.resetPassword.errorLength"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t("common.error"), t("auth.resetPassword.errorMismatch"));
       return;
     }
 
@@ -60,15 +62,15 @@ export default function ResetPasswordScreen() {
       if (data.success) {
         await saveAuth(data.data.user, data.data.token);
         Alert.alert(
-          "Success!",
-          "Password reset successful! You are now logged in.",
-          [{ text: "OK", onPress: () => router.replace("/(tabs)") }],
+          t("common.success"),
+          t("auth.resetPassword.resetSuccess"),
+          [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)") }],
         );
       } else {
-        Alert.alert("Error", data.message || "Password reset failed");
+        Alert.alert(t("common.error"), data.message || t("auth.resetPassword.resetFailed"));
       }
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert(t("common.error"), t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }
@@ -99,8 +101,8 @@ export default function ResetPasswordScreen() {
               <View style={styles.iconContainer}>
                 <Ionicons name="key-outline" size={50} color="#7c3aed" />
               </View>
-              <Text style={styles.title}>Reset Password</Text>
-              <Text style={styles.subtitle}>Enter your new password</Text>
+              <Text style={styles.title}>{t("auth.resetPassword.title")}</Text>
+              <Text style={styles.subtitle}>{t("auth.resetPassword.subtitle")}</Text>
             </View>
 
             {/* Form */}
@@ -115,7 +117,7 @@ export default function ResetPasswordScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="New Password"
+                  placeholder={t("auth.resetPassword.newPassword")}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
@@ -143,7 +145,7 @@ export default function ResetPasswordScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="Confirm New Password"
+                  placeholder={t("auth.resetPassword.confirmPassword")}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -165,9 +167,7 @@ export default function ResetPasswordScreen() {
 
               {/* Password Requirements */}
               <View style={styles.requirements}>
-                <Text style={styles.requirementsText}>
-                  Password must be at least 8 characters
-                </Text>
+                <Text style={styles.requirementsText}>{t("auth.resetPassword.passwordHint")}</Text>
               </View>
 
               {/* Reset Button */}
@@ -179,7 +179,7 @@ export default function ResetPasswordScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
-                  <Text style={styles.resetButtonText}>Reset Password</Text>
+                  <Text style={styles.resetButtonText}>{t("auth.resetPassword.resetButton")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -190,7 +190,7 @@ export default function ResetPasswordScreen() {
               onPress={() => router.replace("/(auth)/login")}
             >
               <Ionicons name="arrow-back" size={20} color="#6b7280" />
-              <Text style={styles.backButtonText}>Back to Login</Text>
+              <Text style={styles.backButtonText}>{t("auth.resetPassword.backToLogin")}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
