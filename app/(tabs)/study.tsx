@@ -1,11 +1,14 @@
 // app/(tabs)/study.tsx
 import AppHeader from "@/components/AppHeader";
 import BookCard from "@/components/BookCard";
+import BookmarkToast from "@/components/BookmarkToast";
 import { API_URL } from "@/config/constants";
+import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -35,6 +38,19 @@ function getCatIcon(cat: any): string {
 export default function Study() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const { isBookmarked, toggleBookmark, reload: reloadBookmarks } = useBookmarks();
+  const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastId, setToastId] = useState(0);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastId((n) => n + 1);
+    setShowToast(true);
+    toastTimer.current = setTimeout(() => setShowToast(false), 2000);
+  };
+
+  useFocusEffect(useCallback(() => { reloadBookmarks(); }, []));
   // ── Read optional incoming params (from Home category tap) ──
   const params = useLocalSearchParams<{
     categoryId?: string;
@@ -233,12 +249,92 @@ export default function Study() {
           <View style={styles.booksGrid}>
             {sortedBooks.map((book: any, index: number) => (
               <View key={book.id || index} style={styles.bookCardWrapper}>
-                <BookCard book={book} index={index} categories={categories} />
+                <BookCard
+                  book={book}
+                  index={index}
+                  categories={categories}
+                  isBookmarked={isBookmarked("book", book.id)}
+                  onBookmarkToggle={() => {
+                    const item: BookmarkItem = {
+                      type: "book",
+                      id: String(book.id),
+                      title: book.title,
+                      subtitle: book.author,
+                      meta: book.duration,
+                      data: book,
+                      savedAt: Date.now(),
+                    };
+                    if (isBookmarked("book", book.id)) {
+                      setRemoveTarget(item);
+                    } else {
+                      toggleBookmark(item);
+                      triggerToast();
+                    }
+                  }}
+                />
               </View>
             ))}
           </View>
         )}
       </ScrollView>
+
+      <BookmarkToast key={toastId} visible={showToast} />
+
+      {/* ─── Remove Bookmark Modal ─── */}
+      <Modal
+        visible={!!removeTarget}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRemoveTarget(null)}
+      >
+        <View style={styles.removeModalOverlay}>
+          <TouchableOpacity
+            style={styles.removeModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setRemoveTarget(null)}
+          />
+          <Animatable.View
+            animation="slideInUp"
+            duration={280}
+            style={[styles.removeModalSheet, { backgroundColor: colors.background }]}
+          >
+            <View style={styles.removeModalHandle} />
+            <View style={styles.removeModalIconWrap}>
+              <Ionicons name="bookmark" size={32} color="#ef4444" />
+            </View>
+            <Text style={[styles.removeModalTitle, { color: colors.text }]}>
+              Remove Bookmark
+            </Text>
+            <Text
+              style={[styles.removeModalItemName, { color: colors.textSecondary }]}
+              numberOfLines={2}
+            >
+              "{removeTarget?.title}"
+            </Text>
+            <Text style={[styles.removeModalDesc, { color: colors.textSecondary }]}>
+              This item will be removed from your saved bookmarks. You can bookmark it again at any time.
+            </Text>
+            <TouchableOpacity
+              onPress={async () => {
+                if (removeTarget) {
+                  await toggleBookmark(removeTarget);
+                  setRemoveTarget(null);
+                }
+              }}
+              style={styles.removeBtn}
+            >
+              <Ionicons name="trash-outline" size={18} color="#fff" />
+              <Text style={styles.removeBtnText}>Remove Bookmark</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setRemoveTarget(null)}
+              style={[styles.keepBtn, { backgroundColor: isDark ? "#1e1e30" : "#f3f4f6" }]}
+            >
+              <Text style={[styles.keepBtnText, { color: colors.textSecondary }]}>Keep it</Text>
+            </TouchableOpacity>
+          </Animatable.View>
+        </View>
+      </Modal>
 
       {/* ─── Category Modal ─── */}
       <Modal
@@ -463,6 +559,50 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   clearButtonText: { color: "#ffffff", fontWeight: "700", fontSize: 14 },
+
+  removeModalOverlay: { flex: 1, justifyContent: "flex-end" },
+  removeModalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+  removeModalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 36,
+    alignItems: "center",
+  },
+  removeModalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#e5e7eb",
+    marginBottom: 24,
+  },
+  removeModalIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#fee2e2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  removeModalTitle: { fontSize: 20, fontWeight: "800", marginBottom: 6, textAlign: "center" },
+  removeModalItemName: { fontSize: 14, textAlign: "center", marginBottom: 12, fontStyle: "italic" },
+  removeModalDesc: { fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 28 },
+  removeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ef4444",
+    paddingVertical: 14,
+    borderRadius: 14,
+    width: "100%",
+    gap: 8,
+    marginBottom: 10,
+  },
+  removeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  keepBtn: { paddingVertical: 14, borderRadius: 14, width: "100%", alignItems: "center" },
+  keepBtnText: { fontSize: 16, fontWeight: "600" },
 
   modalOverlay: {
     flex: 1,

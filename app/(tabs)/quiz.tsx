@@ -2,11 +2,15 @@
 import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
+import BookmarkToast from "@/components/BookmarkToast";
+import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as Animatable from "react-native-animatable";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -62,6 +66,19 @@ export default function QuizScreen() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
+
+  const { isBookmarked, toggleBookmark, reload: reloadBookmarks } = useBookmarks();
+  const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastId, setToastId] = useState(0);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastId((n) => n + 1);
+    setShowToast(true);
+    toastTimer.current = setTimeout(() => setShowToast(false), 2000);
+  };
+  useFocusEffect(useCallback(() => { reloadBookmarks(); }, []));
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categorySearch, setCategorySearch] = useState("");
@@ -633,31 +650,68 @@ export default function QuizScreen() {
                   </Text>
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => handleSetAction(set)}
-                  style={[
-                    styles.setStartButton,
-                    {
-                      backgroundColor: set.is_free
-                        ? selectedCategory.color + "15"
-                        : "#7c3aed",
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={set.is_free ? "play-circle-outline" : "cart-outline"}
-                    size={18}
-                    color={set.is_free ? selectedCategory.color : "#fff"}
-                  />
-                  <Text
+                <View style={styles.setCardActions}>
+                  <TouchableOpacity
+                    onPress={() => handleSetAction(set)}
                     style={[
-                      styles.setStartText,
-                      { color: set.is_free ? selectedCategory.color : "#fff" },
+                      styles.setStartButton,
+                      {
+                        flex: 1,
+                        marginRight: 8,
+                        backgroundColor: set.is_free
+                          ? selectedCategory.color + "15"
+                          : "#7c3aed",
+                      },
                     ]}
                   >
-                    {set.is_free ? t("quiz.startThisSet") : t("quiz.buySet")}
-                  </Text>
-                </TouchableOpacity>
+                    <Ionicons
+                      name={set.is_free ? "play-circle-outline" : "cart-outline"}
+                      size={18}
+                      color={set.is_free ? selectedCategory.color : "#fff"}
+                    />
+                    <Text
+                      style={[
+                        styles.setStartText,
+                        { color: set.is_free ? selectedCategory.color : "#fff" },
+                      ]}
+                    >
+                      {set.is_free ? t("quiz.startThisSet") : t("quiz.buySet")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const item: BookmarkItem = {
+                        type: "quiz",
+                        id: String(set.id),
+                        title: set.name,
+                        subtitle: selectedCategory.name,
+                        meta: `${set.questions_count} questions`,
+                        data: { ...set, categoryId: selectedCategory.id, categoryName: selectedCategory.name, categoryColor: selectedCategory.color },
+                        savedAt: Date.now(),
+                      };
+                      if (isBookmarked("quiz", set.id)) {
+                        setRemoveTarget(item);
+                      } else {
+                        toggleBookmark(item);
+                        triggerToast();
+                      }
+                    }}
+                    style={[
+                      styles.setBookmarkBtn,
+                      {
+                        backgroundColor: isBookmarked("quiz", set.id)
+                          ? "#ef4444"
+                          : "#f3f4f6",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isBookmarked("quiz", set.id) ? "bookmark" : "bookmark-outline"}
+                      size={18}
+                      color={isBookmarked("quiz", set.id) ? "#fff" : "#667eea"}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))}
@@ -892,6 +946,64 @@ export default function QuizScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      <BookmarkToast key={toastId} visible={showToast} />
+
+      {/* ─── Remove Bookmark Modal ─── */}
+      <Modal
+        visible={!!removeTarget}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRemoveTarget(null)}
+      >
+        <View style={styles.removeModalOverlay}>
+          <TouchableOpacity
+            style={styles.removeModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setRemoveTarget(null)}
+          />
+          <Animatable.View
+            animation="slideInUp"
+            duration={280}
+            style={[styles.removeModalSheet, { backgroundColor: colors.card }]}
+          >
+            <View style={styles.removeModalHandle} />
+            <View style={styles.removeModalIconWrap}>
+              <Ionicons name="bookmark" size={32} color="#ef4444" />
+            </View>
+            <Text style={[styles.removeModalTitle, { color: colors.text }]}>
+              Remove Bookmark
+            </Text>
+            <Text
+              style={[styles.removeModalItemName, { color: colors.textSecondary }]}
+              numberOfLines={2}
+            >
+              "{removeTarget?.title}"
+            </Text>
+            <Text style={[styles.removeModalDesc, { color: colors.textSecondary }]}>
+              This item will be removed from your saved bookmarks. You can bookmark it again at any time.
+            </Text>
+            <TouchableOpacity
+              onPress={async () => {
+                if (removeTarget) {
+                  await toggleBookmark(removeTarget);
+                  setRemoveTarget(null);
+                }
+              }}
+              style={styles.removeBtn}
+            >
+              <Ionicons name="trash-outline" size={18} color="#fff" />
+              <Text style={styles.removeBtnText}>Remove Bookmark</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setRemoveTarget(null)}
+              style={[styles.keepBtn, { backgroundColor: isDark ? "#1e1e30" : "#f3f4f6" }]}
+            >
+              <Text style={[styles.keepBtnText, { color: colors.textSecondary }]}>Keep it</Text>
+            </TouchableOpacity>
+          </Animatable.View>
         </View>
       </Modal>
 
@@ -1189,6 +1301,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
   },
+  setCardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   setStartButton: {
     paddingVertical: 10,
     borderRadius: 8,
@@ -1200,6 +1316,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
     marginLeft: 8,
+  },
+  setBookmarkBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // ── Question Modal (existing) ──
@@ -1580,4 +1703,49 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontWeight: "500",
   },
+
+  // ── Remove Bookmark Modal ──
+  removeModalOverlay: { flex: 1, justifyContent: "flex-end" },
+  removeModalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)" },
+  removeModalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 36,
+    alignItems: "center",
+  },
+  removeModalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#e5e7eb",
+    marginBottom: 24,
+  },
+  removeModalIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#fee2e2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  removeModalTitle: { fontSize: 20, fontWeight: "800", marginBottom: 6, textAlign: "center" },
+  removeModalItemName: { fontSize: 14, textAlign: "center", marginBottom: 12, fontStyle: "italic" },
+  removeModalDesc: { fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 28 },
+  removeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ef4444",
+    paddingVertical: 14,
+    borderRadius: 14,
+    width: "100%",
+    gap: 8,
+    marginBottom: 10,
+  },
+  removeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  keepBtn: { paddingVertical: 14, borderRadius: 14, width: "100%", alignItems: "center" },
+  keepBtnText: { fontSize: 16, fontWeight: "600" },
 });
