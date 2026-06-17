@@ -1,5 +1,5 @@
 // config/constants.ts
 export const GOOGLE_WEB_CLIENT_ID =
-  "1083559517581-bmblmi79ko6lntfnpdt16hkkueu5p31l.apps.googleusercontent.com";
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? "";
 export const API_URL = "http://192.168.1.68:8000/api";
 // export const API_URL = "https://app.ikigaijobplacement.com/api";

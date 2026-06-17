@@ -3,7 +3,7 @@ import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Image, Text, View } from "react-native";
 import * as Animatable from "react-native-animatable";
@@ -53,7 +53,7 @@ const TabIcon = ({ focused, icon, title, size = 6, isDark = false }) => {
 const _Layout = () => {
   const insets = useSafeAreaInsets();
   const { setSidebarVisible } = useSidebar();
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
   if (isLoading) {
@@ -63,6 +63,7 @@ const _Layout = () => {
       </View>
     );
   }
+
 
   return (
     <Tabs

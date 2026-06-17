@@ -34,6 +34,7 @@ export default function VerifyOtpScreen() {
   const [timeLeft, setTimeLeft] = useState(600);
   const [isExpired, setIsExpired] = useState(false);
   const isExpiredRef = useRef(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Sync isExpired to ref (stale closure fix)
   useEffect(() => {
@@ -151,7 +152,16 @@ export default function VerifyOtpScreen() {
     await handleVerifyWithCode(otpCode);
   };
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
     setIsResending(true);
     try {
       const response = await fetch(`${API_URL}/resend-otp`, {
@@ -167,6 +177,7 @@ export default function VerifyOtpScreen() {
         setOtp(["", "", "", "", "", ""]);
         setTimeLeft(600);
         setIsExpired(false);
+        setResendCooldown(60);
         inputRefs.current[0]?.focus();
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.verifyOtp.failedResend"));
@@ -285,15 +296,19 @@ export default function VerifyOtpScreen() {
               <Text style={styles.resendText}>{t("auth.verifyOtp.didntReceive")} </Text>
               <TouchableOpacity
                 onPress={handleResendOtp}
-                disabled={isResending}
+                disabled={isResending || resendCooldown > 0}
               >
                 <Text
                   style={[
                     styles.resendButton,
-                    isResending && styles.resendButtonDisabled,
+                    (isResending || resendCooldown > 0) && styles.resendButtonDisabled,
                   ]}
                 >
-                  {isResending ? t("auth.verifyOtp.sending") : t("auth.verifyOtp.resendOtp")}
+                  {isResending
+                    ? t("auth.verifyOtp.sending")
+                    : resendCooldown > 0
+                    ? `${t("auth.verifyOtp.resendOtp")} (${resendCooldown}s)`
+                    : t("auth.verifyOtp.resendOtp")}
                 </Text>
               </TouchableOpacity>
             </View>

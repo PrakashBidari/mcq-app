@@ -18,10 +18,17 @@ export default function QuizResults() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
 
-  const score = parseInt(params.score as string);
-  const total = parseInt(params.total as string);
-  const userAnswers = JSON.parse(params.answers as string); // may contain -1 for unanswered
-  const questions = JSON.parse(params.questions as string);
+  const score = parseInt(params.score as string) || 0;
+  const total = parseInt(params.total as string) || 0;
+  let userAnswers: number[] = [];
+  let questions: any[] = [];
+  try {
+    userAnswers = JSON.parse(params.answers as string);
+    questions = JSON.parse(params.questions as string);
+  } catch {
+    router.replace("/(tabs)/quiz");
+    return null;
+  }
 
   const percentage = Math.round((score / total) * 100);
   const passed = percentage >= 60;

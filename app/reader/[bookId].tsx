@@ -102,6 +102,7 @@ export default function Reader() {
             <RenderHtml
               contentWidth={width - 48}
               source={{ html: book.description }}
+              ignoredDomTags={["script", "iframe", "form", "input", "button", "style"]}
               baseStyle={{
                 fontSize: fontSize,
                 lineHeight: fontSize * 1.75,

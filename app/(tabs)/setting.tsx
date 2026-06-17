@@ -1,7 +1,9 @@
 // app/(tabs)/setting.tsx
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
@@ -10,7 +12,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SettingScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const { logout } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = React.useState(true);
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/(auth)/login");
+  };
 
   const settingsSections = [
     {
@@ -120,6 +129,7 @@ export default function SettingScreen() {
             className="rounded-xl py-4 items-center"
             style={{ backgroundColor: isDark ? "#3b1a1a" : "#fef2f2", borderWidth: 1, borderColor: isDark ? "#7f1d1d" : "#fecaca" }}
             activeOpacity={0.7}
+            onPress={handleLogout}
           >
             <View className="flex-row items-center">
               <Ionicons name="log-out-outline" size={22} color={isDark ? "#f87171" : "#dc2626"} />

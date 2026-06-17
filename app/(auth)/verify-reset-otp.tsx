@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -23,9 +24,11 @@ export default function VerifyResetOtpScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
+  const { setPendingResetOtp } = useAuth();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [timeLeft, setTimeLeft] = useState(600);
   const [isExpired, setIsExpired] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
@@ -83,9 +86,10 @@ export default function VerifyResetOtpScreen() {
         const data = await response.json();
 
         if (data.success) {
+          setPendingResetOtp(otpCode);
           router.push({
             pathname: "/(auth)/reset-password",
-            params: { email: email, otp: otpCode },
+            params: { email: email },
           });
         } else {
           Alert.alert(t("common.error"), data.message || t("auth.verifyResetOtp.invalidCode"));
@@ -143,7 +147,16 @@ export default function VerifyResetOtpScreen() {
     }
   };
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
     setIsResending(true);
     try {
       const response = await fetch(`${API_URL}/forgot-password`, {
@@ -159,6 +172,7 @@ export default function VerifyResetOtpScreen() {
         setOtp(["", "", "", "", "", ""]);
         setTimeLeft(600);
         setIsExpired(false);
+        setResendCooldown(60);
         inputRefs.current[0]?.focus();
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.verifyResetOtp.failedResend"));
@@ -280,15 +294,19 @@ export default function VerifyResetOtpScreen() {
               <Text style={styles.resendText}>{t("auth.verifyResetOtp.didntReceive")} </Text>
               <TouchableOpacity
                 onPress={handleResendOtp}
-                disabled={isResending}
+                disabled={isResending || resendCooldown > 0}
               >
                 <Text
                   style={[
                     styles.resendButton,
-                    isResending && styles.resendButtonDisabled,
+                    (isResending || resendCooldown > 0) && styles.resendButtonDisabled,
                   ]}
                 >
-                  {isResending ? t("auth.verifyResetOtp.sending") : t("auth.verifyResetOtp.resendCode")}
+                  {isResending
+                    ? t("auth.verifyResetOtp.sending")
+                    : resendCooldown > 0
+                    ? `${t("auth.verifyResetOtp.resendCode")} (${resendCooldown}s)`
+                    : t("auth.verifyResetOtp.resendCode")}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -456,8 +455,11 @@ export default function Index() {
 
   const fetchSearchResults = async (q: string) => {
     try {
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(
         `${API_URL}/search/question-sets?q=${encodeURIComponent(q)}`,
+        { headers },
       );
       const data = await res.json();
       if (data.success) setSearchResults(data.data);
@@ -469,7 +471,6 @@ export default function Index() {
 
   const fetchProfileImage = async () => {
     try {
-      const token = await AsyncStorage.getItem("auth_token");
       if (!token) return;
       const res = await fetch(`${API_URL}/profile`, {
         headers: { Authorization: `Bearer ${token}` },

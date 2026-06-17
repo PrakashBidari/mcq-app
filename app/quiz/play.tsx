@@ -17,6 +17,8 @@ import * as Animatable from "react-native-animatable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // import ScreenshotPrevent from "react-native-screenshot-prevent";
 
+import { useAuth } from "@/context/AuthContext";
+
 let ScreenshotPrevent: any = null;
 try {
   ScreenshotPrevent = require("react-native-screenshot-prevent").default;
@@ -45,8 +47,20 @@ export default function QuizPlay() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
 
-  const rawQuestions = JSON.parse(params.questions as string);
+  if (!isAuthenticated) {
+    router.replace("/(auth)/login");
+    return null;
+  }
+
+  let rawQuestions: any[] = [];
+  try {
+    rawQuestions = JSON.parse(params.questions as string);
+  } catch {
+    router.back();
+    return null;
+  }
   const allQuestions = [...rawQuestions].sort((a: any, b: any) => {
     const posA = a.position ?? Number.MAX_SAFE_INTEGER;
     const posB = b.position ?? Number.MAX_SAFE_INTEGER;

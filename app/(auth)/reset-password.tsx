@@ -22,8 +22,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ResetPasswordScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { email, otp } = useLocalSearchParams<{ email: string; otp: string }>();
-  const { login: saveAuth } = useAuth();
+  const { email } = useLocalSearchParams<{ email: string }>();
+  const { login: saveAuth, pendingResetOtp, setPendingResetOtp } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +44,12 @@ export default function ResetPasswordScreen() {
       return;
     }
 
+    if (!pendingResetOtp) {
+      Alert.alert(t("common.error"), t("auth.resetPassword.sessionExpired"));
+      router.replace("/(auth)/forgot-password");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -52,7 +58,7 @@ export default function ResetPasswordScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email,
-          otp: otp,
+          otp: pendingResetOtp,
           password: password,
         }),
       });
@@ -60,6 +66,7 @@ export default function ResetPasswordScreen() {
       const data = await response.json();
 
       if (data.success) {
+        setPendingResetOtp(null);
         await saveAuth(data.data.user, data.data.token);
         Alert.alert(
           t("common.success"),

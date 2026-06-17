@@ -27,6 +27,8 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleRegister = async () => {
     if (!name.trim()) {
       Alert.alert(t("common.error"), t("auth.register.errorName"));
@@ -34,6 +36,10 @@ export default function RegisterScreen() {
     }
     if (!email.trim()) {
       Alert.alert(t("common.error"), t("auth.register.errorEmail"));
+      return;
+    }
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(t("common.error"), t("auth.register.errorEmailInvalid"));
       return;
     }
     if (!password.trim()) {
@@ -187,6 +193,7 @@ export default function RegisterScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  maxLength={128}
                   editable={!isLoading}
                 />
                 <TouchableOpacity

@@ -29,9 +29,15 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const { login: saveAuth } = useAuth();
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleLogin = async () => {
     if (!email.trim()) {
       Alert.alert(t("common.error"), t("auth.login.errorEmail"));
+      return;
+    }
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(t("common.error"), t("auth.login.errorEmailInvalid"));
       return;
     }
     if (!password.trim()) {
@@ -152,6 +158,7 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  maxLength={128}
                   editable={!isLoading}
                 />
                 <TouchableOpacity

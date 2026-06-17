@@ -24,9 +24,15 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleSendOtp = async () => {
     if (!email.trim()) {
       Alert.alert(t("common.error"), t("auth.forgotPassword.errorEmail"));
+      return;
+    }
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(t("common.error"), t("auth.forgotPassword.errorEmailInvalid"));
       return;
     }
 

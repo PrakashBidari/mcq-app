@@ -1,5 +1,6 @@
 import { API_URL } from "@/config/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 interface User {
@@ -13,9 +14,11 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  pendingResetOtp: string | null;
   login: (userData: User, authToken: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  setPendingResetOtp: (otp: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,15 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingResetOtp, setPendingResetOtp] = useState<string | null>(null);
 
-  // Load saved auth data on app start
   useEffect(() => {
     loadAuthData();
   }, []);
 
   const loadAuthData = async () => {
     try {
-      const savedToken = await AsyncStorage.getItem("auth_token");
+      const savedToken = await SecureStore.getItemAsync("auth_token");
       const savedUser = await AsyncStorage.getItem("auth_user");
 
       if (savedToken && savedUser) {
@@ -41,11 +44,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             headers: { Authorization: `Bearer ${savedToken}` },
           });
 
+          if (response.status === 401) {
+            await SecureStore.deleteItemAsync("auth_token");
+            await AsyncStorage.removeItem("auth_user");
+            setToken(null);
+            setUser(null);
+            return;
+          }
+
           const contentType = response.headers.get("content-type") ?? "";
           const isJson = contentType.includes("application/json");
 
           if (!isJson) {
-            // Server returned HTML (down / 404 / 500) — keep cached session
             setToken(savedToken);
             setUser(JSON.parse(savedUser));
             return;
@@ -57,14 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setToken(savedToken);
             setUser(data.data);
           } else {
-            // Token explicitly rejected by server — clear session
-            await AsyncStorage.removeItem("auth_token");
+            await SecureStore.deleteItemAsync("auth_token");
             await AsyncStorage.removeItem("auth_user");
             setToken(null);
             setUser(null);
           }
-        } catch (error) {
-          // Network error — keep cached session so user stays logged in
+        } catch {
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
         }
@@ -77,22 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const login = async (userData: User, authToken: string) => {
-    try {
-      // Save to state
-      setUser(userData);
-      setToken(authToken);
-
-      // Save to AsyncStorage
-      await AsyncStorage.setItem("auth_token", authToken);
-      await AsyncStorage.setItem("auth_user", JSON.stringify(userData));
-    } catch (error) {
-      throw error;
-    }
+    setUser(userData);
+    setToken(authToken);
+    await SecureStore.setItemAsync("auth_token", authToken);
+    await AsyncStorage.setItem("auth_user", JSON.stringify(userData));
   };
 
   const logout = async () => {
     try {
-      // Call logout API if token exists
       if (token) {
         try {
           await fetch(`${API_URL}/logout`, {
@@ -107,12 +107,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Clear state
       setUser(null);
       setToken(null);
-
-      // Clear AsyncStorage
-      await AsyncStorage.removeItem("auth_token");
+      setPendingResetOtp(null);
+      await SecureStore.deleteItemAsync("auth_token");
       await AsyncStorage.removeItem("auth_user");
     } catch {
       // silent
@@ -124,10 +122,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await fetch(`${API_URL}/user`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
+
+      if (response.status === 401) {
+        await logout();
+        return;
+      }
 
       const data = await response.json();
 
@@ -145,9 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token,
     isLoading,
     isAuthenticated: !!token && !!user,
+    pendingResetOtp,
     login,
     logout,
     refreshUser,
+    setPendingResetOtp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

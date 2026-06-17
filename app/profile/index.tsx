@@ -1,6 +1,7 @@
 // app/profile/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
 import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { token } = useAuth();
   const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,11 +52,9 @@ export default function ProfileScreen() {
   const fetchProfile = async () => {
     try {
       setIsLoading(true);
-      const token = await AsyncStorage.getItem("auth_token");
 
       if (!token) {
-        setNotLoggedIn(true);
-        setIsLoading(false);
+        router.replace("/(auth)/login");
         return;
       }
 
@@ -135,15 +135,22 @@ export default function ProfileScreen() {
         return;
       }
 
-      // Create FormData
+      const extension = uri.split(".").pop()?.toLowerCase() || "jpg";
+      const mimeMap: Record<string, string> = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+      };
+      const mimeType = mimeMap[extension] ?? "image/jpeg";
+
       const formData = new FormData();
       formData.append("image", {
         uri: uri,
-        type: "image/jpeg",
-        name: "profile.jpg",
+        type: mimeType,
+        name: `profile.${extension}`,
       } as any);
-
-      const token = await AsyncStorage.getItem("auth_token");
 
       const uploadResponse = await fetch(`${API_URL}/update-profile-image`, {
         method: "POST",
