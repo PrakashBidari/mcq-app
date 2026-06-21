@@ -65,22 +65,13 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   useEffect(() => {
     if (visible) {
+      // Reset to off-screen before making the Modal visible so onShow
+      // always starts the animation from the correct position.
+      slideAnim.setValue(-SIDEBAR_WIDTH);
+      fadeAnim.setValue(0);
       setModalVisible(true);
-      setTimeout(() => {
-        Animated.parallel([
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            tension: 65,
-            friction: 10,
-            useNativeDriver: true,
-          }),
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }, 50);
+      // Animation is kicked off by Modal's onShow callback below —
+      // no setTimeout needed; onShow fires as soon as the Modal renders.
     } else {
       Animated.parallel([
         Animated.timing(slideAnim, {
@@ -145,6 +136,22 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     },
   ];
 
+  const handleModalShow = React.useCallback(() => {
+    Animated.parallel([
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 65,
+        friction: 10,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [slideAnim, fadeAnim]);
+
   return (
     <Modal
       visible={modalVisible}
@@ -152,6 +159,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
+      onShow={handleModalShow}
     >
       <View style={[styles.container]}>
         {/* Backdrop */}

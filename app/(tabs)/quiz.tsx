@@ -2,6 +2,7 @@
 import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
+import { quizStore } from "@/utils/quizStore";
 import BookmarkToast from "@/components/BookmarkToast";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
@@ -168,6 +169,11 @@ export default function QuizScreen() {
 
   const startFullCategoryQuiz = async () => {
     if (!selectedCategory) return;
+    if (selectedCategory.has_paid_sets && !isAuthenticated) {
+      setShowQuestionModal(false);
+      setShowLoginModal(true);
+      return;
+    }
     const numQuestions = parseInt(numberOfQuestions) || 10;
     setShowQuestionModal(false);
     setIsLoading(true);
@@ -182,12 +188,10 @@ export default function QuizScreen() {
       );
       const data = await response.json();
       if (data.success && data.data.length > 0) {
+        quizStore.setQuestions(data.data);
         router.push({
           pathname: "/quiz/play",
-          params: {
-            questions: JSON.stringify(data.data),
-            total: data.data.length,
-          },
+          params: { total: data.data.length },
         });
       } else {
         Alert.alert(t("common.error"), t("quiz.errorNoQuestions"));
@@ -231,10 +235,10 @@ export default function QuizScreen() {
       const response = await fetch(`${API_URL}/question-set/${setId}`);
       const data = await response.json();
       if (data.success && data.data.questions.length > 0) {
+        quizStore.setQuestions(data.data.questions);
         router.push({
           pathname: "/quiz/play",
           params: {
-            questions: JSON.stringify(data.data.questions),
             total: data.data.questions.length,
             timeLimit: data.data.set?.time_limit ?? 0,
           },
@@ -389,7 +393,7 @@ export default function QuizScreen() {
                   key={category.id}
                   activeOpacity={0.8}
                   onPress={() => handleCategorySelect(category)}
-                  style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: category.color, borderLeftWidth: 4 }]}
                 >
                   <View style={styles.categoryCardRow}>
                     {/* Sets Count Badge */}
@@ -399,10 +403,6 @@ export default function QuizScreen() {
                           {category.free_sets_count} Free
                         </Text>
                       )}
-                      {(category.free_sets_count ?? 0) > 0 &&
-                        (category.paid_sets_count ?? 0) > 0 && (
-                          <Text style={styles.categoryCountDivider}>·</Text>
-                        )}
                       {(category.paid_sets_count ?? 0) > 0 && (
                         <Text style={styles.categoryPaidCountText}>
                           {category.paid_sets_count} Paid
@@ -412,12 +412,12 @@ export default function QuizScreen() {
                     <View
                       style={[
                         styles.categoryIconBox,
-                        { backgroundColor: category.color + "15" },
+                        { backgroundColor: category.color + "18", borderWidth: 2, borderColor: category.color + "40" },
                       ]}
                     >
                       <Ionicons
                         name={icon as any}
-                        size={32}
+                        size={34}
                         color={category.color}
                       />
                     </View>
@@ -619,7 +619,7 @@ export default function QuizScreen() {
 
         <View>
           {questionSets.map((set) => (
-            <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
               <View style={styles.setCardInner}>
                 {/* Price Badge */}
                 {set.is_free ? (
@@ -1129,10 +1129,10 @@ const styles = StyleSheet.create({
     borderColor: "#f3f4f6",
     marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 6,
   },
   categoryCardRow: {
     flexDirection: "row",
@@ -1140,9 +1140,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   categoryIconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 70,
+    height: 70,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 16,
@@ -1152,6 +1152,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 4,
+    letterSpacing: 0.2,
   },
   categoryMeta: {
     flexDirection: "row",
@@ -1171,10 +1172,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    elevation: 7,
   },
   fullQuizCardTop: {
     flexDirection: "row",
@@ -1238,10 +1239,10 @@ const styles = StyleSheet.create({
     borderColor: "#f3f4f6",
     marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
   setCardInner: {
     padding: 16,
@@ -1285,6 +1286,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 16,
     marginBottom: 8,
+    letterSpacing: 0.1,
   },
   setDesc: {
     color: "#4b5563",
@@ -1626,27 +1628,27 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9fafb",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: 5,
   },
   categoryFreeCountText: {
-    color: "#10b981",
-    fontSize: 12,
+    color: "#fff",
+    fontSize: 11,
     fontWeight: "700",
+    backgroundColor: "#10b981",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   categoryPaidCountText: {
-    color: "#7c3aed",
-    fontSize: 12,
+    color: "#fff",
+    fontSize: 11,
     fontWeight: "700",
-  },
-  categoryCountDivider: {
-    color: "#9ca3af",
-    fontSize: 12,
-    marginHorizontal: 4,
+    backgroundColor: "#7c3aed",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   loginModalSheet: {
     backgroundColor: "#ffffff",

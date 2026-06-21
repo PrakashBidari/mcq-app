@@ -1,9 +1,10 @@
 // app/quiz/play.tsx
 import FuriganaText from "@/components/FuriganaText";
+import { quizStore } from "@/utils/quizStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ScrollView,
@@ -15,9 +16,6 @@ import {
 } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// import ScreenshotPrevent from "react-native-screenshot-prevent";
-
-import { useAuth } from "@/context/AuthContext";
 
 let ScreenshotPrevent: any = null;
 try {
@@ -43,36 +41,46 @@ const getDifficultyColor = (d: string) => {
   return "#6b7280";
 };
 
+// Moved outside QuizPlay — prevents new component type on every render
+const TimerBadge = React.memo(
+  ({ hasTimer, timeLeft, timeLimitSeconds }: { hasTimer: boolean; timeLeft: number; timeLimitSeconds: number }) => {
+    if (!hasTimer) return null;
+    const p = timeLeft / timeLimitSeconds;
+    const tc = p > 0.5 ? "#10b981" : p > 0.25 ? "#f59e0b" : "#ef4444";
+    const mm = Math.floor(timeLeft / 60).toString().padStart(2, "0");
+    const ss = (timeLeft % 60).toString().padStart(2, "0");
+    return (
+      <View style={[styles.timerBadge, { borderColor: tc, backgroundColor: tc + "25" }]}>
+        <Ionicons name="time-outline" size={13} color={tc} />
+        <Text style={[styles.timerTxt, { color: tc }]}>{`${mm}:${ss}`}</Text>
+      </View>
+    );
+  },
+);
+
 export default function QuizPlay() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
 
-  if (!isAuthenticated) {
-    router.replace("/(auth)/login");
-    return null;
-  }
+  // Read from store — no JSON.parse cost
+  const allQuestions = useMemo<any[] | null>(() => {
+    const raw = quizStore.getQuestions();
+    if (!raw || raw.length === 0) return null;
+    return [...raw].sort((a: any, b: any) => {
+      const posA = a.position ?? Number.MAX_SAFE_INTEGER;
+      const posB = b.position ?? Number.MAX_SAFE_INTEGER;
+      if (posA !== posB) return posA - posB;
+      return b.id - a.id;
+    });
+  }, []);
 
-  let rawQuestions: any[] = [];
-  try {
-    rawQuestions = JSON.parse(params.questions as string);
-  } catch {
-    router.back();
-    return null;
-  }
-  const allQuestions = [...rawQuestions].sort((a: any, b: any) => {
-    const posA = a.position ?? Number.MAX_SAFE_INTEGER;
-    const posB = b.position ?? Number.MAX_SAFE_INTEGER;
-    if (posA !== posB) return posA - posB;
-    return b.id - a.id;
-  });
-
-  const totalQuestions = allQuestions.length;
+  const totalQuestions = allQuestions?.length ?? 0;
   const timeLimitMinutes = parseInt(params.timeLimit as string) || 0;
   const timeLimitSeconds = timeLimitMinutes * 60;
   const hasTimer = timeLimitSeconds > 0;
 
+  // ── All state / refs before any early return ──
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<(number | undefined)[]>(() =>
     new Array(totalQuestions).fill(undefined),
@@ -84,17 +92,59 @@ export default function QuizPlay() {
 
   const answersRef = useRef(userAnswers);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     answersRef.current = userAnswers;
   }, [userAnswers]);
 
-  // ── Enable screenshot prevention on mount, disable on unmount ──
+  useEffect(() => {
+    if (allQuestions === null) router.back();
+  }, []);
+
   useEffect(() => {
     ScreenshotPrevent.enabled(true);
-    return () => {
-      ScreenshotPrevent.enabled(false);
-    };
+    return () => { ScreenshotPrevent.enabled(false); };
   }, []);
+
+  // ── Stable callbacks — before early return (hooks rule) ──
+  const goToResults = useCallback((answers: (number | undefined)[]) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const qs = allQuestions!;
+    const score = qs.reduce(
+      (s: number, q: any, i: number) => (answers[i] === q.correctAnswer ? s + 1 : s),
+      0,
+    );
+    quizStore.setAnswers(answers.map((a) => (a === undefined ? -1 : (a as number))));
+    router.replace({ pathname: "/quiz/results", params: { score, total: qs.length } });
+  }, [allQuestions]);
+
+  const handleSelect = useCallback((optIdx: number) => {
+    setUserAnswers((prev) => {
+      const next = [...prev];
+      next[currentIndex] = optIdx;
+      return next;
+    });
+    setShowExplanation(false);
+  }, [currentIndex]);
+
+  const handleReviewChange = useCallback((qIdx: number, optIdx: number) => {
+    setUserAnswers((prev) => {
+      const next = [...prev];
+      next[qIdx] = optIdx;
+      return next;
+    });
+  }, []);
+
+  const handleNext = useCallback(() => {
+    setShowExplanation(false);
+    if (currentIndex < totalQuestions - 1) setCurrentIndex(currentIndex + 1);
+    else setIsFinished(true);
+  }, [currentIndex, totalQuestions]);
+
+  const handlePrev = useCallback(() => {
+    setShowExplanation(false);
+    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (!hasTimer) return;
@@ -108,84 +158,19 @@ export default function QuizPlay() {
         return prev - 1;
       });
     }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [hasTimer]);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [hasTimer, goToResults]);
 
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)
-      .toString()
-      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
-
-  const getTimerColor = () => {
-    if (!hasTimer) return "#667eea";
-    const p = timeLeft / timeLimitSeconds;
-    return p > 0.5 ? "#10b981" : p > 0.25 ? "#f59e0b" : "#ef4444";
-  };
-
-  const goToResults = (answers: (number | undefined)[]) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const score = allQuestions.reduce(
-      (s: number, q: any, i: number) =>
-        answers[i] === q.correctAnswer ? s + 1 : s,
-      0,
-    );
-    router.replace({
-      pathname: "/quiz/results",
-      params: {
-        score,
-        total: totalQuestions,
-        answers: JSON.stringify(answers.map((a) => (a === undefined ? -1 : a))),
-        questions: JSON.stringify(allQuestions),
-      },
-    });
-  };
-
-  const handleSelect = (optIdx: number) => {
-    const next = [...userAnswers];
-    next[currentIndex] = optIdx;
-    setUserAnswers(next);
-    setShowExplanation(false);
-  };
-
-  const handleReviewChange = (qIdx: number, optIdx: number) => {
-    const next = [...userAnswers];
-    next[qIdx] = optIdx;
-    setUserAnswers(next);
-  };
-
-  const handleNext = () => {
-    setShowExplanation(false);
-    if (currentIndex < totalQuestions - 1) setCurrentIndex(currentIndex + 1);
-    else setIsFinished(true);
-  };
-
-  const handlePrev = () => {
-    setShowExplanation(false);
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  };
+  // ── Guard after all hooks ──
+  if (allQuestions === null) return null;
 
   const currentQuestion = allQuestions[currentIndex];
   const selectedAnswer = userAnswers[currentIndex];
   const isAnswered = selectedAnswer !== undefined;
   const answeredCount = userAnswers.filter((a) => a !== undefined).length;
-  const tc = getTimerColor();
 
-  const TimerBadge = () =>
-    hasTimer ? (
-      <View
-        style={[
-          styles.timerBadge,
-          { borderColor: tc, backgroundColor: tc + "25" },
-        ]}
-      >
-        <Ionicons name="time-outline" size={13} color={tc} />
-        <Text style={[styles.timerTxt, { color: tc }]}>
-          {formatTime(timeLeft)}
-        </Text>
-      </View>
-    ) : null;
+  const p = hasTimer ? timeLeft / timeLimitSeconds : 1;
+  const tc = p > 0.5 ? "#10b981" : p > 0.25 ? "#f59e0b" : "#ef4444";
 
   // ════════════════════════════════════════
   // FINISHED SCREEN
@@ -201,7 +186,7 @@ export default function QuizPlay() {
         >
           {hasTimer && (
             <View style={styles.finishTimerRow}>
-              <TimerBadge />
+              <TimerBadge hasTimer={hasTimer} timeLeft={timeLeft} timeLimitSeconds={timeLimitSeconds} />
             </View>
           )}
           <Text style={styles.finishEmoji}>🎉</Text>
@@ -213,31 +198,22 @@ export default function QuizPlay() {
         <View style={styles.finishBody}>
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
-              <Text style={[styles.statNum, { color: "#667eea" }]}>
-                {answeredCount}
-              </Text>
+              <Text style={[styles.statNum, { color: "#667eea" }]}>{answeredCount}</Text>
               <Text style={styles.statLabel}>{t("quizPlay.answered")}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
-              <Text style={[styles.statNum, { color: "#ef4444" }]}>
-                {skipped}
-              </Text>
+              <Text style={[styles.statNum, { color: "#ef4444" }]}>{skipped}</Text>
               <Text style={styles.statLabel}>{t("quizPlay.skipped")}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
-              <Text style={[styles.statNum, { color: "#f59e0b" }]}>
-                {totalQuestions}
-              </Text>
+              <Text style={[styles.statNum, { color: "#f59e0b" }]}>{totalQuestions}</Text>
               <Text style={styles.statLabel}>{t("quizPlay.total")}</Text>
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => {
-              setIsFinished(false);
-              setIsReview(true);
-            }}
+            onPress={() => { setIsFinished(false); setIsReview(true); }}
             style={styles.reviewBtn}
           >
             <Ionicons name="list-outline" size={22} color="#667eea" />
@@ -278,10 +254,7 @@ export default function QuizPlay() {
           style={[styles.reviewBar, { paddingTop: insets.top + 12 }]}
         >
           <TouchableOpacity
-            onPress={() => {
-              setIsReview(false);
-              setIsFinished(true);
-            }}
+            onPress={() => { setIsReview(false); setIsFinished(true); }}
             style={styles.closeBtn}
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />
@@ -290,12 +263,13 @@ export default function QuizPlay() {
             <Text style={styles.reviewBarTitle}>{t("quizPlay.reviewAnswers")}</Text>
             <Text style={styles.reviewBarSub}>{t("quizPlay.tapToChange")}</Text>
           </View>
-          <TimerBadge />
+          <TimerBadge hasTimer={hasTimer} timeLeft={timeLeft} timeLimitSeconds={timeLimitSeconds} />
         </LinearGradient>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.reviewScroll}
+          removeClippedSubviews
         >
           {allQuestions.map((q: any, qi: number) => {
             const sel = userAnswers[qi];
@@ -306,31 +280,12 @@ export default function QuizPlay() {
                     <Text style={styles.qNumText}>{qi + 1}</Text>
                   </View>
                   <View style={{ flex: 1, marginLeft: 10 }}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                       <View style={styles.catBadge}>
                         <Text style={styles.catBadgeText}>{q.category}</Text>
                       </View>
-                      <View
-                        style={[
-                          styles.diffBadge,
-                          {
-                            backgroundColor:
-                              getDifficultyColor(q.difficulty) + "20",
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.diffText,
-                            { color: getDifficultyColor(q.difficulty) },
-                          ]}
-                        >
+                      <View style={[styles.diffBadge, { backgroundColor: getDifficultyColor(q.difficulty) + "20" }]}>
+                        <Text style={[styles.diffText, { color: getDifficultyColor(q.difficulty) }]}>
                           {q.difficulty}
                         </Text>
                       </View>
@@ -355,44 +310,21 @@ export default function QuizPlay() {
                     <TouchableOpacity
                       key={oi}
                       onPress={() => handleReviewChange(qi, oi)}
-                      style={[
-                        styles.optionRow,
-                        { marginTop: 10 },
-                        isSel ? styles.optionSelected : styles.optionDefault,
-                      ]}
+                      style={[styles.optionRow, { marginTop: 10 }, isSel ? styles.optionSelected : styles.optionDefault]}
                       activeOpacity={0.7}
                     >
-                      <View
-                        style={[
-                          styles.optLabel,
-                          isSel ? styles.optLabelSel : styles.optLabelDef,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.optLabelTxt,
-                            isSel && styles.optLabelTxtSel,
-                          ]}
-                        >
+                      <View style={[styles.optLabel, isSel ? styles.optLabelSel : styles.optLabelDef]}>
+                        <Text style={[styles.optLabelTxt, isSel && styles.optLabelTxtSel]}>
                           {OPTION_LABELS[oi]}
                         </Text>
                       </View>
                       <FuriganaText
                         text={opt}
-                        style={[
-                          styles.optText,
-                          isSel ? styles.optTextSel : styles.optTextDef,
-                        ]}
+                        style={[styles.optText, isSel ? styles.optTextSel : styles.optTextDef]}
                         furiganaStyle={styles.furiganaSmall}
                         containerStyle={{ flex: 1 }}
                       />
-                      {isSel && (
-                        <Ionicons
-                          name="checkmark-circle"
-                          size={18}
-                          color="#7c3aed"
-                        />
-                      )}
+                      {isSel && <Ionicons name="checkmark-circle" size={18} color="#7c3aed" />}
                     </TouchableOpacity>
                   );
                 })}
@@ -433,10 +365,7 @@ export default function QuizPlay() {
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.closeBtn}
-          >
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
             <Ionicons name="close" size={22} color="white" />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: "center" }}>
@@ -445,12 +374,10 @@ export default function QuizPlay() {
             </Text>
           </View>
           {hasTimer ? (
-            <TimerBadge />
+            <TimerBadge hasTimer={hasTimer} timeLeft={timeLeft} timeLimitSeconds={timeLimitSeconds} />
           ) : (
             <View style={styles.countBadge}>
-              <Text style={styles.countTxt}>
-                {answeredCount}/{totalQuestions}
-              </Text>
+              <Text style={styles.countTxt}>{answeredCount}/{totalQuestions}</Text>
             </View>
           )}
         </View>
@@ -458,9 +385,7 @@ export default function QuizPlay() {
           <View
             style={[
               styles.progressFill,
-              {
-                width: `${((currentIndex + 1) / totalQuestions) * 100}%` as any,
-              },
+              { width: `${((currentIndex + 1) / totalQuestions) * 100}%` as any },
             ]}
           />
         </View>
@@ -474,38 +399,22 @@ export default function QuizPlay() {
         <Animatable.View
           key={`q${currentIndex}`}
           animation="fadeInRight"
-          duration={260}
+          duration={220}
+          useNativeDriver
           style={styles.qCard}
         >
           <View style={styles.qMeta}>
             <View style={styles.catBadge}>
-              <Text style={styles.catBadgeText}>
-                {currentQuestion.category}
-              </Text>
+              <Text style={styles.catBadgeText}>{currentQuestion.category}</Text>
             </View>
-            <View
-              style={[
-                styles.diffBadge,
-                {
-                  backgroundColor:
-                    getDifficultyColor(currentQuestion.difficulty) + "20",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.diffText,
-                  { color: getDifficultyColor(currentQuestion.difficulty) },
-                ]}
-              >
+            <View style={[styles.diffBadge, { backgroundColor: getDifficultyColor(currentQuestion.difficulty) + "20" }]}>
+              <Text style={[styles.diffText, { color: getDifficultyColor(currentQuestion.difficulty) }]}>
                 {currentQuestion.difficulty}
               </Text>
             </View>
             {currentQuestion.position != null && (
               <View style={styles.positionBadge}>
-                <Text style={styles.positionText}>
-                  #{currentQuestion.position}
-                </Text>
+                <Text style={styles.positionText}>#{currentQuestion.position}</Text>
               </View>
             )}
           </View>
@@ -525,26 +434,12 @@ export default function QuizPlay() {
               const showBad = showExplanation && isSel && !isCorrect;
 
               const rowStyle = showExplanation
-                ? showOk
-                  ? styles.optionCorrect
-                  : showBad
-                    ? styles.optionWrong
-                    : styles.optionDefault
-                : isSel
-                  ? styles.optionSelected
-                  : styles.optionDefault;
+                ? showOk ? styles.optionCorrect : showBad ? styles.optionWrong : styles.optionDefault
+                : isSel ? styles.optionSelected : styles.optionDefault;
 
               const lblStyle = showExplanation
-                ? showOk
-                  ? styles.optLabelOk
-                  : showBad
-                    ? styles.optLabelBad
-                    : isSel
-                      ? styles.optLabelSel
-                      : styles.optLabelDef
-                : isSel
-                  ? styles.optLabelSel
-                  : styles.optLabelDef;
+                ? showOk ? styles.optLabelOk : showBad ? styles.optLabelBad : isSel ? styles.optLabelSel : styles.optLabelDef
+                : isSel ? styles.optLabelSel : styles.optLabelDef;
 
               return (
                 <TouchableOpacity
@@ -554,12 +449,7 @@ export default function QuizPlay() {
                   style={[styles.optionRow, rowStyle]}
                 >
                   <View style={[styles.optLabel, lblStyle]}>
-                    <Text
-                      style={[
-                        styles.optLabelTxt,
-                        (isSel || showOk) && styles.optLabelTxtSel,
-                      ]}
-                    >
+                    <Text style={[styles.optLabelTxt, (isSel || showOk) && styles.optLabelTxtSel]}>
                       {OPTION_LABELS[oi]}
                     </Text>
                   </View>
@@ -567,33 +457,13 @@ export default function QuizPlay() {
                     text={opt}
                     style={[
                       styles.optText,
-                      showOk
-                        ? styles.optTextOk
-                        : showBad
-                          ? styles.optTextBad
-                          : isSel
-                            ? styles.optTextSel
-                            : styles.optTextDef,
+                      showOk ? styles.optTextOk : showBad ? styles.optTextBad : isSel ? styles.optTextSel : styles.optTextDef,
                     ]}
-                    furiganaStyle={
-                      showOk
-                        ? styles.furiganaOk
-                        : showBad
-                          ? styles.furiganaBad
-                          : styles.furiganaMain
-                    }
+                    furiganaStyle={showOk ? styles.furiganaOk : showBad ? styles.furiganaBad : styles.furiganaMain}
                     containerStyle={{ flex: 1 }}
                   />
-                  {showOk && (
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={18}
-                      color="#22c55e"
-                    />
-                  )}
-                  {showBad && (
-                    <Ionicons name="close-circle" size={18} color="#ef4444" />
-                  )}
+                  {showOk && <Ionicons name="checkmark-circle" size={18} color="#22c55e" />}
+                  {showBad && <Ionicons name="close-circle" size={18} color="#ef4444" />}
                 </TouchableOpacity>
               );
             })}
@@ -606,7 +476,6 @@ export default function QuizPlay() {
               <Text style={styles.explBtnTxt}>Show Explanation</Text>
             </TouchableOpacity>
           )}
-
           {showExplanation && (
             <Animatable.View animation="fadeInUp" duration={260} style={styles.explBox}>
               <Ionicons name="information-circle" size={18} color="#3b82f6" />
@@ -628,22 +497,10 @@ export default function QuizPlay() {
         <TouchableOpacity
           onPress={handlePrev}
           disabled={currentIndex === 0}
-          style={[
-            styles.prevBtn,
-            currentIndex === 0 ? styles.prevDisabled : styles.prevEnabled,
-          ]}
+          style={[styles.prevBtn, currentIndex === 0 ? styles.prevDisabled : styles.prevEnabled]}
         >
-          <Ionicons
-            name="chevron-back"
-            size={20}
-            color={currentIndex === 0 ? "#9CA3AF" : "#667eea"}
-          />
-          <Text
-            style={[
-              styles.prevTxt,
-              currentIndex === 0 ? styles.prevTxtDis : styles.prevTxtEn,
-            ]}
-          >
+          <Ionicons name="chevron-back" size={20} color={currentIndex === 0 ? "#9CA3AF" : "#667eea"} />
+          <Text style={[styles.prevTxt, currentIndex === 0 ? styles.prevTxtDis : styles.prevTxtEn]}>
             {t("quizPlay.previous")}
           </Text>
         </TouchableOpacity>
@@ -662,16 +519,10 @@ export default function QuizPlay() {
             style={[styles.nextGrad, { elevation: isAnswered ? 6 : 0 }]}
           >
             <Text style={styles.nextTxt}>
-              {currentIndex === totalQuestions - 1
-                ? t("quizPlay.finishQuiz")
-                : t("quizPlay.nextQuestion")}
+              {currentIndex === totalQuestions - 1 ? t("quizPlay.finishQuiz") : t("quizPlay.nextQuestion")}
             </Text>
             <Ionicons
-              name={
-                currentIndex === totalQuestions - 1
-                  ? "checkmark-circle"
-                  : "chevron-forward"
-              }
+              name={currentIndex === totalQuestions - 1 ? "checkmark-circle" : "chevron-forward"}
               size={20}
               color="white"
             />
@@ -827,12 +678,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
   },
-  explLabel: {
-    color: "#1e40af",
-    fontWeight: "700",
-    fontSize: 12,
-    marginBottom: 4,
-  },
+  explLabel: { color: "#1e40af", fontWeight: "700", fontSize: 12, marginBottom: 4 },
   explBody: { color: "#1d4ed8", fontSize: 13, lineHeight: 18 },
 
   navBar: {
@@ -880,12 +726,7 @@ const styles = StyleSheet.create({
   },
   finishTimerRow: { alignSelf: "flex-end", marginBottom: 8 },
   finishEmoji: { fontSize: 52, marginBottom: 12 },
-  finishTitle: {
-    color: "#fff",
-    fontSize: 26,
-    fontWeight: "900",
-    marginBottom: 6,
-  },
+  finishTitle: { color: "#fff", fontSize: 26, fontWeight: "900", marginBottom: 6 },
   finishSub: { color: "rgba(255,255,255,0.8)", fontSize: 16 },
   finishBody: { flex: 1, padding: 24, justifyContent: "flex-start", gap: 16 },
   statsRow: {
@@ -956,11 +797,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  reviewCardTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
+  reviewCardTop: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   qNumBadge: {
     width: 30,
     height: 30,

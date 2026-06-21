@@ -1,58 +1,92 @@
 // app/(tabs)/_layout.tsx
 import { icons } from "@/constants/icons";
 import { useAuth } from "@/context/AuthContext";
-import { useSidebar } from "@/context/SidebarContext";
+import { useSidebarSetter } from "@/context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
-import { ActivityIndicator, Image, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 import * as Animatable from "react-native-animatable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-
-
-const TabIcon = ({ focused, icon, title, size = 6, isDark = false }) => {
+const TabIcon = React.memo(({
+  focused,
+  icon,
+  title,
+  iconSize = 22,
+  isDark = false,
+}: {
+  focused: boolean;
+  icon: any;
+  title: string;
+  iconSize?: number;
+  isDark?: boolean;
+}) => {
+  const iconColor = focused ? "#667eea" : isDark ? "#64748b" : "#9CA3AF";
+  const labelColor = focused ? "#7c3aed" : isDark ? "#64748b" : "#9CA3AF";
   return (
-    <View className="flex-1 w-20 justify-center items-center relative">
-      <Animatable.View
-        animation={focused ? "fadeIn" : undefined}
-        className="items-center gap-1"
-      >
-        {/* Icon with Background when focused */}
-        <View
-          style={{ backgroundColor: focused ? (isDark ? "#2d1f4e" : "#ede9fe") : "transparent" }}
-          className="w-16 h-12 rounded-xl items-center justify-center"
-        >
+    <View style={tabStyles.wrap}>
+      <Animatable.View animation={focused ? "fadeIn" : undefined} style={tabStyles.inner}>
+        <View style={[
+          tabStyles.iconBox,
+          { backgroundColor: focused ? (isDark ? "#2d1f4e" : "#ede9fe") : "transparent" },
+        ]}>
           <Image
             source={icon}
-            tintColor={focused ? "#667eea" : (isDark ? "#64748b" : "#9CA3AF")}
-            className={`size-${size}`}
+            tintColor={iconColor}
+            style={tabStyles.icon}
             resizeMode="contain"
           />
-          <Text
-            style={{ color: focused ? "#7c3aed" : (isDark ? "#64748b" : "#9CA3AF") }}
-            className={`text-[10px] font-${focused ? "bold" : "medium"}`}
-          >
+          <Text style={[tabStyles.label, { color: labelColor, fontWeight: focused ? "700" : "500" }]}>
             {title}
           </Text>
         </View>
-
-        {/* Bottom Line Indicator */}
         {focused && (
-          <Animatable.View
-            animation="slideInUp"
-            duration={300}
-            className="absolute -bottom-2 w-10 h-1 bg-purple-600 rounded-full"
-          />
+          <Animatable.View animation="slideInUp" duration={260} style={tabStyles.indicator} />
         )}
       </Animatable.View>
     </View>
   );
-};
+});
+
+const tabStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    width: 80,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  inner: {
+    alignItems: "center",
+  },
+  iconBox: {
+    width: 64,
+    paddingVertical: 5,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  icon: {
+    width: 22,
+    height: 22,
+  },
+  label: {
+    fontSize: 10,
+    textAlign: "center",
+  },
+  indicator: {
+    marginTop: 2,
+    width: 40,
+    height: 4,
+    backgroundColor: "#7c3aed",
+    borderRadius: 2,
+  },
+});
 
 const _Layout = () => {
   const insets = useSafeAreaInsets();
-  const { setSidebarVisible } = useSidebar();
+  const setSidebarVisible = useSidebarSetter();
   const { isLoading, isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
@@ -134,7 +168,6 @@ const _Layout = () => {
               focused={focused}
               icon={icons.study}
               title="Study"
-              size={9}
               isDark={isDark}
             />
           ),

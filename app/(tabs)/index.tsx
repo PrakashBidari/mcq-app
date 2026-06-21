@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -83,7 +83,7 @@ const CAT_ICONS: Record<string, string> = {
   Music: "musical-notes-outline",
 };
 
-function CategoryItem({
+const CategoryItem = React.memo(function CategoryItem({
   cat,
   index,
   onPress,
@@ -94,31 +94,48 @@ function CategoryItem({
 }) {
   const catColors = CAT_COLORS[cat.name] ?? [cat.color ?? "#7c3aed", "#4f46e5"];
   const icon = (CAT_ICONS[cat.name] ?? cat.icon ?? "grid-outline") as any;
-  const { colors: themeColors } = useTheme();
   return (
-    <Animatable.View animation="fadeInUp" delay={index * 60} duration={400}>
+    <Animatable.View animation="fadeInUp" delay={index * 55} duration={380}>
       <TouchableOpacity
-        activeOpacity={0.88}
+        activeOpacity={0.82}
         onPress={onPress}
-        style={styles.catItem}
+        style={[styles.catCardOuter, { shadowColor: catColors[1] }]}
       >
         <LinearGradient
           colors={catColors as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.catCircle}
+          style={styles.catCard}
         >
-          <Ionicons name={icon} size={24} color="#fff" />
+          {/* Decorative background circles */}
+          <View style={styles.catDecor1} />
+          <View style={styles.catDecor2} />
+
+          {/* Icon box */}
+          <View style={styles.catIconBox}>
+            <Ionicons name={icon} size={24} color="#fff" />
+          </View>
+
+          {/* Bottom row: name + arrow */}
+          <View style={styles.catCardBottom}>
+            <Text style={styles.catCardName} numberOfLines={2}>
+              {cat.name}
+            </Text>
+            <View style={styles.catCardArrow}>
+              <Ionicons
+                name="arrow-forward"
+                size={9}
+                color="rgba(255,255,255,0.9)"
+              />
+            </View>
+          </View>
         </LinearGradient>
-        <Text style={[styles.catLabel, { color: themeColors.text }]} numberOfLines={1}>
-          {cat.name}
-        </Text>
       </TouchableOpacity>
     </Animatable.View>
   );
-}
+});
 
-function BlogCard({
+const BlogCard = React.memo(function BlogCard({
   blog,
   index,
   onPress,
@@ -133,7 +150,13 @@ function BlogCard({
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={onPress}
-        style={[styles.blogCard, { backgroundColor: themeColors.card, borderColor: blogIsDark ? themeColors.border : "#7c3aed3e" }]}
+        style={[
+          styles.blogCard,
+          {
+            backgroundColor: themeColors.card,
+            borderColor: blogIsDark ? themeColors.border : "#7c3aed3e",
+          },
+        ]}
       >
         <View style={styles.blogImgWrap}>
           <Image
@@ -147,25 +170,70 @@ function BlogCard({
           />
         </View>
         <View style={styles.blogCardBody}>
-          <Text style={[styles.blogCardTitle, { color: themeColors.text }]} numberOfLines={2}>
+          <Text
+            style={[styles.blogCardTitle, { color: themeColors.text }]}
+            numberOfLines={2}
+          >
             {blog.title}
           </Text>
-          <Text style={[styles.blogCardExcerpt, { color: themeColors.textSecondary }]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.blogCardExcerpt,
+              { color: themeColors.textSecondary },
+            ]}
+            numberOfLines={2}
+          >
             {blog.excerpt}
           </Text>
           <View style={styles.blogCardMeta}>
             <View style={styles.blogMetaItem}>
-              <Ionicons name="time-outline" size={12} color={blogIsDark ? "#64748b" : "#a89ec0"} />
-              <Text style={[styles.blogCardMetaTxt, { color: themeColors.textMuted }]}>{blog.readTime}</Text>
+              <Ionicons
+                name="time-outline"
+                size={12}
+                color={blogIsDark ? "#64748b" : "#a89ec0"}
+              />
+              <Text
+                style={[
+                  styles.blogCardMetaTxt,
+                  { color: themeColors.textMuted },
+                ]}
+              >
+                {blog.readTime}
+              </Text>
             </View>
-            <View style={[styles.metaDot, { backgroundColor: blogIsDark ? "#374151" : "#c4b8e8" }]} />
+            <View
+              style={[
+                styles.metaDot,
+                { backgroundColor: blogIsDark ? "#374151" : "#c4b8e8" },
+              ]}
+            />
             <View style={styles.blogMetaItem}>
-              <Ionicons name="heart-outline" size={12} color={blogIsDark ? "#64748b" : "#a89ec0"} />
-              <Text style={[styles.blogCardMetaTxt, { color: themeColors.textMuted }]}>{blog.likes}</Text>
+              <Ionicons
+                name="heart-outline"
+                size={12}
+                color={blogIsDark ? "#64748b" : "#a89ec0"}
+              />
+              <Text
+                style={[
+                  styles.blogCardMetaTxt,
+                  { color: themeColors.textMuted },
+                ]}
+              >
+                {blog.likes}
+              </Text>
             </View>
             <View style={{ flex: 1, alignItems: "flex-end" }}>
-              <View style={[styles.blogArrow, { backgroundColor: blogIsDark ? "#2d1f4e" : "#ede8ff" }]}>
-                <Ionicons name="arrow-forward" size={13} color={blogIsDark ? "#a855f7" : "#7c3aed"} />
+              <View
+                style={[
+                  styles.blogArrow,
+                  { backgroundColor: blogIsDark ? "#2d1f4e" : "#ede8ff" },
+                ]}
+              >
+                <Ionicons
+                  name="arrow-forward"
+                  size={13}
+                  color={blogIsDark ? "#a855f7" : "#7c3aed"}
+                />
               </View>
             </View>
           </View>
@@ -173,9 +241,13 @@ function BlogCard({
       </TouchableOpacity>
     </Animatable.View>
   );
-}
+});
 
-function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
+const AdBanner = React.memo(function AdBanner({
+  size = "banner",
+}: {
+  size?: "banner" | "medium";
+}) {
   const isMedium = size === "medium";
   const { isDark } = useTheme();
   return (
@@ -184,7 +256,11 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
         colors={isDark ? ["#1a1a2e", "#16213e"] : ["#f5f3ff", "#ede9fe"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[adStyles.wrap, isMedium && adStyles.wrapMedium, isDark && { borderColor: "#2d2d44" }]}
+        style={[
+          adStyles.wrap,
+          isMedium && adStyles.wrapMedium,
+          isDark && { borderColor: "#2d2d44" },
+        ]}
       >
         {/* Top label row */}
         <View style={adStyles.labelRow}>
@@ -197,20 +273,32 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
         </View>
 
         {/* Content area */}
-        <View style={[adStyles.contentArea, isMedium && adStyles.contentMedium]}>
+        <View
+          style={[adStyles.contentArea, isMedium && adStyles.contentMedium]}
+        >
           <View style={adStyles.adIconWrap}>
             <LinearGradient
               colors={["#7c3aed", "#a855f7"]}
               style={adStyles.adIconGrad}
             >
-              <Ionicons name="megaphone-outline" size={isMedium ? 28 : 20} color="#fff" />
+              <Ionicons
+                name="megaphone-outline"
+                size={isMedium ? 28 : 20}
+                color="#fff"
+              />
             </LinearGradient>
           </View>
           <View style={adStyles.adTextWrap}>
-            <Text style={[adStyles.adTitle, isDark && { color: "#e2d9f3" }]} numberOfLines={1}>
+            <Text
+              style={[adStyles.adTitle, isDark && { color: "#e2d9f3" }]}
+              numberOfLines={1}
+            >
               Your Ad Here
             </Text>
-            <Text style={[adStyles.adDesc, isDark && { color: "#a78bfa" }]} numberOfLines={isMedium ? 3 : 1}>
+            <Text
+              style={[adStyles.adDesc, isDark && { color: "#a78bfa" }]}
+              numberOfLines={isMedium ? 3 : 1}
+            >
               {isMedium
                 ? "Reach thousands of learners. Connect your Google or Apple ad account to display your ads here."
                 : "Promote your product to active learners."}
@@ -224,7 +312,13 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
         </View>
 
         {isMedium && (
-          <TouchableOpacity style={[adStyles.adBtnFull, isDark && { backgroundColor: "#2d1f4e", borderColor: "#4c1d95" }]} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[
+              adStyles.adBtnFull,
+              isDark && { backgroundColor: "#2d1f4e", borderColor: "#4c1d95" },
+            ]}
+            activeOpacity={0.85}
+          >
             <Text style={adStyles.adBtnFullTxt}>Learn More</Text>
             <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
           </TouchableOpacity>
@@ -236,7 +330,7 @@ function AdBanner({ size = "banner" }: { size?: "banner" | "medium" }) {
       </LinearGradient>
     </Animatable.View>
   );
-}
+});
 
 const adStyles = StyleSheet.create({
   wrap: {
@@ -355,11 +449,26 @@ const adStyles = StyleSheet.create({
   },
 });
 
-function AchievementCard({ item, index }: { item: any; index: number }) {
+const AchievementCard = React.memo(function AchievementCard({
+  item,
+  index,
+}: {
+  item: any;
+  index: number;
+}) {
   const { colors: themeColors, isDark: achIsDark } = useTheme();
   return (
     <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
-      <View style={[styles.achieveCard, { shadowColor: item.color, backgroundColor: themeColors.card, borderColor: achIsDark ? themeColors.border : "#ede8ff" }]}>
+      <View
+        style={[
+          styles.achieveCard,
+          {
+            shadowColor: item.color,
+            backgroundColor: themeColors.card,
+            borderColor: achIsDark ? themeColors.border : "#ede8ff",
+          },
+        ]}
+      >
         <View
           style={[
             styles.achieveIconBox,
@@ -368,9 +477,20 @@ function AchievementCard({ item, index }: { item: any; index: number }) {
         >
           <Ionicons name={item.icon as any} size={22} color={item.color} />
         </View>
-        <Text style={[styles.achieveTitle, { color: themeColors.text }]}>{item.title}</Text>
-        <Text style={[styles.achieveDesc, { color: themeColors.textSecondary }]}>{item.description}</Text>
-        <View style={[styles.achieveBarBg, { backgroundColor: achIsDark ? "#2d2d44" : "#ede8ff" }]}>
+        <Text style={[styles.achieveTitle, { color: themeColors.text }]}>
+          {item.title}
+        </Text>
+        <Text
+          style={[styles.achieveDesc, { color: themeColors.textSecondary }]}
+        >
+          {item.description}
+        </Text>
+        <View
+          style={[
+            styles.achieveBarBg,
+            { backgroundColor: achIsDark ? "#2d2d44" : "#ede8ff" },
+          ]}
+        >
           <View
             style={[
               styles.achieveBarFill,
@@ -387,13 +507,13 @@ function AchievementCard({ item, index }: { item: any; index: number }) {
       </View>
     </Animatable.View>
   );
-}
+});
 
 export default function Index() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [categories, setCategories] = useState<any[]>([]);
@@ -409,6 +529,7 @@ export default function Index() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [tabFocused, setTabFocused] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [selectedSet, setSelectedSet] = useState<any>(null);
@@ -424,15 +545,21 @@ export default function Index() {
     toastTimer.current = setTimeout(() => setShowToast(false), 2000);
   };
 
-  const { isBookmarked, toggleBookmark, reload: reloadBookmarks } = useBookmarks();
+  const {
+    isBookmarked,
+    toggleBookmark,
+    reload: reloadBookmarks,
+  } = useBookmarks();
 
   useEffect(() => {
     fetchAll();
   }, []);
   useFocusEffect(
     useCallback(() => {
+      setTabFocused(true);
       fetchProfileImage();
       reloadBookmarks();
+      return () => setTabFocused(false);
     }, []),
   );
 
@@ -658,8 +785,17 @@ export default function Index() {
             </TouchableOpacity>
           )}
         </View>
-        <View style={[styles.searchBar, isDark && { backgroundColor: colors.inputBg }]}>
-          <Ionicons name="search-outline" size={16} color={isDark ? "#64748b" : "#9ca3af"} />
+        <View
+          style={[
+            styles.searchBar,
+            isDark && { backgroundColor: colors.inputBg },
+          ]}
+        >
+          <Ionicons
+            name="search-outline"
+            size={16}
+            color={isDark ? "#64748b" : "#9ca3af"}
+          />
           <TextInput
             placeholder={t("home.searchPlaceholder")}
             placeholderTextColor={isDark ? "#64748b" : "#9ca3af"}
@@ -673,11 +809,24 @@ export default function Index() {
               onPress={closeSearch}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close-circle" size={18} color={isDark ? "#64748b" : "#9ca3af"} />
+              <Ionicons
+                name="close-circle"
+                size={18}
+                color={isDark ? "#64748b" : "#9ca3af"}
+              />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.filterBtn, isDark && { backgroundColor: colors.cardAlt }]}>
-              <Ionicons name="options-outline" size={16} color={isDark ? "#a855f7" : "#7c3aed"} />
+            <TouchableOpacity
+              style={[
+                styles.filterBtn,
+                isDark && { backgroundColor: colors.cardAlt },
+              ]}
+            >
+              <Ionicons
+                name="options-outline"
+                size={16}
+                color={isDark ? "#a855f7" : "#7c3aed"}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -707,7 +856,7 @@ export default function Index() {
             >
               <View style={styles.swiperWrap}>
                 <Swiper
-                  autoplay
+                  autoplay={tabFocused}
                   autoplayTimeout={4.5}
                   loop
                   showsPagination
@@ -747,7 +896,9 @@ export default function Index() {
                             }
                           >
                             <Text style={styles.slideBtnTxt}>
-                              {slide.type === "quiz" ? t("home.startQuiz") : t("home.explore")}
+                              {slide.type === "quiz"
+                                ? t("home.startQuiz")
+                                : t("home.explore")}
                             </Text>
                             <Ionicons
                               name="arrow-forward"
@@ -774,7 +925,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.categories")}</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>
+                  {t("home.categories")}
+                </Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
                   <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
@@ -795,7 +948,8 @@ export default function Index() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{
                     paddingLeft: 20,
-                    paddingRight: 8,
+                    paddingRight: 16,
+                    paddingVertical: 0,
                     gap: 14,
                   }}
                 >
@@ -830,14 +984,46 @@ export default function Index() {
                 activeOpacity={0.92}
                 onPress={() => router.push("/(tabs)/study")}
               >
-                <View style={[styles.adBanner, isDark && { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <View style={[styles.adBlob1, isDark && { backgroundColor: "#2d1f4e" }]} />
-                  <View style={[styles.adBlob2, isDark && { backgroundColor: "#1a2e1a" }]} />
+                <View
+                  style={[
+                    styles.adBanner,
+                    isDark && {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.adBlob1,
+                      isDark && { backgroundColor: "#2d1f4e" },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.adBlob2,
+                      isDark && { backgroundColor: "#1a2e1a" },
+                    ]}
+                  />
                   <View style={styles.adIconStack}>
-                    <View style={[styles.adIconTop, isDark && { backgroundColor: "#2d1f4e" }]}>
-                      <Ionicons name="book-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
+                    <View
+                      style={[
+                        styles.adIconTop,
+                        isDark && { backgroundColor: "#2d1f4e" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="book-outline"
+                        size={20}
+                        color={isDark ? "#a855f7" : "#7c3aed"}
+                      />
                     </View>
-                    <View style={[styles.adIconBottom, isDark && { backgroundColor: "#1a2e1a" }]}>
+                    <View
+                      style={[
+                        styles.adIconBottom,
+                        isDark && { backgroundColor: "#1a2e1a" },
+                      ]}
+                    >
                       <Ionicons
                         name="library-outline"
                         size={20}
@@ -846,13 +1032,27 @@ export default function Index() {
                     </View>
                   </View>
                   <View style={{ flex: 1, marginHorizontal: 14 }}>
-                    <View style={[styles.adTag, isDark && { backgroundColor: "#2d1f4e" }]}>
-                      <Text style={[styles.adTagTxt, isDark && { color: "#a855f7" }]}>{t("home.studyLibraryTag")}</Text>
+                    <View
+                      style={[
+                        styles.adTag,
+                        isDark && { backgroundColor: "#2d1f4e" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.adTagTxt,
+                          isDark && { color: "#a855f7" },
+                        ]}
+                      >
+                        {t("home.studyLibraryTag")}
+                      </Text>
                     </View>
                     <Text style={[styles.adTitle, { color: colors.text }]}>
                       {t("home.unlockBooks")}
                     </Text>
-                    <Text style={[styles.adSub, { color: colors.textSecondary }]}>
+                    <Text
+                      style={[styles.adSub, { color: colors.textSecondary }]}
+                    >
                       {t("home.booksSubtitle")}
                     </Text>
                   </View>
@@ -877,7 +1077,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.thisWeek")}</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>
+                  {t("home.thisWeek")}
+                </Text>
                 <TouchableOpacity onPress={() => router.push("/(tabs)/study")}>
                   <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
@@ -942,7 +1144,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.achievements")}</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>
+                  {t("home.achievements")}
+                </Text>
                 <TouchableOpacity>
                   <Text style={styles.seeAll}>{t("home.viewAll")}</Text>
                 </TouchableOpacity>
@@ -997,7 +1201,9 @@ export default function Index() {
                       <View style={styles.qDecor2} />
                       <View style={{ flex: 1, marginRight: 18 }}>
                         <View style={styles.quizTag}>
-                          <Text style={styles.quizTagTxt}>{t("home.challengeTag")}</Text>
+                          <Text style={styles.quizTagTxt}>
+                            {t("home.challengeTag")}
+                          </Text>
                         </View>
                         <Text style={styles.quizTitle}>
                           {t("home.testKnowledge")}
@@ -1011,7 +1217,9 @@ export default function Index() {
                             size={15}
                             color="#7c3aed"
                           />
-                          <Text style={styles.quizBtnTxt}>{t("home.startQuiz")}</Text>
+                          <Text style={styles.quizBtnTxt}>
+                            {t("home.startQuiz")}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.quizIconOuter}>
@@ -1037,7 +1245,9 @@ export default function Index() {
               style={styles.sec}
             >
               <View style={styles.secHdr}>
-                <Text style={[styles.secTitle, { color: colors.text }]}>{t("home.latestArticles")}</Text>
+                <Text style={[styles.secTitle, { color: colors.text }]}>
+                  {t("home.latestArticles")}
+                </Text>
                 <TouchableOpacity onPress={() => router.push("/blog")}>
                   <Text style={styles.seeAll}>{t("home.seeAll")}</Text>
                 </TouchableOpacity>
@@ -1095,13 +1305,29 @@ export default function Index() {
               activeOpacity={1}
               onPress={closeSearch}
             />
-            <View style={[styles.searchResultsPanel, { backgroundColor: colors.card }]}>
-              <View style={[styles.searchResultsHeader, { borderBottomColor: colors.border }]}>
-                <Text style={[styles.searchResultsTitle, { color: colors.text }]}>
+            <View
+              style={[
+                styles.searchResultsPanel,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <View
+                style={[
+                  styles.searchResultsHeader,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <Text
+                  style={[styles.searchResultsTitle, { color: colors.text }]}
+                >
                   {isSearching ? t("home.searching") : `"${searchQuery}"`}
                 </Text>
                 <TouchableOpacity onPress={closeSearch}>
-                  <Ionicons name="close" size={18} color={isDark ? "#94a3b8" : "#6b7280"} />
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color={isDark ? "#94a3b8" : "#6b7280"}
+                  />
                 </TouchableOpacity>
               </View>
               {isSearching && (
@@ -1111,8 +1337,17 @@ export default function Index() {
               )}
               {!isSearching && searchResults.length === 0 && (
                 <View style={styles.searchEmptyBox}>
-                  <Ionicons name="search-outline" size={28} color={isDark ? "#4b5563" : "#c4b8e8"} />
-                  <Text style={[styles.searchEmptyText, { color: colors.textMuted }]}>
+                  <Ionicons
+                    name="search-outline"
+                    size={28}
+                    color={isDark ? "#4b5563" : "#c4b8e8"}
+                  />
+                  <Text
+                    style={[
+                      styles.searchEmptyText,
+                      { color: colors.textMuted },
+                    ]}
+                  >
                     {t("home.noSetsFound")}
                   </Text>
                 </View>
@@ -1135,7 +1370,12 @@ export default function Index() {
                       ]}
                       activeOpacity={0.7}
                     >
-                      <View style={[styles.searchResultIcon, isDark && { backgroundColor: "#2d1f4e" }]}>
+                      <View
+                        style={[
+                          styles.searchResultIcon,
+                          isDark && { backgroundColor: "#2d1f4e" },
+                        ]}
+                      >
                         <Ionicons
                           name="help-circle-outline"
                           size={20}
@@ -1143,7 +1383,13 @@ export default function Index() {
                         />
                       </View>
                       <View style={styles.searchResultInfo}>
-                        <Text style={[styles.searchResultName, { color: colors.text }]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.searchResultName,
+                            { color: colors.text },
+                          ]}
+                          numberOfLines={1}
+                        >
                           {set.name}
                         </Text>
                         <View style={styles.searchResultMeta}>
@@ -1152,11 +1398,28 @@ export default function Index() {
                             size={11}
                             color={isDark ? "#64748b" : "#9ca3af"}
                           />
-                          <Text style={[styles.searchResultCategory, { color: colors.textMuted }]}>
+                          <Text
+                            style={[
+                              styles.searchResultCategory,
+                              { color: colors.textMuted },
+                            ]}
+                          >
                             {set.category}
                           </Text>
-                          <Text style={[styles.searchResultDot, { color: colors.textMuted }]}>·</Text>
-                          <Text style={[styles.searchResultCategory, { color: colors.textMuted }]}>
+                          <Text
+                            style={[
+                              styles.searchResultDot,
+                              { color: colors.textMuted },
+                            ]}
+                          >
+                            ·
+                          </Text>
+                          <Text
+                            style={[
+                              styles.searchResultCategory,
+                              { color: colors.textMuted },
+                            ]}
+                          >
                             {set.questions_count} Qs
                           </Text>
                         </View>
@@ -1180,7 +1443,9 @@ export default function Index() {
                         ) : (
                           <>
                             <View style={styles.freeBadge}>
-                              <Text style={styles.freeBadgeText}>{t("home.free")}</Text>
+                              <Text style={styles.freeBadgeText}>
+                                {t("home.free")}
+                              </Text>
                             </View>
                             <View style={styles.playBtn}>
                               {quizLoading ? (
@@ -1229,13 +1494,19 @@ export default function Index() {
               Remove Bookmark
             </Text>
             <Text
-              style={[styles.removeModalItemName, { color: colors.textSecondary }]}
+              style={[
+                styles.removeModalItemName,
+                { color: colors.textSecondary },
+              ]}
               numberOfLines={2}
             >
               "{removeTarget?.title}"
             </Text>
-            <Text style={[styles.removeModalDesc, { color: colors.textSecondary }]}>
-              This item will be removed from your saved bookmarks. You can bookmark it again at any time.
+            <Text
+              style={[styles.removeModalDesc, { color: colors.textSecondary }]}
+            >
+              This item will be removed from your saved bookmarks. You can
+              bookmark it again at any time.
             </Text>
             <TouchableOpacity
               onPress={async () => {
@@ -1251,9 +1522,16 @@ export default function Index() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setRemoveTarget(null)}
-              style={[styles.keepBtn, { backgroundColor: isDark ? "#1e1e30" : "#f3f4f6" }]}
+              style={[
+                styles.keepBtn,
+                { backgroundColor: isDark ? "#1e1e30" : "#f3f4f6" },
+              ]}
             >
-              <Text style={[styles.keepBtnText, { color: colors.textSecondary }]}>Keep it</Text>
+              <Text
+                style={[styles.keepBtnText, { color: colors.textSecondary }]}
+              >
+                Keep it
+              </Text>
             </TouchableOpacity>
           </Animatable.View>
         </View>
@@ -1272,27 +1550,64 @@ export default function Index() {
             activeOpacity={1}
             onPress={() => setShowPaymentModal(false)}
           />
-          <View style={[styles.paymentModalContent, { backgroundColor: colors.card }]}>
-            <View style={[styles.paymentHeader, { borderBottomColor: colors.border }]}>
+          <View
+            style={[
+              styles.paymentModalContent,
+              { backgroundColor: colors.card },
+            ]}
+          >
+            <View
+              style={[
+                styles.paymentHeader,
+                { borderBottomColor: colors.border },
+              ]}
+            >
               <View style={styles.paymentHeaderTop}>
                 <Text style={[styles.paymentTitle, { color: colors.text }]}>
                   {selectedSet?.name ?? "Premium Content"}
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowPaymentModal(false)}
-                  style={[styles.paymentCloseBtn, isDark && { backgroundColor: "#2d2d44" }]}
+                  style={[
+                    styles.paymentCloseBtn,
+                    isDark && { backgroundColor: "#2d2d44" },
+                  ]}
                 >
-                  <Ionicons name="close" size={22} color={isDark ? "#94a3b8" : "#374151"} />
+                  <Ionicons
+                    name="close"
+                    size={22}
+                    color={isDark ? "#94a3b8" : "#374151"}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
             <View style={styles.comingSoonBody}>
-              <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-                <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
+              <View
+                style={[
+                  styles.comingSoonIconWrap,
+                  isDark && { backgroundColor: "#2d1f4e" },
+                ]}
+              >
+                <Ionicons
+                  name="time-outline"
+                  size={48}
+                  color={isDark ? "#a855f7" : "#7c3aed"}
+                />
               </View>
-              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>{t("home.paymentSystem")}</Text>
-              <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>{t("home.addedLater")}</Text>
-              <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
+              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>
+                {t("home.paymentSystem")}
+              </Text>
+              <Text
+                style={[
+                  styles.comingSoonSubtitle,
+                  { color: isDark ? "#a855f7" : "#7c3aed" },
+                ]}
+              >
+                {t("home.addedLater")}
+              </Text>
+              <Text
+                style={[styles.comingSoonMsg, { color: colors.textSecondary }]}
+              >
                 {t("home.paymentComingSoon")}
               </Text>
               <TouchableOpacity
@@ -1300,13 +1615,22 @@ export default function Index() {
                 style={styles.comingSoonPlayBtn}
               >
                 <Ionicons name="play-circle" size={22} color="#fff" />
-                <Text style={styles.comingSoonPlayText}>{t("home.playNow")}</Text>
+                <Text style={styles.comingSoonPlayText}>
+                  {t("home.playNow")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowPaymentModal(false)}
                 style={styles.comingSoonCancelBtn}
               >
-                <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>{t("home.cancel")}</Text>
+                <Text
+                  style={[
+                    styles.comingSoonCancelText,
+                    { color: colors.textMuted },
+                  ]}
+                >
+                  {t("home.cancel")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1321,12 +1645,27 @@ export default function Index() {
         onRequestClose={() => setShowLoginModal(false)}
       >
         <View style={styles.loginModalOverlay}>
-          <View style={[styles.loginModalSheet, { backgroundColor: colors.card }]}>
-            <View style={[styles.loginModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-              <Ionicons name="lock-closed" size={36} color={isDark ? "#a855f7" : "#7c3aed"} />
+          <View
+            style={[styles.loginModalSheet, { backgroundColor: colors.card }]}
+          >
+            <View
+              style={[
+                styles.loginModalIconWrap,
+                isDark && { backgroundColor: "#2d1f4e" },
+              ]}
+            >
+              <Ionicons
+                name="lock-closed"
+                size={36}
+                color={isDark ? "#a855f7" : "#7c3aed"}
+              />
             </View>
-            <Text style={[styles.loginModalTitle, { color: colors.text }]}>{t("home.loginRequired")}</Text>
-            <Text style={[styles.loginModalMsg, { color: colors.textSecondary }]}>
+            <Text style={[styles.loginModalTitle, { color: colors.text }]}>
+              {t("home.loginRequired")}
+            </Text>
+            <Text
+              style={[styles.loginModalMsg, { color: colors.textSecondary }]}
+            >
               {t("home.loginToBuy")}
             </Text>
             <TouchableOpacity
@@ -1337,13 +1676,17 @@ export default function Index() {
               style={styles.loginModalBtn}
             >
               <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.loginModalBtnText}>{t("home.goToLogin")}</Text>
+              <Text style={styles.loginModalBtnText}>
+                {t("home.goToLogin")}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowLoginModal(false)}
               style={styles.loginModalCancel}
             >
-              <Text style={styles.loginModalCancelText}>{t("home.cancel")}</Text>
+              <Text style={styles.loginModalCancelText}>
+                {t("home.cancel")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1607,25 +1950,71 @@ const styles = StyleSheet.create({
   },
   seeAll: { color: "#f59e0b", fontSize: 13, fontWeight: "800" },
 
-  catItem: { alignItems: "center", width: 68 },
-  catCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  catCardOuter: {
+    borderRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  catCard: {
+    width: 112,
+    height: 124,
+    borderRadius: 18,
+    padding: 14,
+    justifyContent: "space-between",
+    overflow: "hidden",
+  },
+  catDecor1: {
+    position: "absolute",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255,255,255,0.13)",
+    top: -22,
+    right: -22,
+  },
+  catDecor2: {
+    position: "absolute",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    bottom: -14,
+    left: -14,
+  },
+  catIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
   },
-  catLabel: {
-    color: "#1e0f4ec0",
-    fontSize: 12,
-    fontWeight: "700",
-    textAlign: "center",
+  catCardBottom: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  catCardName: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "800",
+    lineHeight: 17,
+    letterSpacing: -0.2,
+    marginRight: 4,
+  },
+  catCardArrow: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
   },
 
   achieveCard: {
@@ -2093,9 +2482,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-  removeModalTitle: { fontSize: 20, fontWeight: "800", marginBottom: 6, textAlign: "center" },
-  removeModalItemName: { fontSize: 14, textAlign: "center", marginBottom: 12, fontStyle: "italic" },
-  removeModalDesc: { fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 28 },
+  removeModalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  removeModalItemName: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+    fontStyle: "italic",
+  },
+  removeModalDesc: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 28,
+  },
   removeBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -2108,6 +2512,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   removeBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  keepBtn: { paddingVertical: 14, borderRadius: 14, width: "100%", alignItems: "center" },
+  keepBtn: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    width: "100%",
+    alignItems: "center",
+  },
   keepBtnText: { fontSize: 16, fontWeight: "600" },
 });
