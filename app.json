@@ -47,6 +47,11 @@
       "expo-localization",
       "expo-secure-store"
     ],
+    "assetBundlePatterns": [
+      "assets/images/logo-new.png",
+      "assets/icons/**",
+      "assets/data/**"
+    ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
