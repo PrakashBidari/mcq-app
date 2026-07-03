@@ -1,6 +1,6 @@
 // app/(tabs)/bookmark.tsx
 import AppHeader from "@/components/AppHeader";
-import { API_URL } from "@/config/constants";
+import { API_URL, SHOW_PAID_UI } from "@/config/constants";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -117,7 +117,7 @@ export default function BookmarkScreen() {
   const handleSetAction = (item: BookmarkItem) => {
     const set = item.data;
     if (!set) return;
-    if (set.is_free || !set.is_paid) {
+    if (!SHOW_PAID_UI || set.is_free || !set.is_paid) {
       startQuiz(set.id);
     } else {
       setPaymentTarget(item);
@@ -253,16 +253,18 @@ export default function BookmarkScreen() {
               {timeAgo(item.savedAt)}
             </Text>
             <View style={styles.quizCardActions}>
-              {item.data?.is_free || !item.data?.is_paid ? (
-                <View style={styles.freeBadge}>
-                  <Text style={styles.freeBadgeText}>Free</Text>
-                </View>
-              ) : (
-                <View style={styles.priceBadge}>
-                  <Text style={styles.priceBadgeText}>
-                    ${(item.data?.price ?? 0).toFixed(2)}
-                  </Text>
-                </View>
+              {SHOW_PAID_UI && (
+                item.data?.is_free || !item.data?.is_paid ? (
+                  <View style={styles.freeBadge}>
+                    <Text style={styles.freeBadgeText}>Free</Text>
+                  </View>
+                ) : (
+                  <View style={styles.priceBadge}>
+                    <Text style={styles.priceBadgeText}>
+                      ${(item.data?.price ?? 0).toFixed(2)}
+                    </Text>
+                  </View>
+                )
               )}
               <TouchableOpacity
                 onPress={() => handleSetAction(item)}
@@ -270,9 +272,9 @@ export default function BookmarkScreen() {
                 style={[
                   styles.quizStartBtn,
                   {
-                    backgroundColor: item.data?.is_free || !item.data?.is_paid
-                      ? catColor
-                      : "#7c3aed",
+                    backgroundColor: SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free
+                      ? "#7c3aed"
+                      : catColor,
                   },
                 ]}
               >
@@ -281,12 +283,12 @@ export default function BookmarkScreen() {
                 ) : (
                   <>
                     <Ionicons
-                      name={item.data?.is_free || !item.data?.is_paid ? "play-circle-outline" : "cart-outline"}
+                      name={SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free ? "cart-outline" : "play-circle-outline"}
                       size={14}
                       color="#fff"
                     />
                     <Text style={styles.quizStartText}>
-                      {item.data?.is_free || !item.data?.is_paid ? "Play" : "Buy"}
+                      {SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free ? "Buy" : "Play"}
                     </Text>
                   </>
                 )}

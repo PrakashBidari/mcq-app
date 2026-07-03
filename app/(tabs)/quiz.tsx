@@ -1,6 +1,6 @@
 // app/(tabs)/quiz.tsx
 import AppHeader from "@/components/AppHeader";
-import { API_URL } from "@/config/constants";
+import { API_URL, SHOW_PAID_UI } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { quizStore } from "@/utils/quizStore";
 import BookmarkToast from "@/components/BookmarkToast";
@@ -169,7 +169,7 @@ export default function QuizScreen() {
 
   const startFullCategoryQuiz = async () => {
     if (!selectedCategory) return;
-    if (selectedCategory.has_paid_sets && !isAuthenticated) {
+    if (SHOW_PAID_UI && selectedCategory.has_paid_sets && !isAuthenticated) {
       setShowQuestionModal(false);
       setShowLoginModal(true);
       return;
@@ -204,7 +204,7 @@ export default function QuizScreen() {
   };
 
   const handleCategoryAction = (category: Category) => {
-    if (!category.has_paid_sets) {
+    if (!SHOW_PAID_UI || !category.has_paid_sets) {
       handleCategorySelect(category);
     } else {
       if (!isAuthenticated) {
@@ -217,7 +217,7 @@ export default function QuizScreen() {
   };
 
   const handleSetAction = async (set: QuestionSet) => {
-    if (set.is_free) {
+    if (!SHOW_PAID_UI || set.is_free) {
       startQuestionSetQuiz(set.id);
     } else {
       if (!isAuthenticated) {
@@ -397,18 +397,20 @@ export default function QuizScreen() {
                 >
                   <View style={styles.categoryCardRow}>
                     {/* Sets Count Badge */}
-                    <View style={styles.categoryCountBadge}>
-                      {(category.free_sets_count ?? 0) > 0 && (
-                        <Text style={styles.categoryFreeCountText}>
-                          {category.free_sets_count} Free
-                        </Text>
-                      )}
-                      {(category.paid_sets_count ?? 0) > 0 && (
-                        <Text style={styles.categoryPaidCountText}>
-                          {category.paid_sets_count} Paid
-                        </Text>
-                      )}
-                    </View>
+                    {SHOW_PAID_UI && (
+                      <View style={styles.categoryCountBadge}>
+                        {(category.free_sets_count ?? 0) > 0 && (
+                          <Text style={styles.categoryFreeCountText}>
+                            {category.free_sets_count} Free
+                          </Text>
+                        )}
+                        {(category.paid_sets_count ?? 0) > 0 && (
+                          <Text style={styles.categoryPaidCountText}>
+                            {category.paid_sets_count} Paid
+                          </Text>
+                        )}
+                      </View>
+                    )}
                     <View
                       style={[
                         styles.categoryIconBox,
@@ -443,7 +445,7 @@ export default function QuizScreen() {
                       style={[
                         styles.categoryStartButton,
                         {
-                          backgroundColor: category.has_paid_sets
+                          backgroundColor: SHOW_PAID_UI && category.has_paid_sets
                             ? "#7c3aed"
                             : category.color + "15",
                         },
@@ -451,24 +453,24 @@ export default function QuizScreen() {
                     >
                       <Ionicons
                         name={
-                          category.has_paid_sets
+                          SHOW_PAID_UI && category.has_paid_sets
                             ? "cart-outline"
                             : "play-circle-outline"
                         }
                         size={18}
-                        color={category.has_paid_sets ? "#fff" : category.color}
+                        color={SHOW_PAID_UI && category.has_paid_sets ? "#fff" : category.color}
                       />
                       <Text
                         style={[
                           styles.categoryStartText,
                           {
-                            color: category.has_paid_sets
+                            color: SHOW_PAID_UI && category.has_paid_sets
                               ? "#fff"
                               : category.color,
                           },
                         ]}
                       >
-                        {category.has_paid_sets ? t("quiz.buy") : t("quiz.start")}
+                        {SHOW_PAID_UI && category.has_paid_sets ? t("quiz.buy") : t("quiz.start")}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -622,17 +624,19 @@ export default function QuizScreen() {
             <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
               <View style={styles.setCardInner}>
                 {/* Price Badge */}
-                {set.is_free ? (
-                  <View style={styles.freeBadge}>
-                    <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
-                  </View>
-                ) : (
-                  <View style={[styles.priceBadge, isDark && { backgroundColor: "#2d1f4e" }]}>
-                    <Ionicons name="cash-outline" size={14} color={isDark ? "#a855f7" : "#7c3aed"} />
-                    <Text style={[styles.priceText, isDark && { color: "#a855f7" }]}>
-                      ${set.price.toFixed(2)}
-                    </Text>
-                  </View>
+                {SHOW_PAID_UI && (
+                  set.is_free ? (
+                    <View style={styles.freeBadge}>
+                      <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.priceBadge, isDark && { backgroundColor: "#2d1f4e" }]}>
+                      <Ionicons name="cash-outline" size={14} color={isDark ? "#a855f7" : "#7c3aed"} />
+                      <Text style={[styles.priceText, isDark && { color: "#a855f7" }]}>
+                        ${set.price.toFixed(2)}
+                      </Text>
+                    </View>
+                  )
                 )}
 
                 <Text style={[styles.setName, { color: colors.text }]}>{set.name}</Text>
@@ -658,24 +662,24 @@ export default function QuizScreen() {
                       {
                         flex: 1,
                         marginRight: 8,
-                        backgroundColor: set.is_free
-                          ? selectedCategory.color + "15"
-                          : "#7c3aed",
+                        backgroundColor: SHOW_PAID_UI && !set.is_free
+                          ? "#7c3aed"
+                          : selectedCategory.color + "15",
                       },
                     ]}
                   >
                     <Ionicons
-                      name={set.is_free ? "play-circle-outline" : "cart-outline"}
+                      name={SHOW_PAID_UI && !set.is_free ? "cart-outline" : "play-circle-outline"}
                       size={18}
-                      color={set.is_free ? selectedCategory.color : "#fff"}
+                      color={SHOW_PAID_UI && !set.is_free ? "#fff" : selectedCategory.color}
                     />
                     <Text
                       style={[
                         styles.setStartText,
-                        { color: set.is_free ? selectedCategory.color : "#fff" },
+                        { color: SHOW_PAID_UI && !set.is_free ? "#fff" : selectedCategory.color },
                       ]}
                     >
-                      {set.is_free ? t("quiz.startThisSet") : t("quiz.buySet")}
+                      {SHOW_PAID_UI && !set.is_free ? t("quiz.buySet") : t("quiz.startThisSet")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity

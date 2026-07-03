@@ -1,6 +1,6 @@
 import BookCard from "@/components/BookCard";
 import BookmarkToast from "@/components/BookmarkToast";
-import { API_URL } from "@/config/constants";
+import { API_URL, SHOW_PAID_UI } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
@@ -664,7 +664,7 @@ export default function Index() {
   };
 
   const handleSearchSetAction = (set: any) => {
-    if (set.is_paid) {
+    if (SHOW_PAID_UI && set.is_paid) {
       if (!user) {
         setShowLoginModal(true);
         return;
@@ -1435,7 +1435,7 @@ export default function Index() {
                         </View>
                       </View>
                       <View style={styles.searchResultRight}>
-                        {set.is_paid ? (
+                        {SHOW_PAID_UI && set.is_paid ? (
                           <>
                             <View style={styles.paidBadge}>
                               <Text style={styles.paidBadgeText}>
@@ -1451,20 +1451,13 @@ export default function Index() {
                             </View>
                           </>
                         ) : (
-                          <>
-                            <View style={styles.freeBadge}>
-                              <Text style={styles.freeBadgeText}>
-                                {t("home.free")}
-                              </Text>
-                            </View>
-                            <View style={styles.playBtn}>
-                              {quizLoading ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                              ) : (
-                                <Ionicons name="play" size={13} color="#fff" />
-                              )}
-                            </View>
-                          </>
+                          <View style={styles.playBtn}>
+                            {quizLoading ? (
+                              <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                              <Ionicons name="play" size={13} color="#fff" />
+                            )}
+                          </View>
                         )}
                       </View>
                     </TouchableOpacity>
