@@ -302,7 +302,19 @@
     "notLoggedInTitle": "ログインしていません",
     "notLoggedInDesc": "プロフィールの確認・管理、進捗の追跡、すべての機能へのアクセスにはサインインが必要です。",
     "loginBtn": "サインイン",
-    "registerBtn": "アカウントを作成"
+    "registerBtn": "アカウントを作成",
+    "dangerZone": "危険な操作",
+    "deleteAccountBtn": "アカウントを削除",
+    "deletingAccount": "アカウントを削除しています...",
+    "deletingAccountDesc": "しばらくお待ちください。",
+    "deleteAccountTitle": "アカウントを削除",
+    "deleteAccountWarning": "アカウントとクイズ履歴、保存した進捗、プロフィール情報を含むすべてのデータが完全に削除されます。この操作は取り消せません。",
+    "confirmWithPassword": "確認のためパスワードを入力してください",
+    "errorDeletePasswordRequired": "アカウント削除を確認するためパスワードを入力してください",
+    "deleteFinalConfirmTitle": "本当によろしいですか？",
+    "deleteFinalConfirmDesc": "アカウントとすべてのデータが完全に削除されます。この操作は取り消せません。",
+    "successAccountDeleted": "アカウントが正常に削除されました。",
+    "errorAccountDelete": "アカウントの削除に失敗しました"
   },
   "quizPlay": {
     "question": "問題",

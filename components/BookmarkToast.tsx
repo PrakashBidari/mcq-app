@@ -5,9 +5,15 @@ import { Animated, StyleSheet, Text } from "react-native";
 
 interface Props {
   visible: boolean;
+  message?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
-export default function BookmarkToast({ visible }: Props) {
+export default function BookmarkToast({
+  visible,
+  message = "Bookmarked!",
+  icon = "bookmark",
+}: Props) {
   const translateY = useRef(new Animated.Value(30)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -47,8 +53,8 @@ export default function BookmarkToast({ visible }: Props) {
       pointerEvents="none"
       style={[styles.wrap, { transform: [{ translateY }], opacity }]}
     >
-      <Ionicons name="bookmark" size={15} color="#fff" />
-      <Text style={styles.text}>Bookmarked!</Text>
+      <Ionicons name={icon} size={15} color="#fff" />
+      <Text style={styles.text}>{message}</Text>
     </Animated.View>
   );
 }

@@ -25,13 +25,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notLoggedIn, setNotLoggedIn] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Delete account state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Password form state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -228,6 +234,58 @@ export default function ProfileScreen() {
     }
   };
 
+  // Delete account
+  const confirmDeleteAccount = () => {
+    if (!deletePassword) {
+      Alert.alert(t("common.error"), t("profile.errorDeletePasswordRequired"));
+      return;
+    }
+
+    Alert.alert(
+      t("profile.deleteFinalConfirmTitle"),
+      t("profile.deleteFinalConfirmDesc"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("profile.deleteAccountBtn"),
+          style: "destructive",
+          onPress: handleDeleteAccount,
+        },
+      ],
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeleteLoading(true);
+
+      const response = await fetch(`${API_URL}/delete-account`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowDeleteModal(false);
+        setDeletePassword("");
+        await AsyncStorage.removeItem("@bookmarks");
+        await logout();
+        router.replace({ pathname: "/(tabs)", params: { accountDeleted: "1" } });
+      } else {
+        Alert.alert(t("common.error"), data.message || t("profile.errorAccountDelete"));
+      }
+    } catch {
+      Alert.alert(t("common.error"), t("profile.errorConnection"));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
@@ -419,6 +477,29 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        {/* Danger Zone */}
+        <View className="px-6 pb-4">
+          <View className="bg-white rounded-3xl p-6 border border-red-100">
+            <Text className="text-red-600 font-bold text-sm mb-3 uppercase tracking-wide">
+              {t("profile.dangerZone")}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowDeleteModal(true)}
+              className="bg-red-50 p-4 rounded-2xl flex-row items-center justify-between"
+            >
+              <View className="flex-row items-center">
+                <View className="bg-red-100 w-10 h-10 rounded-full items-center justify-center mr-3">
+                  <Ionicons name="trash" size={18} color="#dc2626" />
+                </View>
+                <Text className="text-red-700 font-bold text-base">
+                  {t("profile.deleteAccountBtn")}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#dc2626" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
 
       {/* Change Password Modal */}
@@ -548,6 +629,118 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (deleteLoading) return;
+          setShowDeleteModal(false);
+          setDeletePassword("");
+        }}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <TouchableOpacity
+            className="flex-1"
+            activeOpacity={1}
+            disabled={deleteLoading}
+            onPress={() => {
+              setShowDeleteModal(false);
+              setDeletePassword("");
+            }}
+          />
+
+          <View className="bg-white rounded-t-3xl p-6">
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="text-gray-800 text-xl font-bold">
+                {t("profile.deleteAccountTitle")}
+              </Text>
+              <TouchableOpacity
+                disabled={deleteLoading}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword("");
+                }}
+                className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center"
+              >
+                <Ionicons name="close" size={20} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="bg-red-50 rounded-2xl p-4 mb-5 flex-row items-start">
+              <Ionicons name="warning" size={20} color="#dc2626" style={{ marginTop: 2, marginRight: 8 }} />
+              <Text className="text-red-700 text-sm flex-1 leading-5">
+                {t("profile.deleteAccountWarning")}
+              </Text>
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-700 font-semibold mb-2">
+                {t("profile.confirmWithPassword")}
+              </Text>
+              <View className="relative">
+                <TextInput
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  secureTextEntry={!showDeletePassword}
+                  editable={!deleteLoading}
+                  placeholder={t("profile.enterCurrentPassword")}
+                  className="bg-gray-50 px-4 py-3 rounded-xl text-gray-800 pr-12"
+                />
+                <TouchableOpacity
+                  disabled={deleteLoading}
+                  onPress={() => setShowDeletePassword(!showDeletePassword)}
+                  className="absolute right-4 top-3"
+                >
+                  <Ionicons
+                    name={showDeletePassword ? "eye-off-outline" : "eye-outline"}
+                    size={24}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={confirmDeleteAccount}
+              disabled={deleteLoading}
+              className="bg-red-600 py-4 rounded-2xl flex-row items-center justify-center"
+              style={deleteLoading ? { opacity: 0.7 } : undefined}
+            >
+              {deleteLoading ? (
+                <>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text className="text-white font-bold text-center text-base ml-2">
+                    {t("profile.deletingAccount")}
+                  </Text>
+                </>
+              ) : (
+                <Text className="text-white font-bold text-center text-base">
+                  {t("profile.deleteAccountBtn")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Full-screen blocking overlay while deletion is in progress */}
+      <Modal visible={deleteLoading} transparent animationType="fade">
+        <View className="flex-1 bg-black/60 items-center justify-center px-10">
+          <View className="bg-white rounded-3xl px-8 py-7 items-center" style={{ minWidth: 240 }}>
+            <ActivityIndicator size="large" color="#dc2626" />
+            <Text className="text-gray-900 font-bold text-base mt-4 text-center">
+              {t("profile.deletingAccount")}
+            </Text>
+            <Text className="text-gray-500 text-sm mt-1 text-center">
+              {t("profile.deletingAccountDesc")}
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
       <AppBottomTabBar />
     </SafeAreaView>
   );

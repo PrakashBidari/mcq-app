@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -513,6 +513,7 @@ export default function Index() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ accountDeleted?: string }>();
   const { user, token } = useAuth();
   const insets = useSafeAreaInsets();
 
@@ -537,13 +538,22 @@ export default function Index() {
   const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastId, setToastId] = useState(0);
+  const [toastMessage, setToastMessage] = useState<string | undefined>(undefined);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const triggerToast = () => {
+  const triggerToast = (message?: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToastMessage(message);
     setToastId((n) => n + 1);
     setShowToast(true);
     toastTimer.current = setTimeout(() => setShowToast(false), 2000);
   };
+
+  useEffect(() => {
+    if (params.accountDeleted) {
+      triggerToast(t("profile.successAccountDeleted"));
+      router.setParams({ accountDeleted: undefined });
+    }
+  }, [params.accountDeleted]);
 
   const {
     isBookmarked,
@@ -1466,7 +1476,12 @@ export default function Index() {
         )}
       </View>
 
-      <BookmarkToast key={toastId} visible={showToast} />
+      <BookmarkToast
+        key={toastId}
+        visible={showToast}
+        message={toastMessage}
+        icon={toastMessage ? "checkmark-circle" : "bookmark"}
+      />
 
       {/* ═══ REMOVE BOOKMARK MODAL ════════════ */}
       <Modal

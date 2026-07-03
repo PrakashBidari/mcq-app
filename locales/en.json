@@ -302,7 +302,19 @@
     "notLoggedInTitle": "You're not logged in",
     "notLoggedInDesc": "Sign in to view and manage your profile, track progress, and access all features.",
     "loginBtn": "Sign In",
-    "registerBtn": "Create Account"
+    "registerBtn": "Create Account",
+    "dangerZone": "Danger Zone",
+    "deleteAccountBtn": "Delete Account",
+    "deletingAccount": "Deleting your account...",
+    "deletingAccountDesc": "Please wait, this won't take long.",
+    "deleteAccountTitle": "Delete Your Account",
+    "deleteAccountWarning": "This will permanently delete your account and all associated data, including your quiz history, saved progress, and profile information. This action cannot be undone.",
+    "confirmWithPassword": "Enter your password to confirm",
+    "errorDeletePasswordRequired": "Please enter your password to confirm account deletion",
+    "deleteFinalConfirmTitle": "Are you absolutely sure?",
+    "deleteFinalConfirmDesc": "Your account and all your data will be permanently deleted. This cannot be undone.",
+    "successAccountDeleted": "Your account has been deleted successfully.",
+    "errorAccountDelete": "Failed to delete account"
   },
   "quizPlay": {
     "question": "Question",
