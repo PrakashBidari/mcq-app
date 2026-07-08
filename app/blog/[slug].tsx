@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   Image,
   ScrollView,
+  Share,
   Text,
   TouchableOpacity,
   View,
@@ -67,10 +68,12 @@ export default function BlogDetailScreen() {
           </TouchableOpacity>
 
           <View className="flex-row gap-2">
-            <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
-              <Ionicons name="bookmark-outline" size={20} color="#374151" />
-            </TouchableOpacity>
-            <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+            <TouchableOpacity
+              className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
+              onPress={() =>
+                Share.share({ message: blog.title ?? "" })
+              }
+            >
               <Ionicons name="share-outline" size={20} color="#374151" />
             </TouchableOpacity>
           </View>

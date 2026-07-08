@@ -174,9 +174,9 @@ export default function MyLearningScreen() {
             <Ionicons name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-gray-900">{t("myLearning.title")}</Text>
-          <TouchableOpacity className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center">
+          <View className="w-10 h-10 items-center justify-center">
             <Ionicons name="stats-chart-outline" size={22} color="#374151" />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Banner */}

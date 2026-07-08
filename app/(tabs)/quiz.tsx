@@ -1,7 +1,6 @@
 // app/(tabs)/quiz.tsx
 import AppHeader from "@/components/AppHeader";
-import { API_URL, SHOW_PAID_UI } from "@/config/constants";
-import { useAuth } from "@/context/AuthContext";
+import { API_URL } from "@/config/constants";
 import { quizStore } from "@/utils/quizStore";
 import BookmarkToast from "@/components/BookmarkToast";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
@@ -34,10 +33,6 @@ interface Category {
   color: string;
   icon: string | null;
   question_sets_count: number;
-  free_sets_count?: number; // ← add
-  paid_sets_count?: number; // ← add
-  min_price?: number;
-  has_paid_sets?: boolean;
 }
 
 interface QuestionSet {
@@ -45,9 +40,6 @@ interface QuestionSet {
   name: string;
   description: string;
   questions_count: number;
-  price: number | null;
-  is_paid: boolean; // ← from API
-  is_free: boolean; // ← derived from is_paid
 }
 
 const CAT_ICONS: Record<string, string> = {
@@ -65,7 +57,6 @@ function getCatIcon(name: string, fallback?: string | null): string {
 
 export default function QuizScreen() {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuth();
   const { colors, isDark } = useTheme();
 
   const { isBookmarked, toggleBookmark, reload: reloadBookmarks } = useBookmarks();
@@ -87,14 +78,8 @@ export default function QuizScreen() {
     null,
   );
 
-  const [selectedCategoryForPayment, setSelectedCategoryForPayment] =
-    useState<Category | null>(null);
-
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [selectedSet, setSelectedSet] = useState<QuestionSet | null>(null);
   const [numberOfQuestions, setNumberOfQuestions] = useState("10");
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -127,12 +112,7 @@ export default function QuizScreen() {
       );
       const data = await response.json();
       if (data.success) {
-        const sets = data.data.question_sets.map((set: any) => ({
-          ...set,
-          is_paid: set.is_paid ?? false,
-          price: set.price ?? 0,
-          is_free: !set.is_paid,
-        }));
+        const sets = data.data.question_sets;
         setQuestionSets(sets);
         const total = sets.reduce(
           (sum: number, set: QuestionSet) => sum + set.questions_count,
@@ -169,11 +149,6 @@ export default function QuizScreen() {
 
   const startFullCategoryQuiz = async () => {
     if (!selectedCategory) return;
-    if (SHOW_PAID_UI && selectedCategory.has_paid_sets && !isAuthenticated) {
-      setShowQuestionModal(false);
-      setShowLoginModal(true);
-      return;
-    }
     const numQuestions = parseInt(numberOfQuestions) || 10;
     setShowQuestionModal(false);
     setIsLoading(true);
@@ -203,32 +178,6 @@ export default function QuizScreen() {
     }
   };
 
-  const handleCategoryAction = (category: Category) => {
-    if (!SHOW_PAID_UI || !category.has_paid_sets) {
-      handleCategorySelect(category);
-    } else {
-      if (!isAuthenticated) {
-        setShowLoginModal(true);
-        return;
-      }
-      setSelectedCategoryForPayment(category);
-      setShowPaymentModal(true);
-    }
-  };
-
-  const handleSetAction = async (set: QuestionSet) => {
-    if (!SHOW_PAID_UI || set.is_free) {
-      startQuestionSetQuiz(set.id);
-    } else {
-      if (!isAuthenticated) {
-        setShowLoginModal(true);
-        return;
-      }
-      setSelectedSet(set);
-      setShowPaymentModal(true);
-    }
-  };
-
   const startQuestionSetQuiz = async (setId: number) => {
     setIsLoading(true);
     try {
@@ -253,15 +202,6 @@ export default function QuizScreen() {
     }
   };
 
-  const handlePlayPaidContent = () => {
-    setShowPaymentModal(false);
-    if (selectedSet) {
-      startQuestionSetQuiz(selectedSet.id);
-    } else if (selectedCategoryForPayment) {
-      handleCategorySelect(selectedCategoryForPayment);
-    }
-  };
-
   // ─── Loading screen ───
   if (isLoading && categories.length === 0) {
     return (
@@ -283,90 +223,6 @@ export default function QuizScreen() {
           onSearchChange={setCategorySearch}
           searchPlaceholder={t("quiz.searchPlaceholder")}
         />
-
-        <Modal
-          visible={showPaymentModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowPaymentModal(false)}
-        >
-          <View style={styles.paymentModalOverlay}>
-            <TouchableOpacity
-              style={styles.paymentModalBackdrop}
-              activeOpacity={1}
-              onPress={() => setShowPaymentModal(false)}
-            />
-            <View style={[styles.paymentModalContent, { backgroundColor: colors.card }]}>
-              <View style={[styles.paymentHeader, { borderBottomColor: colors.border }]}>
-                <View style={styles.paymentHeaderTop}>
-                  <Text style={[styles.paymentTitle, { color: colors.text }]}>
-                    {selectedSet?.name ?? selectedCategoryForPayment?.name ?? "Premium Content"}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => setShowPaymentModal(false)}
-                    style={[styles.paymentCloseBtn, isDark && { backgroundColor: "#2d2d44" }]}
-                  >
-                    <Ionicons name="close" size={24} color={isDark ? "#94a3b8" : "#374151"} />
-                  </TouchableOpacity>
-                </View>
-                {selectedSet && (
-                  <View style={[styles.paymentSetInfo, isDark && { backgroundColor: colors.cardAlt }]}>
-                    <Text style={[styles.paymentSetName, { color: colors.text }]}>
-                      {selectedSet.name}
-                    </Text>
-                    <View style={styles.paymentPriceRow}>
-                      <Text style={[styles.paymentPriceLabel, { color: colors.textSecondary }]}>
-                        {t("quiz.totalAmount")}
-                      </Text>
-                      <Text style={styles.paymentPriceValue}>
-                        ${selectedSet.price.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {selectedCategoryForPayment && !selectedSet && (
-                  <View style={[styles.paymentSetInfo, isDark && { backgroundColor: colors.cardAlt }]}>
-                    <Text style={[styles.paymentSetName, { color: colors.text }]}>
-                      {selectedCategoryForPayment.name}
-                    </Text>
-                    <View style={styles.paymentPriceRow}>
-                      <Text style={[styles.paymentPriceLabel, { color: colors.textSecondary }]}>
-                        {t("quiz.totalAmount")}
-                      </Text>
-                      <Text style={styles.paymentPriceValue}>
-                        ${selectedCategoryForPayment.min_price?.toFixed(2)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.comingSoonBody}>
-                <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-                  <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
-                </View>
-                <Text style={[styles.comingSoonTitle, { color: colors.text }]}>{t("quiz.paymentSystem")}</Text>
-                <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>{t("quiz.addedLater")}</Text>
-                <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
-                  {t("quiz.paymentComingSoon")}
-                </Text>
-                <TouchableOpacity
-                  onPress={handlePlayPaidContent}
-                  style={styles.comingSoonPlayBtn}
-                >
-                  <Ionicons name="play-circle" size={22} color="#fff" />
-                  <Text style={styles.comingSoonPlayText}>{t("quiz.playNow")}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowPaymentModal(false)}
-                  style={styles.comingSoonCancelBtn}
-                >
-                  <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>{t("quiz.cancel")}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -396,21 +252,6 @@ export default function QuizScreen() {
                   style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: category.color, borderLeftWidth: 4 }]}
                 >
                   <View style={styles.categoryCardRow}>
-                    {/* Sets Count Badge */}
-                    {SHOW_PAID_UI && (
-                      <View style={styles.categoryCountBadge}>
-                        {(category.free_sets_count ?? 0) > 0 && (
-                          <Text style={styles.categoryFreeCountText}>
-                            {category.free_sets_count} Free
-                          </Text>
-                        )}
-                        {(category.paid_sets_count ?? 0) > 0 && (
-                          <Text style={styles.categoryPaidCountText}>
-                            {category.paid_sets_count} Paid
-                          </Text>
-                        )}
-                      </View>
-                    )}
                     <View
                       style={[
                         styles.categoryIconBox,
@@ -439,38 +280,26 @@ export default function QuizScreen() {
                     </View>
                     <TouchableOpacity
                       onPress={(e) => {
-                        e.stopPropagation(); // ✅ IMPORTANT FIX
-                        handleCategoryAction(category);
+                        e.stopPropagation();
+                        handleCategorySelect(category);
                       }}
                       style={[
                         styles.categoryStartButton,
-                        {
-                          backgroundColor: SHOW_PAID_UI && category.has_paid_sets
-                            ? "#7c3aed"
-                            : category.color + "15",
-                        },
+                        { backgroundColor: category.color + "15" },
                       ]}
                     >
                       <Ionicons
-                        name={
-                          SHOW_PAID_UI && category.has_paid_sets
-                            ? "cart-outline"
-                            : "play-circle-outline"
-                        }
+                        name="play-circle-outline"
                         size={18}
-                        color={SHOW_PAID_UI && category.has_paid_sets ? "#fff" : category.color}
+                        color={category.color}
                       />
                       <Text
                         style={[
                           styles.categoryStartText,
-                          {
-                            color: SHOW_PAID_UI && category.has_paid_sets
-                              ? "#fff"
-                              : category.color,
-                          },
+                          { color: category.color },
                         ]}
                       >
-                        {SHOW_PAID_UI && category.has_paid_sets ? t("quiz.buy") : t("quiz.start")}
+                        {t("quiz.start")}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -479,42 +308,6 @@ export default function QuizScreen() {
             })}
           </View>
         </ScrollView>
-
-        {/* ─── Login Required Modal ─── */}
-        <Modal
-          visible={showLoginModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowLoginModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.loginModalSheet, { backgroundColor: colors.card }]}>
-              <View style={[styles.loginModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-                <Ionicons name="lock-closed" size={36} color={isDark ? "#a855f7" : "#7c3aed"} />
-              </View>
-              <Text style={[styles.loginModalTitle, { color: colors.text }]}>{t("quiz.loginRequired")}</Text>
-              <Text style={[styles.loginModalMsg, { color: colors.textSecondary }]}>
-                {t("quiz.loginToBuy")}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowLoginModal(false);
-                  router.push("/(auth)/login");
-                }}
-                style={styles.loginModalBtn}
-              >
-                <Ionicons name="log-in-outline" size={20} color="#fff" />
-                <Text style={styles.loginModalBtnText}>{t("quiz.goToLogin")}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowLoginModal(false)}
-                style={styles.loginModalCancel}
-              >
-                <Text style={[styles.loginModalCancelText, { color: colors.textMuted }]}>{t("quiz.cancel")}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
       </View>
     );
   }
@@ -623,22 +416,6 @@ export default function QuizScreen() {
           {questionSets.map((set) => (
             <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
               <View style={styles.setCardInner}>
-                {/* Price Badge */}
-                {SHOW_PAID_UI && (
-                  set.is_free ? (
-                    <View style={styles.freeBadge}>
-                      <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.priceBadge, isDark && { backgroundColor: "#2d1f4e" }]}>
-                      <Ionicons name="cash-outline" size={14} color={isDark ? "#a855f7" : "#7c3aed"} />
-                      <Text style={[styles.priceText, isDark && { color: "#a855f7" }]}>
-                        ${set.price.toFixed(2)}
-                      </Text>
-                    </View>
-                  )
-                )}
-
                 <Text style={[styles.setName, { color: colors.text }]}>{set.name}</Text>
                 {set.description && (
                   <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{set.description}</Text>
@@ -656,30 +433,28 @@ export default function QuizScreen() {
 
                 <View style={styles.setCardActions}>
                   <TouchableOpacity
-                    onPress={() => handleSetAction(set)}
+                    onPress={() => startQuestionSetQuiz(set.id)}
                     style={[
                       styles.setStartButton,
                       {
                         flex: 1,
                         marginRight: 8,
-                        backgroundColor: SHOW_PAID_UI && !set.is_free
-                          ? "#7c3aed"
-                          : selectedCategory.color + "15",
+                        backgroundColor: selectedCategory.color + "15",
                       },
                     ]}
                   >
                     <Ionicons
-                      name={SHOW_PAID_UI && !set.is_free ? "cart-outline" : "play-circle-outline"}
+                      name="play-circle-outline"
                       size={18}
-                      color={SHOW_PAID_UI && !set.is_free ? "#fff" : selectedCategory.color}
+                      color={selectedCategory.color}
                     />
                     <Text
                       style={[
                         styles.setStartText,
-                        { color: SHOW_PAID_UI && !set.is_free ? "#fff" : selectedCategory.color },
+                        { color: selectedCategory.color },
                       ]}
                     >
-                      {SHOW_PAID_UI && !set.is_free ? t("quiz.buySet") : t("quiz.startThisSet")}
+                      {t("quiz.startThisSet")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -871,88 +646,6 @@ export default function QuizScreen() {
         </View>
       </Modal>
 
-      {/* ─── Payment Modal ─── */}
-      <Modal
-        visible={showPaymentModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPaymentModal(false)}
-      >
-        <View style={styles.paymentModalOverlay}>
-          <TouchableOpacity
-            style={styles.paymentModalBackdrop}
-            activeOpacity={1}
-            onPress={() => setShowPaymentModal(false)}
-          />
-
-          <View style={[styles.paymentModalContent, { backgroundColor: colors.card }]}>
-            {/* Header */}
-            <View style={[styles.paymentHeader, { borderBottomColor: colors.border }]}>
-              <View style={styles.paymentHeaderTop}>
-                <Text style={[styles.paymentTitle, { color: colors.text }]}>
-                  {selectedSet?.name ?? "Premium Content"}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowPaymentModal(false)}
-                  style={[styles.paymentCloseBtn, isDark && { backgroundColor: "#2d2d44" }]}
-                >
-                  <Ionicons name="close" size={24} color={isDark ? "#94a3b8" : "#374151"} />
-                </TouchableOpacity>
-              </View>
-
-              {selectedSet && (
-                <View style={[styles.paymentSetInfo, isDark && { backgroundColor: colors.cardAlt }]}>
-                  <Text style={[styles.paymentSetName, { color: colors.text }]}>{selectedSet.name}</Text>
-                  <View style={styles.paymentPriceRow}>
-                    <Text style={[styles.paymentPriceLabel, { color: colors.textSecondary }]}>Total Amount:</Text>
-                    <Text style={styles.paymentPriceValue}>
-                      ${selectedSet.price.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              )}
-              {selectedCategoryForPayment && !selectedSet && (
-                <View style={styles.paymentSetInfo}>
-                  <Text style={styles.paymentSetName}>
-                    {selectedCategoryForPayment.name}
-                  </Text>
-                  <View style={styles.paymentPriceRow}>
-                    <Text style={styles.paymentPriceLabel}>Total Amount:</Text>
-                    <Text style={styles.paymentPriceValue}>
-                      ${selectedCategoryForPayment.min_price?.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.comingSoonBody}>
-              <View style={[styles.comingSoonIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-                <Ionicons name="time-outline" size={48} color={isDark ? "#a855f7" : "#7c3aed"} />
-              </View>
-              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>Payment System</Text>
-              <Text style={[styles.comingSoonSubtitle, { color: isDark ? "#a855f7" : "#7c3aed" }]}>Added Later</Text>
-              <Text style={[styles.comingSoonMsg, { color: colors.textSecondary }]}>
-                Our subscription system is coming soon. You can play this content for free right now!
-              </Text>
-              <TouchableOpacity
-                onPress={handlePlayPaidContent}
-                style={styles.comingSoonPlayBtn}
-              >
-                <Ionicons name="play-circle" size={22} color="#fff" />
-                <Text style={styles.comingSoonPlayText}>Play Now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowPaymentModal(false)}
-                style={styles.comingSoonCancelBtn}
-              >
-                <Text style={[styles.comingSoonCancelText, { color: colors.textMuted }]}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       <BookmarkToast key={toastId} visible={showToast} />
 
       {/* ─── Remove Bookmark Modal ─── */}
@@ -1018,41 +711,6 @@ export default function QuizScreen() {
         </View>
       )}
 
-      {/* ─── Login Required Modal ─── */}
-      <Modal
-        visible={showLoginModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLoginModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.loginModalSheet}>
-            <View style={styles.loginModalIconWrap}>
-              <Ionicons name="lock-closed" size={36} color="#7c3aed" />
-            </View>
-            <Text style={styles.loginModalTitle}>{t("quiz.loginRequired")}</Text>
-            <Text style={styles.loginModalMsg}>
-              {t("quiz.loginToBuy")}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowLoginModal(false);
-                router.push("/(auth)/login");
-              }}
-              style={styles.loginModalBtn}
-            >
-              <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.loginModalBtnText}>{t("quiz.goToLogin")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowLoginModal(false)}
-              style={styles.loginModalCancel}
-            >
-              <Text style={styles.loginModalCancelText}>{t("quiz.cancel")}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

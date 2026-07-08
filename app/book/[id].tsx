@@ -1,5 +1,6 @@
 // app/book/[id].tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -8,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import {
   Image,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -22,6 +24,7 @@ export default function BookReader() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   // Parse book from params
   let book = null;
@@ -70,11 +73,36 @@ export default function BookReader() {
           </TouchableOpacity>
 
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() =>
+                Share.share({
+                  message: `${book.title} by ${book.author}`,
+                })
+              }
+            >
               <Ionicons name="share-outline" size={22} color="#1F2937" />
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.iconButton, styles.iconButtonML]}>
-              <Ionicons name="bookmark-outline" size={22} color="#1F2937" />
+            <TouchableOpacity
+              style={[styles.iconButton, styles.iconButtonML]}
+              onPress={() => {
+                const item: BookmarkItem = {
+                  type: "book",
+                  id: String(book.id),
+                  title: book.title,
+                  subtitle: book.author,
+                  meta: book.duration,
+                  data: book,
+                  savedAt: Date.now(),
+                };
+                toggleBookmark(item);
+              }}
+            >
+              <Ionicons
+                name={isBookmarked("book", book.id) ? "bookmark" : "bookmark-outline"}
+                size={22}
+                color={isBookmarked("book", book.id) ? "#7c3aed" : "#1F2937"}
+              />
             </TouchableOpacity>
           </View>
         </View>

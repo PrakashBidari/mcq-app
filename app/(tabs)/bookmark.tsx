@@ -1,6 +1,6 @@
 // app/(tabs)/bookmark.tsx
 import AppHeader from "@/components/AppHeader";
-import { API_URL, SHOW_PAID_UI } from "@/config/constants";
+import { API_URL } from "@/config/constants";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,7 +45,6 @@ export default function BookmarkScreen() {
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
-  const [paymentTarget, setPaymentTarget] = useState<BookmarkItem | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
 
   useFocusEffect(useCallback(() => { reloadBookmarks(); }, []));
@@ -117,11 +116,7 @@ export default function BookmarkScreen() {
   const handleSetAction = (item: BookmarkItem) => {
     const set = item.data;
     if (!set) return;
-    if (!SHOW_PAID_UI || set.is_free || !set.is_paid) {
-      startQuiz(set.id);
-    } else {
-      setPaymentTarget(item);
-    }
+    startQuiz(set.id);
   };
 
   const renderBookItem = (item: BookmarkItem) => (
@@ -253,43 +248,17 @@ export default function BookmarkScreen() {
               {timeAgo(item.savedAt)}
             </Text>
             <View style={styles.quizCardActions}>
-              {SHOW_PAID_UI && (
-                item.data?.is_free || !item.data?.is_paid ? (
-                  <View style={styles.freeBadge}>
-                    <Text style={styles.freeBadgeText}>Free</Text>
-                  </View>
-                ) : (
-                  <View style={styles.priceBadge}>
-                    <Text style={styles.priceBadgeText}>
-                      ${(item.data?.price ?? 0).toFixed(2)}
-                    </Text>
-                  </View>
-                )
-              )}
               <TouchableOpacity
                 onPress={() => handleSetAction(item)}
                 disabled={quizLoading}
-                style={[
-                  styles.quizStartBtn,
-                  {
-                    backgroundColor: SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free
-                      ? "#7c3aed"
-                      : catColor,
-                  },
-                ]}
+                style={[styles.quizStartBtn, { backgroundColor: catColor }]}
               >
                 {quizLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons
-                      name={SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free ? "cart-outline" : "play-circle-outline"}
-                      size={14}
-                      color="#fff"
-                    />
-                    <Text style={styles.quizStartText}>
-                      {SHOW_PAID_UI && item.data?.is_paid && !item.data?.is_free ? "Buy" : "Play"}
-                    </Text>
+                    <Ionicons name="play-circle-outline" size={14} color="#fff" />
+                    <Text style={styles.quizStartText}>Play</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -445,79 +414,6 @@ export default function BookmarkScreen() {
         )}
       </ScrollView>
 
-      {/* Payment / Coming Soon Modal */}
-      <Modal
-        visible={!!paymentTarget}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPaymentTarget(null)}
-      >
-        <View style={styles.payModalOverlay}>
-          <TouchableOpacity
-            style={styles.payModalBackdrop}
-            activeOpacity={1}
-            onPress={() => setPaymentTarget(null)}
-          />
-          <Animatable.View
-            animation="slideInUp"
-            duration={280}
-            style={[styles.payModalSheet, { backgroundColor: colors.card }]}
-          >
-            <View style={[styles.payModalHeader, { borderBottomColor: colors.border }]}>
-              <View style={styles.payModalHeaderRow}>
-                <Text style={[styles.payModalTitle, { color: colors.text }]} numberOfLines={1}>
-                  {paymentTarget?.title ?? "Premium Content"}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setPaymentTarget(null)}
-                  style={[styles.payModalClose, { backgroundColor: isDark ? "#2d2d44" : "#f3f4f6" }]}
-                >
-                  <Ionicons name="close" size={20} color={isDark ? "#94a3b8" : "#374151"} />
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.payModalInfo, { backgroundColor: isDark ? colors.cardAlt : "#f9fafb" }]}>
-                <Text style={[styles.payModalSetName, { color: colors.textSecondary }]}>
-                  {paymentTarget?.subtitle}
-                </Text>
-                <View style={styles.payModalPriceRow}>
-                  <Text style={[styles.payModalPriceLabel, { color: colors.textSecondary }]}>Total Amount</Text>
-                  <Text style={styles.payModalPriceValue}>
-                    ${(paymentTarget?.data?.price ?? 0).toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.payModalBody}>
-              <View style={[styles.payModalIconWrap, isDark && { backgroundColor: "#2d1f4e" }]}>
-                <Ionicons name="time-outline" size={44} color={isDark ? "#a855f7" : "#7c3aed"} />
-              </View>
-              <Text style={[styles.payModalComingTitle, { color: colors.text }]}>Payment System</Text>
-              <Text style={[styles.payModalComingSub, { color: isDark ? "#a855f7" : "#7c3aed" }]}>Added Later</Text>
-              <Text style={[styles.payModalComingMsg, { color: colors.textSecondary }]}>
-                Our subscription system is coming soon. You can play this content for free right now!
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  const id = paymentTarget?.data?.id;
-                  setPaymentTarget(null);
-                  if (id) startQuiz(id);
-                }}
-                style={styles.payModalPlayBtn}
-              >
-                <Ionicons name="play-circle" size={20} color="#fff" />
-                <Text style={styles.payModalPlayText}>Play Now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setPaymentTarget(null)}
-                style={[styles.payModalCancelBtn, { backgroundColor: isDark ? "#1e1e30" : "#f3f4f6" }]}
-              >
-                <Text style={[styles.payModalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </Animatable.View>
-        </View>
-      </Modal>
 
       {/* Remove Confirmation Modal */}
       <Modal

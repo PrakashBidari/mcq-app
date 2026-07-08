@@ -351,7 +351,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </Text>
                 <View style={[styles.settingsList, { backgroundColor: isDark ? "#16213e" : "#fff", borderColor: isDark ? "#2d2d44" : "#f1f5f9" }]}>
                   <TouchableOpacity
-                    style={[styles.settingsItem, styles.settingsItemBorder, { borderBottomColor: isDark ? "#2d2d44" : "#f8fafc" }]}
+                    style={styles.settingsItem}
                     activeOpacity={0.7}
                     onPress={() => { onNavigate("ContactUs"); onClose(); }}
                   >
@@ -360,15 +360,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     </View>
                     <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
                       {t("sidebar.contactUs")}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7}>
-                    <View style={[styles.settingsIconContainer, { backgroundColor: isDark ? "#2d1f4e" : "#f8f4ff" }]}>
-                      <Ionicons name="star-outline" size={20} color={isDark ? "#a855f7" : "#7c3aed"} />
-                    </View>
-                    <Text style={[styles.settingsLabel, { color: isDark ? "#f1f5f9" : "#334155" }]}>
-                      {t("sidebar.rateApp")}
                     </Text>
                     <Ionicons name="chevron-forward" size={18} color={isDark ? "#ffffff50" : "#cbd5e1"} />
                   </TouchableOpacity>

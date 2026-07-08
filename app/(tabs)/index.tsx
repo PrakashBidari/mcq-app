@@ -1,6 +1,6 @@
 import BookCard from "@/components/BookCard";
 import BookmarkToast from "@/components/BookmarkToast";
-import { API_URL, SHOW_PAID_UI } from "@/config/constants";
+import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
@@ -531,9 +531,6 @@ export default function Index() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [tabFocused, setTabFocused] = useState(true);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [selectedSet, setSelectedSet] = useState<any>(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -664,19 +661,7 @@ export default function Index() {
   };
 
   const handleSearchSetAction = (set: any) => {
-    if (SHOW_PAID_UI && set.is_paid) {
-      if (!user) {
-        setShowLoginModal(true);
-        return;
-      }
-      setSelectedSet(set);
-      setShowPaymentModal(true);
-    } else startQuestionSetQuiz(set.id);
-  };
-
-  const handlePlayPaidContent = () => {
-    setShowPaymentModal(false);
-    if (selectedSet) startQuestionSetQuiz(selectedSet.id);
+    startQuestionSetQuiz(set.id);
   };
 
   const closeSearch = () => {
@@ -814,7 +799,7 @@ export default function Index() {
             onChangeText={setSearchQuery}
             returnKeyType="search"
           />
-          {searchQuery.length > 0 ? (
+          {searchQuery.length > 0 && (
             <TouchableOpacity
               onPress={closeSearch}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -823,19 +808,6 @@ export default function Index() {
                 name="close-circle"
                 size={18}
                 color={isDark ? "#64748b" : "#9ca3af"}
-              />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.filterBtn,
-                isDark && { backgroundColor: colors.cardAlt },
-              ]}
-            >
-              <Ionicons
-                name="options-outline"
-                size={16}
-                color={isDark ? "#a855f7" : "#7c3aed"}
               />
             </TouchableOpacity>
           )}
@@ -1157,9 +1129,6 @@ export default function Index() {
                 <Text style={[styles.secTitle, { color: colors.text }]}>
                   {t("home.achievements")}
                 </Text>
-                <TouchableOpacity>
-                  <Text style={styles.seeAll}>{t("home.viewAll")}</Text>
-                </TouchableOpacity>
               </View>
               <ScrollView
                 horizontal
@@ -1435,30 +1404,13 @@ export default function Index() {
                         </View>
                       </View>
                       <View style={styles.searchResultRight}>
-                        {SHOW_PAID_UI && set.is_paid ? (
-                          <>
-                            <View style={styles.paidBadge}>
-                              <Text style={styles.paidBadgeText}>
-                                ${set.price?.toFixed(2)}
-                              </Text>
-                            </View>
-                            <View style={styles.buyBtn}>
-                              <Ionicons
-                                name="cart-outline"
-                                size={13}
-                                color="#fff"
-                              />
-                            </View>
-                          </>
-                        ) : (
-                          <View style={styles.playBtn}>
-                            {quizLoading ? (
-                              <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                              <Ionicons name="play" size={13} color="#fff" />
-                            )}
-                          </View>
-                        )}
+                        <View style={styles.playBtn}>
+                          {quizLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Ionicons name="play" size={13} color="#fff" />
+                          )}
+                        </View>
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -1545,160 +1497,6 @@ export default function Index() {
         </View>
       </Modal>
 
-      {/* ═══ PAYMENT MODAL ═════════════════════ */}
-      <Modal
-        visible={showPaymentModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPaymentModal(false)}
-      >
-        <View style={styles.paymentModalOverlay}>
-          <TouchableOpacity
-            style={styles.paymentModalBackdrop}
-            activeOpacity={1}
-            onPress={() => setShowPaymentModal(false)}
-          />
-          <View
-            style={[
-              styles.paymentModalContent,
-              { backgroundColor: colors.card },
-            ]}
-          >
-            <View
-              style={[
-                styles.paymentHeader,
-                { borderBottomColor: colors.border },
-              ]}
-            >
-              <View style={styles.paymentHeaderTop}>
-                <Text style={[styles.paymentTitle, { color: colors.text }]}>
-                  {selectedSet?.name ?? "Premium Content"}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowPaymentModal(false)}
-                  style={[
-                    styles.paymentCloseBtn,
-                    isDark && { backgroundColor: "#2d2d44" },
-                  ]}
-                >
-                  <Ionicons
-                    name="close"
-                    size={22}
-                    color={isDark ? "#94a3b8" : "#374151"}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.comingSoonBody}>
-              <View
-                style={[
-                  styles.comingSoonIconWrap,
-                  isDark && { backgroundColor: "#2d1f4e" },
-                ]}
-              >
-                <Ionicons
-                  name="time-outline"
-                  size={48}
-                  color={isDark ? "#a855f7" : "#7c3aed"}
-                />
-              </View>
-              <Text style={[styles.comingSoonTitle, { color: colors.text }]}>
-                {t("home.paymentSystem")}
-              </Text>
-              <Text
-                style={[
-                  styles.comingSoonSubtitle,
-                  { color: isDark ? "#a855f7" : "#7c3aed" },
-                ]}
-              >
-                {t("home.addedLater")}
-              </Text>
-              <Text
-                style={[styles.comingSoonMsg, { color: colors.textSecondary }]}
-              >
-                {t("home.paymentComingSoon")}
-              </Text>
-              <TouchableOpacity
-                onPress={handlePlayPaidContent}
-                style={styles.comingSoonPlayBtn}
-              >
-                <Ionicons name="play-circle" size={22} color="#fff" />
-                <Text style={styles.comingSoonPlayText}>
-                  {t("home.playNow")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setShowPaymentModal(false)}
-                style={styles.comingSoonCancelBtn}
-              >
-                <Text
-                  style={[
-                    styles.comingSoonCancelText,
-                    { color: colors.textMuted },
-                  ]}
-                >
-                  {t("home.cancel")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ═══ LOGIN REQUIRED MODAL ══════════════ */}
-      <Modal
-        visible={showLoginModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLoginModal(false)}
-      >
-        <View style={styles.loginModalOverlay}>
-          <View
-            style={[styles.loginModalSheet, { backgroundColor: colors.card }]}
-          >
-            <View
-              style={[
-                styles.loginModalIconWrap,
-                isDark && { backgroundColor: "#2d1f4e" },
-              ]}
-            >
-              <Ionicons
-                name="lock-closed"
-                size={36}
-                color={isDark ? "#a855f7" : "#7c3aed"}
-              />
-            </View>
-            <Text style={[styles.loginModalTitle, { color: colors.text }]}>
-              {t("home.loginRequired")}
-            </Text>
-            <Text
-              style={[styles.loginModalMsg, { color: colors.textSecondary }]}
-            >
-              {t("home.loginToBuy")}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowLoginModal(false);
-                router.push("/(auth)/login");
-              }}
-              style={styles.loginModalBtn}
-            >
-              <Ionicons name="log-in-outline" size={20} color="#fff" />
-              <Text style={styles.loginModalBtnText}>
-                {t("home.goToLogin")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowLoginModal(false)}
-              style={styles.loginModalCancel}
-            >
-              <Text style={styles.loginModalCancelText}>
-                {t("home.cancel")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1852,33 +1650,11 @@ const styles = StyleSheet.create({
     gap: 6,
     marginLeft: 8,
   },
-  freeBadge: {
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  freeBadgeText: { color: "#059669", fontSize: 10, fontWeight: "700" },
-  paidBadge: {
-    backgroundColor: "#f3e8ff",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  paidBadgeText: { color: "#7c3aed", fontSize: 10, fontWeight: "700" },
   playBtn: {
     width: 26,
     height: 26,
     borderRadius: 7,
     backgroundColor: "#059669",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buyBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
-    backgroundColor: "#7c3aed",
     alignItems: "center",
     justifyContent: "center",
   },
