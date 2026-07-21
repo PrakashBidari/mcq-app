@@ -16,6 +16,7 @@ import {
   Dimensions,
   Image,
   ImageBackground,
+  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -243,13 +244,31 @@ const BlogCard = React.memo(function BlogCard({
   );
 });
 
+type AdData = {
+  position: string;
+  title: string;
+  description: string;
+  buttonText: string;
+  linkUrl: string | null;
+};
+
 const AdBanner = React.memo(function AdBanner({
   size = "banner",
+  ad,
 }: {
   size?: "banner" | "medium";
+  ad?: AdData | null;
 }) {
-  const isMedium = size === "medium";
   const { isDark } = useTheme();
+
+  if (!ad) return null;
+
+  const isMedium = size === "medium";
+
+  const handlePress = () => {
+    if (ad.linkUrl) Linking.openURL(ad.linkUrl).catch(() => {});
+  };
+
   return (
     <Animatable.View animation="fadeIn" duration={600}>
       <LinearGradient
@@ -293,21 +312,24 @@ const AdBanner = React.memo(function AdBanner({
               style={[adStyles.adTitle, isDark && { color: "#e2d9f3" }]}
               numberOfLines={1}
             >
-              Your Ad Here
+              {ad.title}
             </Text>
             <Text
               style={[adStyles.adDesc, isDark && { color: "#a78bfa" }]}
               numberOfLines={isMedium ? 3 : 1}
             >
-              {isMedium
-                ? "Reach thousands of learners. Connect your Google or Apple ad account to display your ads here."
-                : "Promote your product to active learners."}
+              {ad.description}
             </Text>
           </View>
           {!isMedium && (
-            <View style={adStyles.adBtn}>
-              <Text style={adStyles.adBtnTxt}>Learn</Text>
-            </View>
+            <TouchableOpacity
+              style={adStyles.adBtn}
+              onPress={handlePress}
+              activeOpacity={0.85}
+              disabled={!ad.linkUrl}
+            >
+              <Text style={adStyles.adBtnTxt}>{ad.buttonText}</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -317,9 +339,11 @@ const AdBanner = React.memo(function AdBanner({
               adStyles.adBtnFull,
               isDark && { backgroundColor: "#2d1f4e", borderColor: "#4c1d95" },
             ]}
+            onPress={handlePress}
             activeOpacity={0.85}
+            disabled={!ad.linkUrl}
           >
-            <Text style={adStyles.adBtnFullTxt}>Learn More</Text>
+            <Text style={adStyles.adBtnFullTxt}>{ad.buttonText}</Text>
             <Ionicons name="arrow-forward" size={14} color="#7c3aed" />
           </TouchableOpacity>
         )}
@@ -520,6 +544,7 @@ export default function Index() {
   const [categories, setCategories] = useState<any[]>([]);
   const [allBooks, setAllBooks] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
+  const [ads, setAds] = useState<AdData[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -635,7 +660,13 @@ export default function Index() {
         if (d.success) setBlogs(d.data.slice(0, 5));
       })
       .catch(() => {});
-    Promise.all([p1, p2, p3]).finally(() => setLoading(false));
+    const p4 = fetch(`${API_URL}/ads`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setAds(d.data);
+      })
+      .catch(() => {});
+    Promise.all([p1, p2, p3, p4]).finally(() => setLoading(false));
   };
 
   const startQuestionSetQuiz = async (setId: number) => {
@@ -897,7 +928,10 @@ export default function Index() {
             </Animatable.View>
 
             {/* Ad Banner — after hero swiper */}
-            <AdBanner size="banner" />
+            <AdBanner
+              size="banner"
+              ad={ads.find((a) => a.position === "banner")}
+            />
 
             {/* Categories */}
             <Animatable.View
@@ -1146,7 +1180,10 @@ export default function Index() {
             </Animatable.View>
 
             {/* Ad Banner — after achievements */}
-            <AdBanner size="medium" />
+            <AdBanner
+              size="medium"
+              ad={ads.find((a) => a.position === "medium")}
+            />
 
             {/* Quiz Banner */}
             <Animatable.View

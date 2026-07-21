@@ -66,7 +66,11 @@ export default function FuriganaText({
 }: FuriganaTextProps) {
   // No furigana markup → plain Text
   if (!hasFurigana(text)) {
-    return <Text style={style}>{text}</Text>;
+    return (
+      <View style={containerStyle}>
+        <Text style={style}>{text}</Text>
+      </View>
+    );
   }
 
   const segments = parseText(text);
@@ -105,9 +109,11 @@ const styles = StyleSheet.create({
     flexDirection: "row", // lay segments left to right
     flexWrap: "wrap", // wrap to next line when needed
     alignItems: "flex-end", // align bottoms: plain text aligns with kanji bottom
+    flexShrink: 1, // let the container be bound by its parent's width
   },
   plainText: {
     alignSelf: "flex-end", // extra safety: stick to bottom of row
+    flexShrink: 1, // allow long unbroken CJK runs to wrap instead of overflow
   },
   rubyBlock: {
     alignItems: "center", // center furigana over kanji

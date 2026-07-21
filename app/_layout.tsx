@@ -6,6 +6,7 @@ import { SidebarProvider } from "@/context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
 import { Stack } from "expo-router";
+import { usePreventScreenCapture } from "expo-screen-capture";
 import { useEffect } from "react";
 import { Platform, StatusBar, StyleSheet } from "react-native";
 import "../i18n";
@@ -13,6 +14,10 @@ import "./globals.css";
 
 function AppShell() {
   const { isDark } = useTheme();
+
+  // Blocks screenshots/screen recording on Android (FLAG_SECURE) and iOS 13+
+  // (secure-layer trick that makes captured content render black).
+  usePreventScreenCapture();
 
   return (
     <>
