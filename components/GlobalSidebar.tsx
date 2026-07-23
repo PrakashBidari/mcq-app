@@ -21,6 +21,8 @@ const GlobalSidebar = () => {
       router.push("/faqs");
     } else if (screen === "MyLearning") {
       router.push("/my-learning");
+    } else if (screen === "MyPurchases") {
+      router.push("/purchases");
     } else if (screen === "ContactUs") {
       router.push("/contact-us");
     } else if (screen === "AboutApp") {

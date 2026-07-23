@@ -111,6 +111,7 @@
     "settings": "設定",
     "myProfile": "マイプロフィール",
     "myLearning": "マイラーニング",
+    "myPurchases": "購入履歴",
     "faqs": "よくある質問",
     "blogs": "ブログ",
     "preferences": "環境設定",
@@ -212,7 +213,19 @@
     "errorNoQuestions": "利用可能な問題がありません",
     "errorNoQuestionsSet": "このセットに利用可能な問題がありません",
     "errorLoadSet": "問題セットの読み込みに失敗しました",
-    "errorLoadQuestions": "問題の読み込みに失敗しました"
+    "errorLoadQuestions": "問題の読み込みに失敗しました",
+    "free": "無料",
+    "paid": "有料",
+    "owned": "購入済み",
+    "payButton": "{{price}} で購入",
+    "purchaseRequiredTitle": "この問題セットを購入",
+    "purchaseRequiredMessage": "この問題セットを解放するための一回限りの購入",
+    "purchaseSuccessTitle": "購入が完了しました！",
+    "purchaseSuccess": "この問題セットが解放されました。",
+    "purchaseFailed": "購入に失敗しました。もう一度お試しください。",
+    "purchaseUnavailable": "この商品は現在購入できません。後でもう一度お試しください。",
+    "loginRequiredForPurchase": "ログインが必要です",
+    "loginRequiredForPurchaseMessage": "この問題セットを購入するにはログインしてください。"
   },
   "study": {
     "title": "スタディライブラリ",
@@ -480,5 +493,15 @@
     "noBooksAvailable": "書籍はありません",
     "checkBackLater": "新しいコンテンツは後でご確認ください",
     "students": "人の学習者"
+  },
+  "purchases": {
+    "title": "購入履歴",
+    "subtitle": "購入済みの問題セット",
+    "empty": "まだ問題セットを購入していません。",
+    "recheckButton": "購入状況を再確認",
+    "recheckSuccess": "購入情報は最新です。",
+    "recheckFailed": "購入情報を更新できませんでした。もう一度お試しください。",
+    "loadingPurchases": "購入履歴を読み込み中...",
+    "purchasedOn": "{{date}} に購入"
   }
 }

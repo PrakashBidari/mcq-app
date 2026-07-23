@@ -119,6 +119,14 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       bgColor: "#dbeafe",
     },
     {
+      id: "purchases",
+      title: t("sidebar.myPurchases"),
+      icon: "receipt",
+      screen: "MyPurchases",
+      color: "#f59e0b",
+      bgColor: "#fef3c7",
+    },
+    {
       id: "faqs",
       title: t("sidebar.faqs"),
       icon: "help-circle",

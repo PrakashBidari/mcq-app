@@ -5,6 +5,7 @@ import { LanguageProvider } from "@/context/LanguageContext";
 import { SidebarProvider } from "@/context/SidebarContext";
 import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
+import { initGlobalPurchaseHandling } from "@/utils/purchases";
 import { Stack } from "expo-router";
 import { usePreventScreenCapture } from "expo-screen-capture";
 import { useEffect } from "react";
@@ -34,6 +35,7 @@ function AppShell() {
 export default function RootLayout() {
   useEffect(() => {
     ThemeManager.initialize();
+    initGlobalPurchaseHandling();
   }, []);
 
   return (

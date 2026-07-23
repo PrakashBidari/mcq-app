@@ -1,7 +1,15 @@
 // app/(tabs)/quiz.tsx
 import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { quizStore } from "@/utils/quizStore";
+import { formatYen } from "@/utils/currency";
+import {
+  buyQuestionSet,
+  onPurchaseFailed,
+  onPurchaseUnlocked,
+  PURCHASE_CANCELLED_CODE,
+} from "@/utils/purchases";
 import BookmarkToast from "@/components/BookmarkToast";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
@@ -33,6 +41,8 @@ interface Category {
   color: string;
   icon: string | null;
   question_sets_count: number;
+  free_sets_count?: number;
+  paid_sets_count?: number;
 }
 
 interface QuestionSet {
@@ -40,6 +50,19 @@ interface QuestionSet {
   name: string;
   description: string;
   questions_count: number;
+  is_paid?: boolean;
+  price?: number | null;
+  price_tier?: string | null;
+  is_owned?: boolean;
+}
+
+interface PurchaseRequiredInfo {
+  question_set_id: number;
+  question_set_name?: string;
+  price: number;
+  price_tier: string | null;
+  ios_product_id: string | null;
+  android_product_id: string | null;
 }
 
 const CAT_ICONS: Record<string, string> = {
@@ -58,6 +81,7 @@ function getCatIcon(name: string, fallback?: string | null): string {
 export default function QuizScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const { token, isAuthenticated } = useAuth();
 
   const { isBookmarked, toggleBookmark, reload: reloadBookmarks } = useBookmarks();
   const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
@@ -84,6 +108,53 @@ export default function QuizScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [totalQuestionsInCategory, setTotalQuestionsInCategory] = useState(0);
+
+  // Purchase flow state
+  const [payTarget, setPayTarget] = useState<PurchaseRequiredInfo | null>(null);
+  const [purchasingSetId, setPurchasingSetId] = useState<number | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [priceTiers, setPriceTiers] = useState<
+    Record<string, { ios_product_id: string; android_product_id: string }>
+  >({});
+
+  useEffect(() => {
+    fetch(`${API_URL}/price-tiers`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) return;
+        const map: Record<string, { ios_product_id: string; android_product_id: string }> = {};
+        for (const tier of data.data.tiers) {
+          map[tier.tier] = {
+            ios_product_id: tier.ios_product_id,
+            android_product_id: tier.android_product_id,
+          };
+        }
+        setPriceTiers(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const unsubUnlock = onPurchaseUnlocked((questionSetId) => {
+      setPurchasingSetId(null);
+      setPayTarget(null);
+      if (selectedCategory) fetchQuestionSets(selectedCategory.id);
+      Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
+        { text: t("quiz.startQuiz"), onPress: () => startQuestionSetQuiz(questionSetId) },
+      ]);
+    });
+    const unsubFail = onPurchaseFailed((_productId, code) => {
+      setPurchasingSetId(null);
+      if (code !== PURCHASE_CANCELLED_CODE) {
+        Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
+      }
+    });
+    return () => {
+      unsubUnlock();
+      unsubFail();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory]);
 
   useEffect(() => {
     fetchCategories();
@@ -157,7 +228,10 @@ export default function QuizScreen() {
         `${API_URL}/categories/${selectedCategory.id}/random-questions`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ count: numQuestions }),
         },
       );
@@ -181,8 +255,17 @@ export default function QuizScreen() {
   const startQuestionSetQuiz = async (setId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/question-set/${setId}`);
+      const response = await fetch(`${API_URL}/question-set/${setId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await response.json();
+
+      if (response.status === 403 && data.reason === "purchase_required") {
+        const set = questionSets.find((s) => s.id === setId);
+        setPayTarget({ ...data.data, question_set_name: set?.name });
+        return;
+      }
+
       if (data.success && data.data.questions.length > 0) {
         quizStore.setQuestions(data.data.questions);
         router.push({
@@ -199,6 +282,42 @@ export default function QuizScreen() {
       Alert.alert(t("common.error"), t("quiz.errorLoadSet"));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBuyPress = (set: QuestionSet) => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    const tierIds = set.price_tier ? priceTiers[set.price_tier] : undefined;
+    setPayTarget({
+      question_set_id: set.id,
+      question_set_name: set.name,
+      price: set.price ?? 0,
+      price_tier: set.price_tier ?? null,
+      ios_product_id: tierIds?.ios_product_id ?? null,
+      android_product_id: tierIds?.android_product_id ?? null,
+    });
+  };
+
+  const confirmPurchase = async () => {
+    if (!payTarget || !payTarget.price_tier) {
+      Alert.alert(t("common.error"), t("quiz.purchaseUnavailable"));
+      setPayTarget(null);
+      return;
+    }
+    setPurchasingSetId(payTarget.question_set_id);
+    try {
+      await buyQuestionSet({
+        questionSetId: payTarget.question_set_id,
+        priceTier: payTarget.price_tier,
+        iosProductId: payTarget.ios_product_id,
+        androidProductId: payTarget.android_product_id,
+      });
+    } catch {
+      setPurchasingSetId(null);
+      Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
     }
   };
 
@@ -277,6 +396,18 @@ export default function QuizScreen() {
                           {category.question_sets_count} {t("quiz.questionSets")}
                         </Text>
                       </View>
+                      {!!category.paid_sets_count && (
+                        <View style={styles.categoryCountBadge}>
+                          {!!category.free_sets_count && (
+                            <Text style={styles.categoryFreeCountText}>
+                              {category.free_sets_count} {t("quiz.free")}
+                            </Text>
+                          )}
+                          <Text style={styles.categoryPaidCountText}>
+                            {category.paid_sets_count} {t("quiz.paid")}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <TouchableOpacity
                       onPress={(e) => {
@@ -416,7 +547,25 @@ export default function QuizScreen() {
           {questionSets.map((set) => (
             <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
               <View style={styles.setCardInner}>
-                <Text style={[styles.setName, { color: colors.text }]}>{set.name}</Text>
+                <View style={styles.setNameRow}>
+                  <Text style={[styles.setName, { color: colors.text, flex: 1 }]}>{set.name}</Text>
+                  {set.is_paid ? (
+                    set.is_owned ? (
+                      <View style={styles.freeBadge}>
+                        <Text style={styles.freeBadgeText}>{t("quiz.owned")}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.priceBadge}>
+                        <Ionicons name="pricetag" size={12} color="#7c3aed" />
+                        <Text style={styles.priceText}>{formatYen(set.price ?? 0)}</Text>
+                      </View>
+                    )
+                  ) : (
+                    <View style={styles.freeBadge}>
+                      <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
+                    </View>
+                  )}
+                </View>
                 {set.description && (
                   <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{set.description}</Text>
                 )}
@@ -433,29 +582,43 @@ export default function QuizScreen() {
 
                 <View style={styles.setCardActions}>
                   <TouchableOpacity
-                    onPress={() => startQuestionSetQuiz(set.id)}
+                    onPress={() =>
+                      set.is_paid && !set.is_owned
+                        ? handleBuyPress(set)
+                        : startQuestionSetQuiz(set.id)
+                    }
+                    disabled={purchasingSetId === set.id}
                     style={[
                       styles.setStartButton,
                       {
                         flex: 1,
                         marginRight: 8,
                         backgroundColor: selectedCategory.color + "15",
+                        opacity: purchasingSetId === set.id ? 0.6 : 1,
                       },
                     ]}
                   >
-                    <Ionicons
-                      name="play-circle-outline"
-                      size={18}
-                      color={selectedCategory.color}
-                    />
-                    <Text
-                      style={[
-                        styles.setStartText,
-                        { color: selectedCategory.color },
-                      ]}
-                    >
-                      {t("quiz.startThisSet")}
-                    </Text>
+                    {purchasingSetId === set.id ? (
+                      <ActivityIndicator size="small" color={selectedCategory.color} />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name={set.is_paid && !set.is_owned ? "card-outline" : "play-circle-outline"}
+                          size={18}
+                          color={selectedCategory.color}
+                        />
+                        <Text
+                          style={[
+                            styles.setStartText,
+                            { color: selectedCategory.color },
+                          ]}
+                        >
+                          {set.is_paid && !set.is_owned
+                            ? t("quiz.payButton", { price: formatYen(set.price ?? 0) })
+                            : t("quiz.startThisSet")}
+                        </Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
@@ -647,6 +810,101 @@ export default function QuizScreen() {
       </Modal>
 
       <BookmarkToast key={toastId} visible={showToast} />
+
+      {/* ─── Purchase Confirmation Modal ─── */}
+      <Modal
+        visible={!!payTarget}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPayTarget(null)}
+      >
+        <View style={styles.paymentModalOverlay}>
+          <TouchableOpacity
+            style={styles.paymentModalBackdrop}
+            activeOpacity={1}
+            onPress={() => setPayTarget(null)}
+          />
+          <View style={styles.paymentModalContent}>
+            <View style={styles.paymentHeader}>
+              <View style={styles.paymentHeaderTop}>
+                <Text style={styles.paymentTitle}>{t("quiz.purchaseRequiredTitle")}</Text>
+                <TouchableOpacity
+                  onPress={() => setPayTarget(null)}
+                  style={styles.paymentCloseBtn}
+                >
+                  <Ionicons name="close" size={24} color="#374151" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.comingSoonBody}>
+              <View style={styles.comingSoonIconWrap}>
+                <Ionicons name="lock-closed" size={36} color="#7c3aed" />
+              </View>
+              {!!payTarget?.question_set_name && (
+                <Text style={styles.comingSoonTitle}>{payTarget.question_set_name}</Text>
+              )}
+              <Text style={styles.comingSoonSubtitle}>{formatYen(payTarget?.price ?? 0)}</Text>
+              <Text style={styles.comingSoonMsg}>{t("quiz.purchaseRequiredMessage")}</Text>
+              <TouchableOpacity
+                onPress={confirmPurchase}
+                disabled={purchasingSetId !== null}
+                style={[styles.comingSoonPlayBtn, { opacity: purchasingSetId !== null ? 0.6 : 1 }]}
+              >
+                {purchasingSetId !== null ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="lock-closed" size={18} color="#fff" />
+                    <Text style={styles.comingSoonPlayText}>
+                      {t("quiz.payButton", { price: formatYen(payTarget?.price ?? 0) })}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPayTarget(null)}
+                style={styles.comingSoonCancelBtn}
+              >
+                <Text style={styles.comingSoonCancelText}>{t("quiz.cancel")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Login Required Modal ─── */}
+      <Modal
+        visible={showLoginPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLoginPrompt(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.loginModalSheet}>
+            <View style={styles.loginModalIconWrap}>
+              <Ionicons name="lock-closed" size={32} color="#7c3aed" />
+            </View>
+            <Text style={styles.loginModalTitle}>{t("quiz.loginRequiredForPurchase")}</Text>
+            <Text style={styles.loginModalMsg}>{t("quiz.loginRequiredForPurchaseMessage")}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowLoginPrompt(false);
+                router.push("/(auth)/login");
+              }}
+              style={styles.loginModalBtn}
+            >
+              <Ionicons name="log-in-outline" size={18} color="#fff" />
+              <Text style={styles.loginModalBtnText}>{t("auth.login.signIn")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowLoginPrompt(false)}
+              style={styles.loginModalCancel}
+            >
+              <Text style={styles.loginModalCancelText}>{t("quiz.cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ─── Remove Bookmark Modal ─── */}
       <Modal
@@ -910,15 +1168,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // ── NEW: Price Badges ──
+  // ── Price / Free / Owned Badges ──
   freeBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
     backgroundColor: "#10b981",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+    marginLeft: 8,
   },
   freeBadgeText: {
     color: "#ffffff",
@@ -926,15 +1182,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   priceBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
     backgroundColor: "#f3e8ff",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
+    marginLeft: 8,
   },
   priceText: {
     color: "#7c3aed",
@@ -943,11 +1197,15 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
 
+  setNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   setName: {
     color: "#111827",
     fontWeight: "700",
     fontSize: 16,
-    marginBottom: 8,
     letterSpacing: 0.1,
   },
   setDesc: {
@@ -1132,32 +1390,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  paymentSetInfo: {
-    backgroundColor: "#f9fafb",
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 12,
-  },
-  paymentSetName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  paymentPriceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  paymentPriceLabel: {
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  paymentPriceValue: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#7c3aed",
-  },
   comingSoonBody: {
     padding: 28,
     alignItems: "center",
@@ -1232,41 +1464,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  categoryPriceBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "#f3e8ff",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  categoryPriceText: {
-    color: "#7c3aed",
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 4,
-  },
-
-  categoryFreeBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "#10b981",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-
-  categoryFreeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
   categoryStartButton: {
     marginTop: 12,
     transform: [{ translateY: 18 }],
@@ -1285,12 +1482,10 @@ const styles = StyleSheet.create({
   },
 
   categoryCountBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    marginTop: 6,
   },
   categoryFreeCountText: {
     color: "#fff",

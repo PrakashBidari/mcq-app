@@ -628,20 +628,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  freeBadge: {
-    backgroundColor: "#dcfce7",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  freeBadgeText: { color: "#059669", fontSize: 12, fontWeight: "700" },
-  priceBadge: {
-    backgroundColor: "#f3e8ff",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  priceBadgeText: { color: "#7c3aed", fontSize: 12, fontWeight: "700" },
   quizStartBtn: {
     flexDirection: "row",
     alignItems: "center",

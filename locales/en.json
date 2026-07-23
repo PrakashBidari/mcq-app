@@ -111,6 +111,7 @@
     "settings": "SETTINGS",
     "myProfile": "My Profile",
     "myLearning": "My Learning",
+    "myPurchases": "My Purchases",
     "faqs": "FAQs",
     "blogs": "Blogs",
     "preferences": "Preferences",
@@ -212,7 +213,19 @@
     "errorNoQuestions": "No questions available",
     "errorNoQuestionsSet": "No questions available in this set",
     "errorLoadSet": "Failed to load question set",
-    "errorLoadQuestions": "Failed to load questions"
+    "errorLoadQuestions": "Failed to load questions",
+    "free": "Free",
+    "paid": "Paid",
+    "owned": "Owned",
+    "payButton": "Pay {{price}}",
+    "purchaseRequiredTitle": "Unlock This Question Set",
+    "purchaseRequiredMessage": "One-time purchase to unlock this question set",
+    "purchaseSuccessTitle": "Purchase Successful!",
+    "purchaseSuccess": "This question set is now unlocked.",
+    "purchaseFailed": "Purchase failed. Please try again.",
+    "purchaseUnavailable": "This item isn't available for purchase yet. Please try again later.",
+    "loginRequiredForPurchase": "Login Required",
+    "loginRequiredForPurchaseMessage": "Please sign in to purchase this question set."
   },
   "study": {
     "title": "Study Library",
@@ -480,5 +493,15 @@
     "noBooksAvailable": "No books available",
     "checkBackLater": "Check back later for new content",
     "students": "students"
+  },
+  "purchases": {
+    "title": "My Purchases",
+    "subtitle": "Question sets you've unlocked",
+    "empty": "You haven't purchased any question sets yet.",
+    "recheckButton": "Re-check My Purchases",
+    "recheckSuccess": "Your purchases are up to date.",
+    "recheckFailed": "Couldn't refresh purchases. Please try again.",
+    "loadingPurchases": "Loading your purchases...",
+    "purchasedOn": "Purchased on {{date}}"
   }
 }
