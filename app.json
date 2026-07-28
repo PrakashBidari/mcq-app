@@ -46,6 +46,7 @@
       ],
       "expo-localization",
       "expo-secure-store",
+      "react-native-screenguard",
       [
         "expo-image-picker",
         {

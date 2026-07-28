@@ -7,18 +7,24 @@ import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
 import { initGlobalPurchaseHandling } from "@/utils/purchases";
 import { Stack } from "expo-router";
-import { usePreventScreenCapture } from "expo-screen-capture";
 import { useEffect } from "react";
 import { Platform, StatusBar, StyleSheet } from "react-native";
+import ScreenGuardModule from "react-native-screenguard";
 import "../i18n";
 import "./globals.css";
 
 function AppShell() {
   const { isDark } = useTheme();
 
-  // Blocks screenshots/screen recording on Android (FLAG_SECURE) and iOS 13+
-  // (secure-layer trick that makes captured content render black).
-  usePreventScreenCapture();
+  // Android: FLAG_SECURE blocks the screenshot outright.
+  // iOS: OS-level secure-content redaction makes the captured screenshot/recording
+  // render solid black, even though the live screen looks completely normal.
+  useEffect(() => {
+    ScreenGuardModule.initSettings({
+      enableCapture: false,
+      enableContentMultitask: false,
+    }).then(() => ScreenGuardModule.register({ backgroundColor: "#000000" }));
+  }, []);
 
   return (
     <>

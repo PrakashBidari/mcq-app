@@ -17,21 +17,6 @@ import {
 import * as Animatable from "react-native-animatable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-let ScreenshotPrevent: any = null;
-try {
-  ScreenshotPrevent = require("react-native-screenshot-prevent").default;
-} catch (e) {
-  ScreenshotPrevent = {
-    enabled: () => {},
-    ScreenshotPreventView: ({ children, style }: any) =>
-      require("react-native").createElement(
-        require("react-native").View,
-        { style },
-        children,
-      ),
-  };
-}
-
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
 const getDifficultyColor = (d: string) => {
@@ -99,11 +84,6 @@ export default function QuizPlay() {
 
   useEffect(() => {
     if (allQuestions === null) router.back();
-  }, []);
-
-  useEffect(() => {
-    ScreenshotPrevent.enabled(true);
-    return () => { ScreenshotPrevent.enabled(false); };
   }, []);
 
   // ── Stable callbacks — before early return (hooks rule) ──
