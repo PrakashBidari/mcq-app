@@ -195,6 +195,7 @@
     "backToParent": "Back to {{name}}",
     "categoryLabel": "CATEGORY",
     "questionSets": "question sets",
+    "packages": "packages",
     "totalQuestions": "total questions",
     "fullCategoryQuiz": "Free Question Set Quiz",
     "randomQuestions": "Random questions from free sets",

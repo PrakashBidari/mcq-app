@@ -195,6 +195,7 @@
     "backToParent": "{{name}}へ戻る",
     "categoryLabel": "カテゴリー",
     "questionSets": "問題セット",
+    "packages": "パッケージ",
     "totalQuestions": "問題合計",
     "fullCategoryQuiz": "無料問題セットクイズ",
     "randomQuestions": "無料セットからランダムな問題",

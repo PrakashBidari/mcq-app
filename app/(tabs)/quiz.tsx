@@ -43,6 +43,7 @@ interface Category {
   question_sets_count: number;
   free_sets_count?: number;
   paid_sets_count?: number;
+  packages_count?: number;
   has_children?: boolean;
 }
 
@@ -743,6 +744,14 @@ export default function QuizScreen() {
                           {sub.question_sets_count} {t("quiz.questionSets")}
                         </Text>
                       </View>
+                      {!!sub.packages_count && (
+                        <View style={styles.categoryMeta}>
+                          <Ionicons name="albums-outline" size={16} color={isDark ? "#64748b" : "#6b7280"} />
+                          <Text style={[styles.categoryMetaText, { color: colors.textSecondary }]}>
+                            {sub.packages_count} {t("quiz.packages")}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                 </TouchableOpacity>
