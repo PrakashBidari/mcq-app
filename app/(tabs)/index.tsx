@@ -1127,6 +1127,7 @@ export default function Index() {
                         book={book}
                         index={index}
                         categories={categories}
+                        showCategoryBadge={false}
                         isBookmarked={isBookmarked("book", book.id)}
                         onBookmarkToggle={() => {
                           const item: BookmarkItem = {

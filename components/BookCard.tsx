@@ -34,6 +34,7 @@ interface BookCardProps {
   categories: Category[];
   isBookmarked?: boolean;
   onBookmarkToggle?: () => void;
+  showCategoryBadge?: boolean;
 }
 
 const getDifficultyColor = (difficulty: string) => {
@@ -45,7 +46,7 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-const BookCard = ({ book, index, categories = [], isBookmarked = false, onBookmarkToggle }: BookCardProps) => {
+const BookCard = ({ book, index, categories = [], isBookmarked = false, onBookmarkToggle, showCategoryBadge = true }: BookCardProps) => {
   return (
     <Animatable.View animation="fadeInUp" delay={index * 50} style={{ marginBottom: 16 }}>
       <TouchableOpacity
@@ -73,17 +74,22 @@ const BookCard = ({ book, index, categories = [], isBookmarked = false, onBookma
             <LinearGradient colors={["transparent", "rgba(0,0,0,0.8)"]} className="absolute inset-0" />
 
             {/* Category Badge */}
-            <View className="absolute top-3 left-3">
-              <View
-                className="px-2 py-1 rounded-full"
-                style={{
-                  backgroundColor:
-                    (categories.find((c) => c.id === book.categoryId)?.color ?? "#667eea") + "DD",
-                }}
-              >
-                <Text className="text-white text-xs font-bold">{book.category}</Text>
+            {showCategoryBadge && book.category && (
+              <View className="absolute top-3 left-3 right-12">
+                <View
+                  className="self-start px-2 py-1 rounded-full"
+                  style={{
+                    maxWidth: "100%",
+                    backgroundColor:
+                      (categories.find((c) => c.id === book.categoryId)?.color ?? "#667eea") + "DD",
+                  }}
+                >
+                  <Text className="text-white text-xs font-bold" numberOfLines={1}>
+                    {book.category}
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Rating */}
             <View className="absolute bottom-3 left-3 bg-white/90 backdrop-blur px-2 py-1 rounded-full flex-row items-center">

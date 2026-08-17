@@ -43,3 +43,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# tracked locally only
+app.json
+package.json
+package-lock.json

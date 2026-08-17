@@ -337,7 +337,7 @@ export default function QuizScreen() {
           <View style={styles.gradientCategoryIcon}>
             <Ionicons name={categoryIcon as any} size={24} color="white" />
           </View>
-          <View>
+          <View style={styles.gradientCategoryTextWrap}>
             <Text style={styles.gradientLabel}>{t("quiz.categoryLabel")}</Text>
             <Text style={styles.gradientTitle}>{selectedCategory.name}</Text>
           </View>
@@ -751,9 +751,10 @@ const styles = StyleSheet.create({
   },
   gradientTitle: {
     color: "#ffffff",
-    fontSize: 28,
+    fontSize: 23,
     fontWeight: "900",
     marginBottom: 4,
+    flexShrink: 1,
   },
   gradientSubtitle: {
     color: "rgba(255,255,255,0.8)",
@@ -783,6 +784,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+  },
+  gradientCategoryTextWrap: {
+    flex: 1,
   },
   categoryCard: {
     backgroundColor: "#ffffff",
