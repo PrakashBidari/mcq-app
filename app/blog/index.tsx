@@ -21,14 +21,17 @@ export default function BlogListScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [blogsData, setBlogsData] = useState([]);
+  // 0 = "All". Matched against blog.categoryId (BlogCategory id) rather than the
+  // category name string, same as how Book categories are matched.
+  const [selectedCategory, setSelectedCategory] = useState(0);
+  const [blogsData, setBlogsData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch blogs from API
   useEffect(() => {
     fetchBlogs();
+    fetchCategories();
   }, []);
 
   const fetchBlogs = async () => {
@@ -47,18 +50,22 @@ export default function BlogListScreen() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_URL}/blog-categories`);
+      const data = await response.json();
+      if (data.success) setCategories(data.data);
+    } catch {
+      // non-fatal - filter chips just won't show
+    }
+  };
+
   // Pull to refresh
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchBlogs();
+    await Promise.all([fetchBlogs(), fetchCategories()]);
     setRefreshing(false);
   };
-
-  // Get unique categories
-  const categories = [
-    "All",
-    ...Array.from(new Set(blogsData.map((blog: any) => blog.category))),
-  ];
 
   // Filter blogs
   const filteredBlogs = blogsData.filter((blog: any) => {
@@ -66,7 +73,7 @@ export default function BlogListScreen() {
       blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "All" || blog.category === selectedCategory;
+      selectedCategory === 0 || blog.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -124,52 +131,49 @@ export default function BlogListScreen() {
         }}
         style={{ maxHeight: 50 }}
       >
-        {categories.map((category) => {
-          const count =
-            category === "All"
-              ? blogsData.length
-              : blogsData.filter((b: any) => b.category === category).length;
+        {[{ id: 0, name: t("study.allCategories"), icon: "grid-outline" }, ...categories].map(
+          (category) => {
+            const isSelected = selectedCategory === category.id;
+            const count =
+              category.id === 0
+                ? blogsData.length
+                : blogsData.filter((b: any) => b.categoryId === category.id).length;
 
-          return (
-            <TouchableOpacity
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              className={`px-3 py-1.5 rounded-lg ${
-                selectedCategory === category ? "bg-purple-600" : "bg-gray-50"
-              }`}
-              activeOpacity={0.7}
-            >
-              <View className="flex-row items-center">
-                <Text
-                  className={`text-xs font-semibold ${
-                    selectedCategory === category
-                      ? "text-white"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {category}
-                </Text>
-                <View
-                  className={`ml-1.5 px-1.5 py-0.5 rounded-full min-w-[18px] items-center ${
-                    selectedCategory === category
-                      ? "bg-purple-500"
-                      : "bg-gray-200"
-                  }`}
-                >
+            return (
+              <TouchableOpacity
+                key={category.id}
+                onPress={() => setSelectedCategory(category.id)}
+                className={`px-3 py-1.5 rounded-lg ${isSelected ? "bg-purple-600" : "bg-gray-50"}`}
+                activeOpacity={0.7}
+              >
+                <View className="flex-row items-center">
+                  <Ionicons
+                    name={(category.icon ?? "pricetag-outline") as any}
+                    size={13}
+                    color={isSelected ? "#fff" : "#9333ea"}
+                    style={{ marginRight: 4 }}
+                  />
                   <Text
-                    className={`text-[10px] font-bold ${
-                      selectedCategory === category
-                        ? "text-white"
-                        : "text-gray-600"
+                    className={`text-xs font-semibold ${isSelected ? "text-white" : "text-gray-600"}`}
+                  >
+                    {category.name}
+                  </Text>
+                  <View
+                    className={`ml-1.5 px-1.5 py-0.5 rounded-full min-w-[18px] items-center ${
+                      isSelected ? "bg-purple-500" : "bg-gray-200"
                     }`}
                   >
-                    {count}
-                  </Text>
+                    <Text
+                      className={`text-[10px] font-bold ${isSelected ? "text-white" : "text-gray-600"}`}
+                    >
+                      {count}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+              </TouchableOpacity>
+            );
+          },
+        )}
       </ScrollView>
 
       {/* Blog List - 2 Columns */}

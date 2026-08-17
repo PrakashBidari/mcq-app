@@ -40,8 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (savedToken && savedUser) {
         try {
+          // An unreachable API must never hang app startup forever - fall back to the
+          // cached session (same as the catch block below) if it doesn't answer in time.
           const response = await fetch(`${API_URL}/user`, {
             headers: { Authorization: `Bearer ${savedToken}` },
+            signal: AbortSignal.timeout(8000),
           });
 
           if (response.status === 401) {

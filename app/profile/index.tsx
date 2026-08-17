@@ -85,9 +85,10 @@ export default function ProfileScreen() {
       }
 
       if (response.status === 401) {
-        Alert.alert(t("profile.errorSessionExpired"), t("profile.errorLoginAgain"));
-        await AsyncStorage.removeItem("auth_token");
-        router.replace("/(tabs)");
+        await logout();
+        Alert.alert(t("profile.errorSessionExpired"), t("profile.errorLoginAgain"), [
+          { text: "OK", onPress: () => router.replace("/(auth)/login") },
+        ]);
         return;
       }
 
@@ -201,7 +202,6 @@ export default function ProfileScreen() {
 
     try {
       setPasswordLoading(true);
-      const token = await AsyncStorage.getItem("auth_token");
 
       const response = await fetch(`${API_URL}/change-password`, {
         method: "POST",

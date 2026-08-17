@@ -32,7 +32,7 @@ const CAT_ICONS: Record<string, string> = {
 };
 
 function getCatIcon(cat: any): string {
-  return CAT_ICONS[cat.name] ?? cat.icon ?? "folder-outline";
+  return cat.icon ?? CAT_ICONS[cat.name] ?? "folder-outline";
 }
 
 export default function Study() {
@@ -85,7 +85,9 @@ export default function Study() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const categoriesResponse = await fetch(`${API_URL}/categories`);
+      // Books are filed under BookCategory (a separate table from quiz Category /
+      // SSW/JLPT), matched via book.category_id - must fetch the matching list here.
+      const categoriesResponse = await fetch(`${API_URL}/book-categories`);
       const categoriesData = await categoriesResponse.json();
 
       if (categoriesData.success) {

@@ -12,6 +12,7 @@
 // clear error until a real native build exists.
 import { API_URL } from "@/config/constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import type { Purchase, PurchaseError } from "react-native-iap";
@@ -20,8 +21,17 @@ type IapModule = typeof import("react-native-iap");
 
 let iapModule: IapModule | null | undefined;
 
+// In Expo Go, react-native-iap's native Nitro module can never exist (no native rebuild
+// is possible there) - calling require() would still log its own noisy diagnostic error
+// even though we catch the throw, so skip the require entirely rather than just catching it.
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 function loadIap(): IapModule | null {
   if (iapModule !== undefined) return iapModule;
+  if (isExpoGo) {
+    iapModule = null;
+    return iapModule;
+  }
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     iapModule = require("react-native-iap") as IapModule;
@@ -35,11 +45,22 @@ export const PURCHASE_CANCELLED_CODE = "user-cancelled";
 
 const PENDING_INTENTS_KEY = "pending_purchase_intents";
 
+export type PurchaseType = "question_set" | "package" | "attempt_pack" | "subscription";
+
 export interface PurchaseIntent {
   productId: string; // the sku actually passed to requestPurchase for this platform
-  questionSetId: number;
-  priceTier: string;
+  purchaseType: PurchaseType;
+  targetId: number; // question_set_id | package_id | attempt_pack_id | subscription_plan_id
+  priceTier: string; // the tier/product key used for the backend verify() call
 }
+
+// Backend field name for the target id varies by purchase type.
+const TARGET_ID_FIELD: Record<PurchaseType, string> = {
+  question_set: "question_set_id",
+  package: "package_id",
+  attempt_pack: "attempt_pack_id",
+  subscription: "subscription_plan_id",
+};
 
 async function getPendingIntents(): Promise<PurchaseIntent[]> {
   const raw = await AsyncStorage.getItem(PENDING_INTENTS_KEY);
@@ -65,7 +86,7 @@ async function removePendingIntent(productId: string) {
 let connected = false;
 let listenersStarted = false;
 
-type UnlockListener = (questionSetId: number) => void;
+type UnlockListener = (unlock: { purchaseType: PurchaseType; targetId: number }) => void;
 type FailureListener = (productId: string, message: string) => void;
 
 const unlockListeners = new Set<UnlockListener>();
@@ -103,7 +124,8 @@ async function verifyWithBackend(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        question_set_id: intent.questionSetId,
+        purchase_type: intent.purchaseType,
+        [TARGET_ID_FIELD[intent.purchaseType]]: intent.targetId,
         platform,
         product_id: intent.productId,
         price_tier: intent.priceTier,
@@ -127,7 +149,9 @@ async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
   if (unlocked) {
     await iap.finishTransaction({ purchase, isConsumable: true });
     await removePendingIntent(purchase.productId);
-    unlockListeners.forEach((listener) => listener(intent.questionSetId));
+    unlockListeners.forEach((listener) =>
+      listener({ purchaseType: intent.purchaseType, targetId: intent.targetId }),
+    );
   } else {
     // Leave the intent and the unfinished transaction in place - it will be replayed
     // and retried the next time the store connection is (re)established.
@@ -169,8 +193,9 @@ export async function closeIapConnection() {
   connected = false;
 }
 
-export async function buyQuestionSet(params: {
-  questionSetId: number;
+export async function buyItem(params: {
+  purchaseType: PurchaseType;
+  targetId: number;
   priceTier: string;
   iosProductId: string | null;
   androidProductId: string | null;
@@ -187,7 +212,8 @@ export async function buyQuestionSet(params: {
 
   await savePendingIntent({
     productId,
-    questionSetId: params.questionSetId,
+    purchaseType: params.purchaseType,
+    targetId: params.targetId,
     priceTier: params.priceTier,
   });
 
@@ -197,5 +223,21 @@ export async function buyQuestionSet(params: {
       apple: { sku: productId },
       google: { skus: [productId] },
     },
+  });
+}
+
+// Thin wrapper kept for existing call sites - buys a single question set outright.
+export async function buyQuestionSet(params: {
+  questionSetId: number;
+  priceTier: string;
+  iosProductId: string | null;
+  androidProductId: string | null;
+}) {
+  return buyItem({
+    purchaseType: "question_set",
+    targetId: params.questionSetId,
+    priceTier: params.priceTier,
+    iosProductId: params.iosProductId,
+    androidProductId: params.androidProductId,
   });
 }

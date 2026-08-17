@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { quizStore } from "@/utils/quizStore";
 import { formatYen } from "@/utils/currency";
 import {
-  buyQuestionSet,
+  buyItem,
   onPurchaseFailed,
   onPurchaseUnlocked,
   PURCHASE_CANCELLED_CODE,
@@ -43,6 +43,7 @@ interface Category {
   question_sets_count: number;
   free_sets_count?: number;
   paid_sets_count?: number;
+  has_children?: boolean;
 }
 
 interface QuestionSet {
@@ -53,12 +54,40 @@ interface QuestionSet {
   is_paid?: boolean;
   price?: number | null;
   price_tier?: string | null;
+  trial_enabled?: boolean;
+  trial_type?: "attempts" | "days" | null;
+  trial_value?: number | null;
   is_owned?: boolean;
+  trial_available?: boolean;
 }
 
-interface PurchaseRequiredInfo {
-  question_set_id: number;
-  question_set_name?: string;
+interface QuestionSetPackage {
+  id: number;
+  name: string;
+  description: string | null;
+  is_paid: boolean;
+  price: number | null;
+  price_tier: string | null;
+  trial_enabled?: boolean;
+  trial_type?: "attempts" | "days" | null;
+  trial_value?: number | null;
+  question_sets_count: number;
+  is_owned: boolean;
+  trial_available?: boolean;
+}
+
+interface PackageQuestionSet {
+  id: number;
+  name: string;
+  description: string | null;
+  questions_count: number;
+}
+
+// Generalized paywall target - either a standalone question set or a package.
+interface PayTarget {
+  purchaseType: "question_set" | "package";
+  targetId: number;
+  name?: string;
   price: number;
   price_tier: string | null;
   ios_product_id: string | null;
@@ -77,6 +106,18 @@ const CAT_ICONS: Record<string, string> = {
 function getCatIcon(name: string, fallback?: string | null): string {
   return CAT_ICONS[name] ?? fallback ?? "grid-outline";
 }
+
+// Module-level, session-lifetime cache (stale-while-revalidate): switching
+// category/subcategory shows the last-known data for it instantly instead of a
+// blank/loading screen, then silently refreshes from the network. Combined with
+// the request-id guards in each fetch* function below, this also fixes a real bug
+// where quickly switching categories (e.g. SSW -> JLPT) could briefly show the
+// previous category's question sets under the new category's header, because the
+// old fetch's response could still land and overwrite state after the newer one.
+let categoriesCache: Category[] | null = null;
+const subcategoriesCache = new Map<number, Category[]>();
+const questionSetsCache = new Map<number, { sets: QuestionSet[]; total: number; totalFree: number }>();
+const packagesCache = new Map<number, QuestionSetPackage[]>();
 
 export default function QuizScreen() {
   const { t } = useTranslation();
@@ -102,20 +143,48 @@ export default function QuizScreen() {
     null,
   );
 
+  // Subcategory drill-down (only shown for categories with has_children=true)
+  const [viewingSubcategoriesOf, setViewingSubcategoriesOf] = useState<Category | null>(null);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
+
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
+  const [browseTab, setBrowseTab] = useState<"single" | "package">("single");
+  const [packages, setPackages] = useState<QuestionSetPackage[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<QuestionSetPackage | null>(null);
+  const [packageQuestionSets, setPackageQuestionSets] = useState<PackageQuestionSet[]>([]);
+
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [numberOfQuestions, setNumberOfQuestions] = useState("10");
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [totalQuestionsInCategory, setTotalQuestionsInCategory] = useState(0);
+  // Question total across only the FREE, standalone sets - what the "Free Question Set
+  // Quiz" card is actually allowed to draw from (see getRandomQuestionsFromCategory).
+  const [totalFreeQuestionsInCategory, setTotalFreeQuestionsInCategory] = useState(0);
 
-  // Purchase flow state
-  const [payTarget, setPayTarget] = useState<PurchaseRequiredInfo | null>(null);
-  const [purchasingSetId, setPurchasingSetId] = useState<number | null>(null);
+  // Purchase flow state - purchasingId is a question_set id OR a package id depending on payTarget.purchaseType
+  const [payTarget, setPayTarget] = useState<PayTarget | null>(null);
+  const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [priceTiers, setPriceTiers] = useState<
     Record<string, { ios_product_id: string; android_product_id: string }>
   >({});
+
+  // Each bumped before its own fetch starts, and checked after the response lands -
+  // if another call to the same fetch* function has started in the meantime, this
+  // is a stale/superseded response and must not overwrite state.
+  const categoriesRequestId = useRef(0);
+  const subcategoriesRequestId = useRef(0);
+  const questionSetsRequestId = useRef(0);
+  const packagesRequestId = useRef(0);
+
+  // is_owned/trial_available are baked into the cached responses per-user - drop
+  // them on login/logout so a different (or now-anonymous) user never briefly sees
+  // someone else's ownership/trial state from cache.
+  useEffect(() => {
+    questionSetsCache.clear();
+    packagesCache.clear();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetch(`${API_URL}/price-tiers`)
@@ -135,16 +204,25 @@ export default function QuizScreen() {
   }, []);
 
   useEffect(() => {
-    const unsubUnlock = onPurchaseUnlocked((questionSetId) => {
-      setPurchasingSetId(null);
+    const unsubUnlock = onPurchaseUnlocked(({ purchaseType, targetId }) => {
+      setPurchasingId(null);
       setPayTarget(null);
-      if (selectedCategory) fetchQuestionSets(selectedCategory.id);
-      Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
-        { text: t("quiz.startQuiz"), onPress: () => startQuestionSetQuiz(questionSetId) },
-      ]);
+      if (selectedCategory) {
+        fetchQuestionSets(selectedCategory.id);
+        fetchPackages(selectedCategory.id);
+      }
+      if (purchaseType === "package") {
+        Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
+          { text: "OK", onPress: () => openPackage(targetId) },
+        ]);
+      } else {
+        Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
+          { text: t("quiz.startQuiz"), onPress: () => startQuestionSetQuiz(targetId) },
+        ]);
+      }
     });
     const unsubFail = onPurchaseFailed((_productId, code) => {
-      setPurchasingSetId(null);
+      setPurchasingId(null);
       if (code !== PURCHASE_CANCELLED_CODE) {
         Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
       }
@@ -161,37 +239,93 @@ export default function QuizScreen() {
   }, []);
 
   const fetchCategories = async () => {
-    setIsLoading(true);
+    const cached = categoriesCache;
+    if (cached) setCategories(cached);
+    else setIsLoading(true);
+
+    const requestId = ++categoriesRequestId.current;
     try {
       const response = await fetch(`${API_URL}/categories`);
       const data = await response.json();
+      if (categoriesRequestId.current !== requestId) return; // superseded
+
       if (data.success) {
+        categoriesCache = data.data;
         setCategories(data.data); // ← use raw API data directly
-      } else Alert.alert(t("common.error"), t("quiz.errorCategories"));
+      } else if (!cached) {
+        Alert.alert(t("common.error"), t("quiz.errorCategories"));
+      }
     } catch {
-      Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
+      if (categoriesRequestId.current === requestId && !cached) {
+        Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
+      }
     } finally {
-      setIsLoading(false);
+      if (categoriesRequestId.current === requestId) setIsLoading(false);
     }
   };
 
-  const fetchQuestionSets = async (categoryId: number) => {
+  const fetchSubcategories = async (categoryId: number) => {
+    const cached = subcategoriesCache.get(categoryId);
+    if (cached) setSubcategories(cached);
+    else {
+      setSubcategories([]); // don't show the previous category's subcategories
+      setIsLoading(true);
+    }
+
+    const requestId = ++subcategoriesRequestId.current;
+    try {
+      const response = await fetch(`${API_URL}/categories/${categoryId}/subcategories`);
+      const data = await response.json();
+      if (subcategoriesRequestId.current !== requestId) return; // superseded
+
+      if (data.success) {
+        subcategoriesCache.set(categoryId, data.data.subcategories);
+        setSubcategories(data.data.subcategories);
+      } else if (!cached) {
+        Alert.alert(t("common.error"), t("quiz.errorCategories"));
+      }
+    } catch {
+      if (subcategoriesRequestId.current === requestId && !cached) {
+        Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
+      }
+    } finally {
+      if (subcategoriesRequestId.current === requestId) setIsLoading(false);
+    }
+  };
+
+  const fetchPackages = async (categoryId: number) => {
+    const cached = packagesCache.get(categoryId);
+    setPackages(cached ?? []); // never leave the previous category's packages showing
+
+    const requestId = ++packagesRequestId.current;
+    try {
+      const response = await fetch(`${API_URL}/categories/${categoryId}/packages`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const data = await response.json();
+      if (packagesRequestId.current !== requestId) return; // superseded
+
+      if (data.success) {
+        packagesCache.set(categoryId, data.data.packages);
+        setPackages(data.data.packages);
+      }
+    } catch {
+      // non-fatal - the Package tab will just show empty
+    }
+  };
+
+  const openPackage = async (packageId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${API_URL}/categories/${categoryId}/question-sets`,
-      );
+      const response = await fetch(`${API_URL}/packages/${packageId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await response.json();
       if (data.success) {
-        const sets = data.data.question_sets;
-        setQuestionSets(sets);
-        const total = sets.reduce(
-          (sum: number, set: QuestionSet) => sum + set.questions_count,
-          0,
-        );
-        setTotalQuestionsInCategory(total);
+        setSelectedPackage(data.data.package);
+        setPackageQuestionSets(data.data.question_sets);
       } else {
-        Alert.alert(t("common.error"), t("quiz.errorSets"));
+        Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
       }
     } catch {
       Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
@@ -200,20 +334,93 @@ export default function QuizScreen() {
     }
   };
 
+  const fetchQuestionSets = async (categoryId: number) => {
+    const cached = questionSetsCache.get(categoryId);
+    if (cached) {
+      setQuestionSets(cached.sets);
+      setTotalQuestionsInCategory(cached.total);
+      setTotalFreeQuestionsInCategory(cached.totalFree);
+    } else {
+      // No cached data for this category yet - clear the previous category's sets
+      // instead of leaving them visible (dimmed) under the loading overlay.
+      setQuestionSets([]);
+      setTotalQuestionsInCategory(0);
+      setTotalFreeQuestionsInCategory(0);
+      setIsLoading(true);
+    }
+
+    const requestId = ++questionSetsRequestId.current;
+    try {
+      const response = await fetch(
+        `${API_URL}/categories/${categoryId}/question-sets`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
+      );
+      const data = await response.json();
+      if (questionSetsRequestId.current !== requestId) return; // superseded by a newer category selection
+
+      if (data.success) {
+        const sets = data.data.question_sets;
+        const total = sets.reduce(
+          (sum: number, set: QuestionSet) => sum + set.questions_count,
+          0,
+        );
+        const totalFree = sets
+          .filter((set: QuestionSet) => !set.is_paid)
+          .reduce((sum: number, set: QuestionSet) => sum + set.questions_count, 0);
+        questionSetsCache.set(categoryId, { sets, total, totalFree });
+        setQuestionSets(sets);
+        setTotalQuestionsInCategory(total);
+        setTotalFreeQuestionsInCategory(totalFree);
+      } else if (!cached) {
+        Alert.alert(t("common.error"), t("quiz.errorSets"));
+      }
+    } catch {
+      if (questionSetsRequestId.current === requestId && !cached) {
+        Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
+      }
+    } finally {
+      if (questionSetsRequestId.current === requestId) setIsLoading(false);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    if (selectedCategory) await fetchQuestionSets(selectedCategory.id);
-    else await fetchCategories();
+    if (selectedCategory) {
+      await fetchQuestionSets(selectedCategory.id);
+      await fetchPackages(selectedCategory.id);
+    } else if (viewingSubcategoriesOf) {
+      await fetchSubcategories(viewingSubcategoriesOf.id);
+    } else {
+      await fetchCategories();
+    }
     setRefreshing(false);
   };
 
   const handleCategorySelect = async (category: Category) => {
+    if (category.has_children) {
+      setViewingSubcategoriesOf(category);
+      await fetchSubcategories(category.id);
+      return;
+    }
+    setBrowseTab("single");
+    setSelectedPackage(null);
+    setPackageQuestionSets([]);
     setSelectedCategory(category);
     await fetchQuestionSets(category.id);
+    await fetchPackages(category.id);
+  };
+
+  const handleSubcategorySelect = async (subcategory: Category) => {
+    setBrowseTab("single");
+    setSelectedPackage(null);
+    setPackageQuestionSets([]);
+    setSelectedCategory(subcategory);
+    await fetchQuestionSets(subcategory.id);
+    await fetchPackages(subcategory.id);
   };
 
   const openFullCategoryModal = () => {
-    const maxQ = totalQuestionsInCategory;
+    const maxQ = totalFreeQuestionsInCategory;
     setNumberOfQuestions(Math.min(10, maxQ).toString());
     setShowQuestionModal(true);
   };
@@ -262,7 +469,25 @@ export default function QuizScreen() {
 
       if (response.status === 403 && data.reason === "purchase_required") {
         const set = questionSets.find((s) => s.id === setId);
-        setPayTarget({ ...data.data, question_set_name: set?.name });
+        const tier = data.data?.price_tier;
+        if (!tier) {
+          // No direct price tier (e.g. packaged/wallet-only content) - direct the
+          // user to the wallet/subscription screen instead of a dead-end paywall.
+          Alert.alert(t("common.error"), t("quiz.purchaseUnavailable"), [
+            { text: t("common.cancel"), style: "cancel" },
+            { text: t("wallet.title", { defaultValue: "Get Access" }), onPress: () => router.push("/purchases") },
+          ]);
+          return;
+        }
+        setPayTarget({
+          purchaseType: "question_set",
+          targetId: setId,
+          name: set?.name,
+          price: tier.amount,
+          price_tier: tier.tier_key,
+          ios_product_id: tier.ios_product_id,
+          android_product_id: tier.android_product_id,
+        });
         return;
       }
 
@@ -292,10 +517,28 @@ export default function QuizScreen() {
     }
     const tierIds = set.price_tier ? priceTiers[set.price_tier] : undefined;
     setPayTarget({
-      question_set_id: set.id,
-      question_set_name: set.name,
+      purchaseType: "question_set",
+      targetId: set.id,
+      name: set.name,
       price: set.price ?? 0,
       price_tier: set.price_tier ?? null,
+      ios_product_id: tierIds?.ios_product_id ?? null,
+      android_product_id: tierIds?.android_product_id ?? null,
+    });
+  };
+
+  const handleBuyPackagePress = (pkg: QuestionSetPackage) => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    const tierIds = pkg.price_tier ? priceTiers[pkg.price_tier] : undefined;
+    setPayTarget({
+      purchaseType: "package",
+      targetId: pkg.id,
+      name: pkg.name,
+      price: pkg.price ?? 0,
+      price_tier: pkg.price_tier ?? null,
       ios_product_id: tierIds?.ios_product_id ?? null,
       android_product_id: tierIds?.android_product_id ?? null,
     });
@@ -307,16 +550,17 @@ export default function QuizScreen() {
       setPayTarget(null);
       return;
     }
-    setPurchasingSetId(payTarget.question_set_id);
+    setPurchasingId(payTarget.targetId);
     try {
-      await buyQuestionSet({
-        questionSetId: payTarget.question_set_id,
+      await buyItem({
+        purchaseType: payTarget.purchaseType,
+        targetId: payTarget.targetId,
         priceTier: payTarget.price_tier,
         iosProductId: payTarget.ios_product_id,
         androidProductId: payTarget.android_product_id,
       });
     } catch {
-      setPurchasingSetId(null);
+      setPurchasingId(null);
       Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
     }
   };
@@ -332,7 +576,7 @@ export default function QuizScreen() {
   }
 
   // ─── Category List ───
-  if (!selectedCategory) {
+  if (!selectedCategory && !viewingSubcategoriesOf) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader
@@ -443,7 +687,75 @@ export default function QuizScreen() {
     );
   }
 
+  // ─── Subcategory List (only for categories with has_children=true) ───
+  if (!selectedCategory && viewingSubcategoriesOf) {
+    const parent = viewingSubcategoriesOf;
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient
+          colors={[parent.color, parent.color + "dd"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientHeader}
+        >
+          <TouchableOpacity onPress={() => setViewingSubcategoriesOf(null)} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="white" />
+            <Text style={styles.backButtonText}>{t("quiz.backToCategories")}</Text>
+          </TouchableOpacity>
+          <View style={styles.gradientCategoryRow}>
+            <View style={styles.gradientCategoryIcon}>
+              <Ionicons name={getCatIcon(parent.name, parent.icon) as any} size={24} color="white" />
+            </View>
+            <View style={styles.gradientCategoryTextWrap}>
+              <Text style={styles.gradientLabel}>{t("quiz.categoryLabel")}</Text>
+              <Text style={styles.gradientTitle}>{parent.name}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#7c3aed"]} tintColor="#7c3aed" />
+          }
+        >
+          <View>
+            {subcategories.map((sub) => {
+              const icon = getCatIcon(sub.name, sub.icon);
+              return (
+                <TouchableOpacity
+                  key={sub.id}
+                  activeOpacity={0.8}
+                  onPress={() => handleSubcategorySelect(sub)}
+                  style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sub.color, borderLeftWidth: 4 }]}
+                >
+                  <View style={styles.categoryCardRow}>
+                    <View style={[styles.categoryIconBox, { backgroundColor: sub.color + "18", borderWidth: 2, borderColor: sub.color + "40" }]}>
+                      <Ionicons name={icon as any} size={34} color={sub.color} />
+                    </View>
+                    <View style={styles.flex1}>
+                      <Text style={[styles.categoryName, { color: colors.text }]}>{sub.name}</Text>
+                      <View style={styles.categoryMeta}>
+                        <Ionicons name="folder-outline" size={16} color={isDark ? "#64748b" : "#6b7280"} />
+                        <Text style={[styles.categoryMetaText, { color: colors.textSecondary }]}>
+                          {sub.question_sets_count} {t("quiz.questionSets")}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   // ─── Question Sets View ───
+  if (!selectedCategory) return null;
   const categoryIcon = getCatIcon(selectedCategory.name, selectedCategory.icon);
 
   return (
@@ -461,14 +773,24 @@ export default function QuizScreen() {
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
-          <Text style={styles.backButtonText}>{t("quiz.backToCategories")}</Text>
+          <Text style={styles.backButtonText}>
+            {viewingSubcategoriesOf
+              ? t("quiz.backToParent", { name: viewingSubcategoriesOf.name })
+              : t("quiz.backToCategories")}
+          </Text>
         </TouchableOpacity>
+
+        {/* Breadcrumb: show the parent category (e.g. JLPT) above the subcategory
+            title (e.g. Design) so it's clear which top-level category this belongs to. */}
+        {viewingSubcategoriesOf && (
+          <Text style={styles.gradientBreadcrumb}>{viewingSubcategoriesOf.name}</Text>
+        )}
 
         <View style={styles.gradientCategoryRow}>
           <View style={styles.gradientCategoryIcon}>
             <Ionicons name={categoryIcon as any} size={24} color="white" />
           </View>
-          <View>
+          <View style={styles.gradientCategoryTextWrap}>
             <Text style={styles.gradientLabel}>{t("quiz.categoryLabel")}</Text>
             <Text style={styles.gradientTitle}>{selectedCategory.name}</Text>
           </View>
@@ -490,62 +812,268 @@ export default function QuizScreen() {
           />
         }
       >
-        {/* Full Category Quiz Card */}
-        <View style={styles.fullQuizSection}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={openFullCategoryModal}
-            style={[
-              styles.fullQuizCard,
-              { borderColor: selectedCategory.color, backgroundColor: colors.card },
-            ]}
-          >
-            <View style={styles.fullQuizCardTop}>
-              <View
-                style={[
-                  styles.fullQuizIcon,
-                  { backgroundColor: selectedCategory.color + "15" },
-                ]}
-              >
-                <Ionicons
-                  name="flash"
-                  size={28}
-                  color={selectedCategory.color}
-                />
-              </View>
-              <View style={styles.fullQuizText}>
-                <Text style={[styles.fullQuizTitle, { color: colors.text }]}>{t("quiz.fullCategoryQuiz")}</Text>
-                <Text style={[styles.fullQuizSubtitle, { color: colors.textSecondary }]}>
-                  {t("quiz.randomQuestions")}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.fullQuizMeta}>
-              <Ionicons name="help-circle-outline" size={16} color={isDark ? "#64748b" : "#6b7280"} />
-              <Text style={[styles.fullQuizMetaText, { color: colors.textSecondary }]}>
-                {totalQuestionsInCategory} {t("quiz.questionsAvailable")}
-              </Text>
-            </View>
-
-            <View
+        {/* Single Sets / Packages tab switcher - placed above the quiz card so
+            packages for this category are visible immediately, not scrolled past. */}
+        {packages.length > 0 && (
+          <View style={styles.browseTabRow}>
+            <TouchableOpacity
+              onPress={() => setBrowseTab("single")}
               style={[
-                styles.fullQuizStartButton,
-                { backgroundColor: selectedCategory.color },
+                styles.browseTabBtn,
+                { marginRight: 8 },
+                browseTab === "single" && { backgroundColor: selectedCategory.color },
               ]}
             >
-              <Ionicons name="play-circle" size={20} color="white" />
-              <Text style={styles.fullQuizStartText}>{t("quiz.startFullQuiz")}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+              <Text
+                style={[
+                  styles.browseTabText,
+                  { color: browseTab === "single" ? "#fff" : selectedCategory.color },
+                ]}
+              >
+                {t("quiz.singleSetsTab")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setBrowseTab("package")}
+              style={[
+                styles.browseTabBtn,
+                browseTab === "package" && { backgroundColor: selectedCategory.color },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.browseTabText,
+                  { color: browseTab === "package" ? "#fff" : selectedCategory.color },
+                ]}
+              >
+                {t("quiz.packagesTab")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* Question Sets */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("quiz.questionSetsSection")}</Text>
+        {/* Free Question Set Quiz Card - only draws from free, standalone sets */}
+        {browseTab === "single" && totalFreeQuestionsInCategory > 0 && (
+          <View style={styles.fullQuizSection}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={openFullCategoryModal}
+              style={[
+                styles.fullQuizCard,
+                { borderColor: selectedCategory.color, backgroundColor: colors.card },
+              ]}
+            >
+              <View style={styles.fullQuizCardTop}>
+                <View
+                  style={[
+                    styles.fullQuizIcon,
+                    { backgroundColor: selectedCategory.color + "15" },
+                  ]}
+                >
+                  <Ionicons
+                    name="flash"
+                    size={28}
+                    color={selectedCategory.color}
+                  />
+                </View>
+                <View style={styles.fullQuizText}>
+                  <Text style={[styles.fullQuizTitle, { color: colors.text }]}>{t("quiz.fullCategoryQuiz")}</Text>
+                  <Text style={[styles.fullQuizSubtitle, { color: colors.textSecondary }]}>
+                    {t("quiz.randomQuestions")}
+                  </Text>
+                </View>
+              </View>
 
-        <View>
-          {questionSets.map((set) => (
-            <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
+              <View style={styles.fullQuizMeta}>
+                <Ionicons name="help-circle-outline" size={16} color={isDark ? "#64748b" : "#6b7280"} />
+                <Text style={[styles.fullQuizMetaText, { color: colors.textSecondary }]}>
+                  {totalFreeQuestionsInCategory} {t("quiz.questionsAvailable")}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.fullQuizStartButton,
+                  { backgroundColor: selectedCategory.color },
+                ]}
+              >
+                <Ionicons name="play-circle" size={20} color="white" />
+                <Text style={styles.fullQuizStartText}>{t("quiz.startFullQuiz")}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {browseTab === "package" ? (
+          selectedPackage ? (
+            <>
+              {/* ─── Package Detail ─── */}
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedPackage(null);
+                  setPackageQuestionSets([]);
+                }}
+                style={styles.packageBackRow}
+              >
+                <Ionicons name="arrow-back" size={18} color={selectedCategory.color} />
+                <Text style={[styles.packageBackText, { color: selectedCategory.color }]}>
+                  {t("quiz.backToPackages")}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{selectedPackage.name}</Text>
+              {selectedPackage.description && (
+                <Text style={[styles.setDesc, { color: colors.textSecondary, marginBottom: 16 }]}>
+                  {selectedPackage.description}
+                </Text>
+              )}
+              <View>
+                {packageQuestionSets.map((qs) => (
+                  <View
+                    key={qs.id}
+                    style={[
+                      styles.setCard,
+                      { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 },
+                    ]}
+                  >
+                    <View style={styles.setCardInner}>
+                      <Text style={[styles.setName, { color: colors.text }]}>{qs.name}</Text>
+                      {qs.description && (
+                        <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{qs.description}</Text>
+                      )}
+                      <View style={styles.setMeta}>
+                        <Ionicons name="help-circle-outline" size={14} color={isDark ? "#64748b" : "#6b7280"} />
+                        <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
+                          {qs.questions_count} questions
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => startQuestionSetQuiz(qs.id)}
+                        style={[
+                          styles.setStartButton,
+                          { backgroundColor: selectedCategory.color + "15" },
+                        ]}
+                      >
+                        <Ionicons name="play-circle-outline" size={18} color={selectedCategory.color} />
+                        <Text style={[styles.setStartText, { color: selectedCategory.color }]}>
+                          {t("quiz.startThisSet")}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* ─── Package List ─── */}
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("quiz.packagesSection")}</Text>
+              <View>
+                {packages.length === 0 ? (
+                  <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{t("quiz.noPackages")}</Text>
+                ) : (
+                  packages.map((pkg) => {
+                    const pkgNeedsPay = pkg.is_paid && !pkg.is_owned;
+                    const pkgTrialAvailable = pkgNeedsPay && pkg.trial_available;
+                    return (
+                    <TouchableOpacity
+                      key={pkg.id}
+                      activeOpacity={0.8}
+                      onPress={() => (pkgNeedsPay ? handleBuyPackagePress(pkg) : openPackage(pkg.id))}
+                      disabled={purchasingId === pkg.id}
+                      style={[
+                        styles.setCard,
+                        { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 },
+                      ]}
+                    >
+                      <View style={styles.setCardInner}>
+                        <View style={styles.setNameRow}>
+                          <Text style={[styles.setName, { color: colors.text, flex: 1 }]}>{pkg.name}</Text>
+                          {pkg.is_paid ? (
+                            pkg.is_owned ? (
+                              <View style={styles.freeBadge}>
+                                <Text style={styles.freeBadgeText}>{t("quiz.owned")}</Text>
+                              </View>
+                            ) : (
+                              <View style={styles.priceBadge}>
+                                <Ionicons name="pricetag" size={12} color="#7c3aed" />
+                                <Text style={styles.priceText}>{formatYen(pkg.price ?? 0)}</Text>
+                              </View>
+                            )
+                          ) : (
+                            <View style={styles.freeBadge}>
+                              <Text style={styles.freeBadgeText}>{t("quiz.free")}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {pkg.description && (
+                          <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{pkg.description}</Text>
+                        )}
+                        <View style={styles.setMeta}>
+                          <Ionicons name="layers-outline" size={14} color={isDark ? "#64748b" : "#6b7280"} />
+                          <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
+                            {pkg.question_sets_count} {t("quiz.questionSets")}
+                          </Text>
+                        </View>
+                        <View style={styles.setCardActions}>
+                          {pkgTrialAvailable && (
+                            <TouchableOpacity
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                openPackage(pkg.id);
+                              }}
+                              disabled={purchasingId === pkg.id}
+                              style={[
+                                styles.setStartButton,
+                                styles.trialButton,
+                                { flex: 1, marginRight: 8, opacity: purchasingId === pkg.id ? 0.6 : 1 },
+                              ]}
+                            >
+                              <Ionicons name="gift-outline" size={18} color="#10b981" />
+                              <Text style={[styles.setStartText, styles.trialButtonText]}>
+                                {t("quiz.freeTrialButton")}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                          <View
+                            style={[
+                              styles.setStartButton,
+                              { flex: 1, backgroundColor: selectedCategory.color + "15", opacity: purchasingId === pkg.id ? 0.6 : 1 },
+                            ]}
+                          >
+                            {purchasingId === pkg.id ? (
+                              <ActivityIndicator size="small" color={selectedCategory.color} />
+                            ) : (
+                              <>
+                                <Ionicons
+                                  name={pkgNeedsPay ? "card-outline" : "folder-open-outline"}
+                                  size={18}
+                                  color={selectedCategory.color}
+                                />
+                                <Text style={[styles.setStartText, { color: selectedCategory.color }]}>
+                                  {pkgNeedsPay
+                                    ? t("quiz.payButton", { price: formatYen(pkg.price ?? 0) })
+                                    : t("quiz.viewPackage")}
+                                </Text>
+                              </>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                    );
+                  })
+                )}
+              </View>
+            </>
+          )
+        ) : (
+          <>
+            {/* Question Sets */}
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t("quiz.questionSetsSection")}</Text>
+
+            <View>
+              {questionSets.map((set) => (
+                <View key={set.id} style={[styles.setCard, { backgroundColor: colors.card, borderColor: colors.border, borderTopColor: selectedCategory.color, borderTopWidth: 3 }]}>
               <View style={styles.setCardInner}>
                 <View style={styles.setNameRow}>
                   <Text style={[styles.setName, { color: colors.text, flex: 1 }]}>{set.name}</Text>
@@ -581,24 +1109,40 @@ export default function QuizScreen() {
                 </View>
 
                 <View style={styles.setCardActions}>
+                  {set.is_paid && !set.is_owned && set.trial_available && (
+                    <TouchableOpacity
+                      onPress={() => startQuestionSetQuiz(set.id)}
+                      disabled={purchasingId === set.id}
+                      style={[
+                        styles.setStartButton,
+                        styles.trialButton,
+                        { flex: 1, marginRight: 8, opacity: purchasingId === set.id ? 0.6 : 1 },
+                      ]}
+                    >
+                      <Ionicons name="gift-outline" size={18} color="#10b981" />
+                      <Text style={[styles.setStartText, styles.trialButtonText]}>
+                        {t("quiz.freeTrialButton")}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     onPress={() =>
                       set.is_paid && !set.is_owned
                         ? handleBuyPress(set)
                         : startQuestionSetQuiz(set.id)
                     }
-                    disabled={purchasingSetId === set.id}
+                    disabled={purchasingId === set.id}
                     style={[
                       styles.setStartButton,
                       {
                         flex: 1,
                         marginRight: 8,
                         backgroundColor: selectedCategory.color + "15",
-                        opacity: purchasingSetId === set.id ? 0.6 : 1,
+                        opacity: purchasingId === set.id ? 0.6 : 1,
                       },
                     ]}
                   >
-                    {purchasingSetId === set.id ? (
+                    {purchasingId === set.id ? (
                       <ActivityIndicator size="small" color={selectedCategory.color} />
                     ) : (
                       <>
@@ -656,8 +1200,10 @@ export default function QuizScreen() {
                 </View>
               </View>
             </View>
-          ))}
-        </View>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* ─── Question Count Modal ─── */}
@@ -684,7 +1230,7 @@ export default function QuizScreen() {
               </View>
               <Text style={[styles.modalTitle, { color: colors.text }]}>{t("quiz.howManyQuestions")}</Text>
               <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
-                {t("quiz.max")} {totalQuestionsInCategory} {t("quiz.questionsAvailable")}
+                {t("quiz.max")} {totalFreeQuestionsInCategory} {t("quiz.questionsAvailable")}
               </Text>
             </View>
 
@@ -710,7 +1256,7 @@ export default function QuizScreen() {
                 value={numberOfQuestions}
                 onChangeText={(text) => {
                   const num = parseInt(text) || 0;
-                  if (num <= totalQuestionsInCategory)
+                  if (num <= totalFreeQuestionsInCategory)
                     setNumberOfQuestions(text);
                 }}
                 keyboardType="numeric"
@@ -727,7 +1273,7 @@ export default function QuizScreen() {
               <TouchableOpacity
                 onPress={() => {
                   const num = parseInt(numberOfQuestions) || 0;
-                  if (num < totalQuestionsInCategory)
+                  if (num < totalFreeQuestionsInCategory)
                     setNumberOfQuestions((num + 1).toString());
                 }}
                 style={[
@@ -741,7 +1287,7 @@ export default function QuizScreen() {
 
             <View style={styles.quickSelect}>
               {[5, 10, 15, 20].map((num, index) => {
-                const isDisabled = num > totalQuestionsInCategory;
+                const isDisabled = num > totalFreeQuestionsInCategory;
                 const isSelected = numberOfQuestions === num.toString();
                 return (
                   <TouchableOpacity
@@ -840,17 +1386,17 @@ export default function QuizScreen() {
               <View style={styles.comingSoonIconWrap}>
                 <Ionicons name="lock-closed" size={36} color="#7c3aed" />
               </View>
-              {!!payTarget?.question_set_name && (
-                <Text style={styles.comingSoonTitle}>{payTarget.question_set_name}</Text>
+              {!!payTarget?.name && (
+                <Text style={styles.comingSoonTitle}>{payTarget.name}</Text>
               )}
               <Text style={styles.comingSoonSubtitle}>{formatYen(payTarget?.price ?? 0)}</Text>
               <Text style={styles.comingSoonMsg}>{t("quiz.purchaseRequiredMessage")}</Text>
               <TouchableOpacity
                 onPress={confirmPurchase}
-                disabled={purchasingSetId !== null}
-                style={[styles.comingSoonPlayBtn, { opacity: purchasingSetId !== null ? 0.6 : 1 }]}
+                disabled={purchasingId !== null}
+                style={[styles.comingSoonPlayBtn, { opacity: purchasingId !== null ? 0.6 : 1 }]}
               >
-                {purchasingSetId !== null ? (
+                {purchasingId !== null ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
@@ -1007,11 +1553,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     letterSpacing: 1,
   },
+  gradientBreadcrumb: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
   gradientTitle: {
     color: "#ffffff",
-    fontSize: 28,
+    fontSize: 23,
     fontWeight: "900",
     marginBottom: 4,
+    flexShrink: 1,
   },
   gradientSubtitle: {
     color: "rgba(255,255,255,0.8)",
@@ -1032,6 +1585,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
+  },
+  // Bounds the label+title column to the row's remaining width so a long
+  // category/subcategory name wraps instead of overflowing past the screen edge.
+  gradientCategoryTextWrap: {
+    flex: 1,
+    minWidth: 0,
   },
   gradientCategoryIcon: {
     width: 48,
@@ -1069,10 +1628,11 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     color: "#111827",
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
     marginBottom: 4,
     letterSpacing: 0.2,
+    flexWrap: "wrap",
   },
   categoryMeta: {
     flexDirection: "row",
@@ -1152,6 +1712,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 16,
   },
+
+  // ── Single Sets / Packages Tab Switcher ──
+  browseTabRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  browseTabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+  },
+  browseTabText: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  packageBackRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  packageBackText: {
+    fontWeight: "600",
+    fontSize: 14,
+    marginLeft: 6,
+  },
+
   setCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1238,6 +1826,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
     marginLeft: 8,
+  },
+  trialButton: {
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#10b981",
+  },
+  trialButtonText: {
+    color: "#10b981",
   },
   setBookmarkBtn: {
     width: 40,

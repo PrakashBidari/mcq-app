@@ -67,6 +67,17 @@ function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   );
 }
 
+// Category cards render a 2-stop gradient, but a book category only stores one
+// admin-picked color - darken it slightly for the second stop instead of going flat.
+function darkenColor(hex: string, amount = 0.28): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const num = parseInt(m[1], 16);
+  const channel = (shift: number) =>
+    Math.max(0, Math.round(((num >> shift) & 0xff) * (1 - amount)));
+  return `#${((channel(16) << 16) | (channel(8) << 8) | channel(0)).toString(16).padStart(6, "0")}`;
+}
+
 const CAT_COLORS: Record<string, string[]> = {
   Design: ["#f472b6", "#ec4899"],
   Development: ["#60a5fa", "#2563eb"],
@@ -93,8 +104,10 @@ const CategoryItem = React.memo(function CategoryItem({
   index: number;
   onPress: () => void;
 }) {
-  const catColors = CAT_COLORS[cat.name] ?? [cat.color ?? "#7c3aed", "#4f46e5"];
-  const icon = (CAT_ICONS[cat.name] ?? cat.icon ?? "grid-outline") as any;
+  // Prefer the admin-picked color/icon on the book category itself; the name-keyed
+  // maps below are only a fallback for older categories saved without one.
+  const catColors = cat.color ? [cat.color, darkenColor(cat.color)] : (CAT_COLORS[cat.name] ?? ["#7c3aed", "#4f46e5"]);
+  const icon = (cat.icon ?? CAT_ICONS[cat.name] ?? "grid-outline") as any;
   return (
     <Animatable.View animation="fadeInUp" delay={index * 55} duration={380}>
       <TouchableOpacity
@@ -642,7 +655,9 @@ export default function Index() {
 
   const fetchAll = () => {
     setLoading(true);
-    const p1 = fetch(`${API_URL}/categories`)
+    // Home's "Categories" section is book categories (browsing leads into the
+    // Study/Book tab) - not quiz categories (SSW/JLPT), which live under the Quiz tab.
+    const p1 = fetch(`${API_URL}/book-categories`)
       .then((r) => r.json())
       .then((d) => {
         if (d.success) setCategories(d.data);
