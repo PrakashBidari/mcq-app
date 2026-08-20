@@ -8,6 +8,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { quizStore } from "@/utils/quizStore";
+import AchievementCard from "@/components/AchievementCard";
+import Avatar from "@/components/Avatar";
+import { useAchievements } from "@/hooks/useAchievements";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -32,40 +36,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Swiper from "react-native-swiper";
 
 const { width: SW } = Dimensions.get("window");
-
-const AVATAR_COLORS = [
-  "#7c3aed",
-  "#2563eb",
-  "#059669",
-  "#ef4444",
-  "#ea580c",
-  "#0891b2",
-  "#7c3aed",
-];
-function getAvatarColor(name: string) {
-  return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
-}
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  const letter = (name ?? "U")[0].toUpperCase();
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: getAvatarColor(name ?? "U"),
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.5)",
-      }}
-    >
-      <Text style={{ color: "#fff", fontSize: size * 0.38, fontWeight: "900" }}>
-        {letter}
-      </Text>
-    </View>
-  );
-}
 
 // Category cards render a 2-stop gradient, but a book category only stores one
 // admin-picked color - darken it slightly for the second stop instead of going flat.
@@ -486,82 +456,28 @@ const adStyles = StyleSheet.create({
   },
 });
 
-const AchievementCard = React.memo(function AchievementCard({
-  item,
-  index,
-}: {
-  item: any;
-  index: number;
-}) {
-  const { colors: themeColors, isDark: achIsDark } = useTheme();
-  return (
-    <Animatable.View animation="fadeInRight" delay={index * 60} duration={400}>
-      <View
-        style={[
-          styles.achieveCard,
-          {
-            shadowColor: item.color,
-            backgroundColor: themeColors.card,
-            borderColor: achIsDark ? themeColors.border : "#ede8ff",
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.achieveIconBox,
-            { backgroundColor: item.color + (achIsDark ? "30" : "18") },
-          ]}
-        >
-          <Ionicons name={item.icon as any} size={22} color={item.color} />
-        </View>
-        <Text style={[styles.achieveTitle, { color: themeColors.text }]}>
-          {item.title}
-        </Text>
-        <Text
-          style={[styles.achieveDesc, { color: themeColors.textSecondary }]}
-        >
-          {item.description}
-        </Text>
-        <View
-          style={[
-            styles.achieveBarBg,
-            { backgroundColor: achIsDark ? "#2d2d44" : "#ede8ff" },
-          ]}
-        >
-          <View
-            style={[
-              styles.achieveBarFill,
-              {
-                width: `${item.progress}%` as any,
-                backgroundColor: item.color,
-              },
-            ]}
-          />
-        </View>
-        <Text style={[styles.achievePct, { color: item.color }]}>
-          {item.progress}%
-        </Text>
-      </View>
-    </Animatable.View>
-  );
-});
-
 export default function Index() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ accountDeleted?: string }>();
-  const { user, token } = useAuth();
+  const { user, token, refreshUser } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [categories, setCategories] = useState<any[]>([]);
   const [allBooks, setAllBooks] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
   const [ads, setAds] = useState<AdData[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [studyLibraryContent, setStudyLibraryContent] = useState<{
+    tagline: string | null;
+    intro_text_1: string | null;
+    intro_text_2: string | null;
+    button_text: string | null;
+  } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -569,6 +485,8 @@ export default function Index() {
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [tabFocused, setTabFocused] = useState(true);
+  const [swiperKey, setSwiperKey] = useState(0);
+  const hasFocusedOnceRef = useRef(false);
   const [quizLoading, setQuizLoading] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<BookmarkItem | null>(null);
   const [showToast, setShowToast] = useState(false);
@@ -602,8 +520,17 @@ export default function Index() {
   useFocusEffect(
     useCallback(() => {
       setTabFocused(true);
-      fetchProfileImage();
       reloadBookmarks();
+      // Re-syncs the shared user (profile image included) whenever Home is
+      // visited, so a photo uploaded elsewhere always shows up here too.
+      refreshUser();
+      // react-native-swiper's autoplay/loop internals can desync mid-transition
+      // when the tab blurs, leaving a slide visually "stuck" partway on return —
+      // force a clean remount (but not on the very first mount) to fix it.
+      if (hasFocusedOnceRef.current) {
+        setSwiperKey((k) => k + 1);
+      }
+      hasFocusedOnceRef.current = true;
       return () => setTabFocused(false);
     }, []),
   );
@@ -641,17 +568,6 @@ export default function Index() {
     }
   };
 
-  const fetchProfileImage = async () => {
-    try {
-      if (!token) return;
-      const res = await fetch(`${API_URL}/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success && data.data.profile_image)
-        setProfileImage(data.data.profile_image);
-    } catch {}
-  };
 
   const fetchAll = () => {
     setLoading(true);
@@ -681,7 +597,19 @@ export default function Index() {
         if (d.success) setAds(d.data);
       })
       .catch(() => {});
-    Promise.all([p1, p2, p3, p4]).finally(() => setLoading(false));
+    const p5 = fetch(`${API_URL}/banners`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setBanners(d.data);
+      })
+      .catch(() => {});
+    const p6 = fetch(`${API_URL}/app-pages/study-library`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setStudyLibraryContent(d.data);
+      })
+      .catch(() => {});
+    Promise.all([p1, p2, p3, p4, p5, p6]).finally(() => setLoading(false));
   };
 
   const startQuestionSetQuiz = async (setId: number) => {
@@ -691,11 +619,15 @@ export default function Index() {
       const data = await res.json();
       if (data.success && data.data.questions.length > 0) {
         closeSearch();
+        quizStore.setQuestions(data.data.questions);
+        quizStore.setQuestionSetId(setId);
+        quizStore.setCategoryId(data.data.set?.category_id ?? null);
+        quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
           params: {
-            questions: JSON.stringify(data.data.questions),
             total: data.data.questions.length,
+            timeLimit: data.data.set?.time_limit ?? 0,
           },
         });
       } else Alert.alert(t("common.error"), t("quiz.errorNoQuestions"));
@@ -718,66 +650,10 @@ export default function Index() {
 
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Learner";
 
-  const heroSlides = [
-    {
-      id: 1,
-      title: t("home.heroSlide1Title"),
-      subtitle: t("home.heroSlide1Sub"),
-      image:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800",
-      type: "learning",
-    },
-    {
-      id: 2,
-      title: t("home.heroSlide2Title"),
-      subtitle: t("home.heroSlide2Sub"),
-      image:
-        "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=800",
-      type: "quiz",
-    },
-    {
-      id: 3,
-      title: t("home.heroSlide3Title"),
-      subtitle: t("home.heroSlide3Sub"),
-      image:
-        "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800",
-      type: "learning",
-    },
-  ];
-  const achievements = [
-    {
-      id: 1,
-      title: t("home.quickLearner"),
-      description: t("home.quickLearnerDesc"),
-      progress: 80,
-      icon: "rocket-outline",
-      color: "#7c3aed",
-    },
-    {
-      id: 2,
-      title: t("home.quizMaster"),
-      description: t("home.quizMasterDesc"),
-      progress: 60,
-      icon: "trophy-outline",
-      color: "#f59e0b",
-    },
-    {
-      id: 3,
-      title: t("home.bookworm"),
-      description: t("home.bookwormDesc"),
-      progress: 45,
-      icon: "book-outline",
-      color: "#059669",
-    },
-    {
-      id: 4,
-      title: t("home.streakChampion"),
-      description: t("home.streakChampionDesc"),
-      progress: 70,
-      icon: "flame-outline",
-      color: "#ef4444",
-    },
-  ];
+  // Fetched from GET /banners — admin-managed hero slides (see Banner CMS).
+  const heroSlides = banners;
+  // Real achievement data (see hooks/useAchievements.ts) — shared with My Learning.
+  const { achievements } = useAchievements();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -808,14 +684,7 @@ export default function Index() {
           </View>
           {user ? (
             <TouchableOpacity onPress={() => router.push("/profile")}>
-              {profileImage ? (
-                <Image
-                  source={{ uri: profileImage }}
-                  style={styles.profileImg}
-                />
-              ) : (
-                <Avatar name={displayName} size={36} />
-              )}
+              <Avatar name={displayName} imageUri={user.profile_image} size={43} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -877,6 +746,7 @@ export default function Index() {
         >
           <View style={[styles.body, { backgroundColor: colors.background }]}>
             {/* Hero Swiper */}
+            {heroSlides.length > 0 && (
             <Animatable.View
               animation="fadeIn"
               duration={600}
@@ -884,6 +754,7 @@ export default function Index() {
             >
               <View style={styles.swiperWrap}>
                 <Swiper
+                  key={swiperKey}
                   autoplay={tabFocused}
                   autoplayTimeout={4.5}
                   loop
@@ -941,6 +812,7 @@ export default function Index() {
                 </Swiper>
               </View>
             </Animatable.View>
+            )}
 
             {/* Ad Banner — after hero swiper */}
             <AdBanner
@@ -1075,16 +947,16 @@ export default function Index() {
                           isDark && { color: "#a855f7" },
                         ]}
                       >
-                        {t("home.studyLibraryTag")}
+                        {studyLibraryContent?.tagline ?? t("home.studyLibraryTag")}
                       </Text>
                     </View>
                     <Text style={[styles.adTitle, { color: colors.text }]}>
-                      {t("home.unlockBooks")}
+                      {studyLibraryContent?.intro_text_1 ?? t("home.unlockBooks")}
                     </Text>
                     <Text
                       style={[styles.adSub, { color: colors.textSecondary }]}
                     >
-                      {t("home.booksSubtitle")}
+                      {studyLibraryContent?.intro_text_2 ?? t("home.booksSubtitle")}
                     </Text>
                   </View>
                   <View style={styles.adCta}>
@@ -1092,7 +964,9 @@ export default function Index() {
                       colors={["#7c3aed", "#6d28d9"]}
                       style={styles.adCtaBtn}
                     >
-                      <Text style={styles.adCtaTxt}>{t("home.browse")}</Text>
+                      <Text style={styles.adCtaTxt}>
+                        {studyLibraryContent?.button_text ?? t("home.browse")}
+                      </Text>
                       <Ionicons name="arrow-forward" size={12} color="#fff" />
                     </LinearGradient>
                   </View>
@@ -1167,7 +1041,8 @@ export default function Index() {
               )}
             </Animatable.View>
 
-            {/* Achievements */}
+            {/* Achievements — hidden for guests / users with no attempts yet */}
+            {achievements.length > 0 && (
             <Animatable.View
               animation="fadeInUp"
               delay={140}
@@ -1193,6 +1068,7 @@ export default function Index() {
                 ))}
               </ScrollView>
             </Animatable.View>
+            )}
 
             {/* Ad Banner — after achievements */}
             <AdBanner
@@ -1593,13 +1469,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 1,
   },
-  profileImg: {
-    width: 46,
-    height: 46,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
-  },
   loginIconBtn: {
     width: 42,
     height: 42,
@@ -1852,45 +1721,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-
-  achieveCard: {
-    width: 165,
-    height: 168,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 13,
-    borderWidth: 1,
-    borderColor: "#ede8ff",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 2,
-  },
-  achieveIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 9,
-  },
-  achieveTitle: {
-    color: "#1e0f4e",
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 2,
-  },
-  achieveDesc: { color: "#8070a8", fontSize: 11, marginBottom: 9 },
-  achieveBarBg: {
-    backgroundColor: "#ede8ff",
-    height: 5,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 5,
-  },
-  achieveBarFill: { height: "100%", borderRadius: 3 },
-  achievePct: { fontSize: 11, fontWeight: "800" },
 
   bannerSec: { paddingHorizontal: 18, paddingTop: 14, marginBottom: 0 },
   quizBanner: {

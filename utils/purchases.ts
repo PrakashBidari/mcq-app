@@ -67,12 +67,17 @@ async function getPendingIntents(): Promise<PurchaseIntent[]> {
   return raw ? JSON.parse(raw) : [];
 }
 
+// Throws if a purchase for this exact product (price tier) is already in flight. The
+// same tier SKU is reused across many different question sets/packages, so if we let a
+// second purchase silently overwrite the first's pending intent here, the first
+// purchase's money would end up applied to the wrong target once its store callback
+// fires and looks up this productId.
 async function savePendingIntent(intent: PurchaseIntent) {
   const all = await getPendingIntents();
-  await AsyncStorage.setItem(
-    PENDING_INTENTS_KEY,
-    JSON.stringify([...all.filter((i) => i.productId !== intent.productId), intent]),
-  );
+  if (all.some((i) => i.productId === intent.productId)) {
+    throw new Error("purchase_already_pending");
+  }
+  await AsyncStorage.setItem(PENDING_INTENTS_KEY, JSON.stringify([...all, intent]));
 }
 
 async function removePendingIntent(productId: string) {
@@ -183,6 +188,31 @@ export async function initGlobalPurchaseHandling() {
   } catch {
     // billing unavailable (e.g. simulator, or store not reachable) - purchase buttons
     // will surface an error when actually tapped
+  }
+}
+
+// Best-effort recovery: re-fetches purchases the store still knows about (unfinished /
+// unconsumed transactions) and replays any that match a still-pending local intent
+// through the normal verify flow, without requiring the user to force-quit and relaunch
+// the app. Never throws - callers should just re-check unlock state afterwards.
+export async function retryPendingPurchases(): Promise<void> {
+  const iap = loadIap();
+  if (!iap) return;
+
+  const intents = await getPendingIntents();
+  if (intents.length === 0) return;
+
+  try {
+    const available = await iap.getAvailablePurchases();
+    const pendingProductIds = new Set(intents.map((i) => i.productId));
+    const toRetry = available.filter((purchase) => pendingProductIds.has(purchase.productId));
+
+    for (const purchase of toRetry) {
+      await handlePurchaseUpdate(iap, purchase);
+    }
+  } catch {
+    // billing unavailable or request failed - leave intents in place for the next
+    // automatic replay on app relaunch.
   }
 }
 

@@ -95,7 +95,22 @@ export default function QuizPlay() {
       0,
     );
     quizStore.setAnswers(answers.map((a) => (a === undefined ? -1 : (a as number))));
-    router.replace({ pathname: "/quiz/results", params: { score, total: qs.length } });
+
+    const startedAt = quizStore.getStartedAt();
+    const timeTakenSeconds = startedAt ? Math.round((Date.now() - startedAt) / 1000) : undefined;
+    const questionSetId = quizStore.getQuestionSetId();
+    const categoryId = quizStore.getCategoryId();
+
+    router.replace({
+      pathname: "/quiz/results",
+      params: {
+        score,
+        total: qs.length,
+        ...(timeTakenSeconds !== undefined ? { timeTakenSeconds } : {}),
+        ...(questionSetId !== null ? { questionSetId } : {}),
+        ...(categoryId !== null ? { categoryId } : {}),
+      },
+    });
   }, [allQuestions]);
 
   const handleSelect = useCallback((optIdx: number) => {

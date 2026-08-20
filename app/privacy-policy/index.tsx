@@ -1,9 +1,10 @@
 // app/privacy-policy/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ScrollView,
@@ -21,6 +22,34 @@ type SectionItem = {
   bg: string;
   content: string;
 };
+
+// Editorial content (text + per-section icon) is admin-managed — see backend
+// Settings > Privacy Policy. Colors and accordion behavior stay cosmetic/code-owned.
+type PrivacyContent = {
+  last_updated_label: string | null;
+  intro_text_1: string | null;
+  items: { title: string; content: string; icon?: string }[];
+};
+
+const SECTION_COLORS = [
+  { color: "#7c3aed", bg: "#f5f3ff" },
+  { color: "#2563eb", bg: "#eff6ff" },
+  { color: "#059669", bg: "#ecfdf5" },
+  { color: "#dc2626", bg: "#fef2f2" },
+  { color: "#d97706", bg: "#fffbeb" },
+  { color: "#0891b2", bg: "#ecfeff" },
+  { color: "#7c3aed", bg: "#f5f3ff" },
+] as const;
+
+const DEFAULT_SECTION_ICONS = [
+  "person-outline",
+  "server-outline",
+  "share-social-outline",
+  "lock-closed-outline",
+  "archive-outline",
+  "phone-portrait-outline",
+  "refresh-outline",
+] as const;
 
 function PolicySection({
   section,
@@ -62,58 +91,33 @@ export default function PrivacyPolicyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [content, setContent] = useState<PrivacyContent | null>(null);
 
-  const SECTIONS: SectionItem[] = [
-    {
-      icon: "person-outline",
-      title: t("privacy.section1Title"),
-      color: "#7c3aed",
-      bg: "#f5f3ff",
-      content: t("privacy.section1Content"),
-    },
-    {
-      icon: "server-outline",
-      title: t("privacy.section2Title"),
-      color: "#2563eb",
-      bg: "#eff6ff",
-      content: t("privacy.section2Content"),
-    },
-    {
-      icon: "share-social-outline",
-      title: t("privacy.section3Title"),
-      color: "#059669",
-      bg: "#ecfdf5",
-      content: t("privacy.section3Content"),
-    },
-    {
-      icon: "lock-closed-outline",
-      title: t("privacy.section4Title"),
-      color: "#dc2626",
-      bg: "#fef2f2",
-      content: t("privacy.section4Content"),
-    },
-    {
-      icon: "archive-outline",
-      title: t("privacy.section5Title"),
-      color: "#d97706",
-      bg: "#fffbeb",
-      content: t("privacy.section5Content"),
-    },
-    {
-      icon: "phone-portrait-outline",
-      title: t("privacy.section6Title"),
-      color: "#0891b2",
-      bg: "#ecfeff",
-      content: t("privacy.section6Content"),
-    },
-    {
-      icon: "refresh-outline",
-      title: t("privacy.section7Title"),
-      color: "#7c3aed",
-      bg: "#f5f3ff",
-      content: t("privacy.section7Content"),
-    },
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/app-pages/privacy-policy`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setContent(d.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const rawSections =
+    content?.items?.length
+      ? content.items
+      : [1, 2, 3, 4, 5, 6, 7].map((n, i) => ({
+          title: t(`privacy.section${n}Title`),
+          content: t(`privacy.section${n}Content`),
+          icon: DEFAULT_SECTION_ICONS[i % DEFAULT_SECTION_ICONS.length] as string,
+        }));
+
+  const SECTIONS: SectionItem[] = rawSections.map((s, i) => ({
+    icon: s.icon || DEFAULT_SECTION_ICONS[i % DEFAULT_SECTION_ICONS.length],
+    title: s.title,
+    color: SECTION_COLORS[i % SECTION_COLORS.length].color,
+    bg: SECTION_COLORS[i % SECTION_COLORS.length].bg,
+    content: s.content,
+  }));
 
   return (
     <View style={styles.root}>
@@ -142,7 +146,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.headerSubtitle}>{t("privacy.subtitle")}</Text>
         <View style={styles.dateBadge}>
           <Ionicons name="calendar-outline" size={12} color="#fff" />
-          <Text style={styles.dateText}>{t("privacy.lastUpdated")}</Text>
+          <Text style={styles.dateText}>{content?.last_updated_label ?? t("privacy.lastUpdated")}</Text>
         </View>
       </LinearGradient>
 
@@ -156,7 +160,7 @@ export default function PrivacyPolicyScreen() {
         {/* Intro */}
         <View style={styles.introCard}>
           <Ionicons name="information-circle" size={20} color="#7c3aed" />
-          <Text style={styles.introText}>{t("privacy.introText")}</Text>
+          <Text style={styles.introText}>{content?.intro_text_1 ?? t("privacy.introText")}</Text>
         </View>
 
         {/* Sections */}

@@ -1,9 +1,11 @@
 // app/quiz/results.tsx
+import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { quizStore } from "@/utils/quizStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FlatList,
@@ -90,6 +92,7 @@ const ReviewItem = React.memo(
 export default function QuizResults() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
+  const { token } = useAuth();
 
   const score = parseInt(params.score as string) || 0;
   const total = parseInt(params.total as string) || 0;
@@ -104,6 +107,33 @@ export default function QuizResults() {
       router.replace("/(tabs)/quiz");
     }
   }, []);
+
+  // Persist the attempt once per results screen — guests are skipped silently
+  // (save-attempt is auth-only), and any failure is silent too, matching the
+  // rest of the app's convention for non-blocking background calls.
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current || questions.length === 0 || !token) return;
+    savedRef.current = true;
+
+    const questionSetId = params.questionSetId ? parseInt(params.questionSetId as string) : null;
+    const timeTakenSeconds = params.timeTakenSeconds ? parseInt(params.timeTakenSeconds as string) : undefined;
+
+    fetch(`${API_URL}/quiz/save-attempt`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        question_set_id: questionSetId,
+        score,
+        total_questions: total,
+        answers: userAnswers,
+        time_taken_seconds: timeTakenSeconds,
+      }),
+    }).catch(() => {});
+  }, [questions.length, token]);
 
   if (questions.length === 0) return null;
 

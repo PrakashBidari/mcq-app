@@ -1,341 +1,314 @@
 // app/my-learning/index.tsx
+import AchievementCard from "@/components/AchievementCard";
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { useAuth } from "@/context/AuthContext";
+import { useAchievements } from "@/hooks/useAchievements";
+import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-// Import questions data
-import questionsData from "@/assets/data/questions.json";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function MyLearningScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const { achievements, summary, loading } = useAchievements();
 
-  // Question sets configuration
-  const questionSets = [
-    {
-      id: 1,
-      title: "UI/UX Fundamentals",
-      category: "Design",
-      difficulty: "Easy",
-      estimatedTime: "10 min",
-      icon: "color-palette",
-      color: "#7c3aed",
-      bgColor: "#f3e8ff",
-    },
-    {
-      id: 2,
-      title: "Advanced Design Patterns",
-      category: "Design",
-      difficulty: "Hard",
-      estimatedTime: "15 min",
-      icon: "color-palette",
-      color: "#7c3aed",
-      bgColor: "#f3e8ff",
-    },
-    {
-      id: 3,
-      title: "JavaScript Basics",
-      category: "Development",
-      difficulty: "Easy",
-      estimatedTime: "12 min",
-      icon: "code-slash",
-      color: "#2563eb",
-      bgColor: "#dbeafe",
-    },
-    {
-      id: 4,
-      title: "React Advanced Concepts",
-      category: "Development",
-      difficulty: "Hard",
-      estimatedTime: "18 min",
-      icon: "code-slash",
-      color: "#2563eb",
-      bgColor: "#dbeafe",
-    },
-    {
-      id: 5,
-      title: "Python for Beginners",
-      category: "Development",
-      difficulty: "Easy",
-      estimatedTime: "14 min",
-      icon: "code-slash",
-      color: "#2563eb",
-      bgColor: "#dbeafe",
-    },
-    {
-      id: 6,
-      title: "Business Strategy 101",
-      category: "Business",
-      difficulty: "Medium",
-      estimatedTime: "15 min",
-      icon: "briefcase",
-      color: "#059669",
-      bgColor: "#d1fae5",
-    },
-    {
-      id: 7,
-      title: "Financial Management",
-      category: "Business",
-      difficulty: "Hard",
-      estimatedTime: "20 min",
-      icon: "briefcase",
-      color: "#059669",
-      bgColor: "#d1fae5",
-    },
-    {
-      id: 8,
-      title: "Digital Marketing Basics",
-      category: "Marketing",
-      difficulty: "Easy",
-      estimatedTime: "12 min",
-      icon: "megaphone",
-      color: "#dc2626",
-      bgColor: "#fee2e2",
-    },
-    {
-      id: 9,
-      title: "SEO Mastery",
-      category: "Marketing",
-      difficulty: "Medium",
-      estimatedTime: "16 min",
-      icon: "megaphone",
-      color: "#dc2626",
-      bgColor: "#fee2e2",
-    },
-    {
-      id: 10,
-      title: "Photography Essentials",
-      category: "Photography",
-      difficulty: "Easy",
-      estimatedTime: "10 min",
-      icon: "camera",
-      color: "#f59e0b",
-      bgColor: "#fef3c7",
-    },
-  ];
+  const totalAttempts = summary.reduce((sum, s) => sum + s.attempts_count, 0);
+  const avgScore = summary.length
+    ? Math.round(summary.reduce((sum, s) => sum + s.best_score_percentage, 0) / summary.length)
+    : 0;
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Easy":
-        return "#10b981";
-      case "Medium":
-        return "#f59e0b";
-      case "Hard":
-        return "#ef4444";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getSetQuestionCount = (setId: number) => {
-    return questionsData.filter((q) => q.questionSetIds?.includes(setId))
-      .length;
-  };
-
-  const startQuestionSetQuiz = (setId: number) => {
-    // Filter questions that belong to this question set
-    const setQuestions = questionsData.filter((q) =>
-      q.questionSetIds?.includes(setId),
-    );
-
-    if (setQuestions.length === 0) {
-      Alert.alert(t("common.error"), t("myLearning.noQuestionsAlert"));
-      return;
-    }
-
-    const shuffled = [...setQuestions].sort(() => Math.random() - 0.5);
-
-    router.push({
-      pathname: "/quiz/play",
-      params: {
-        questions: JSON.stringify(shuffled),
-        total: shuffled.length,
-      },
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(i18n.language === "ja" ? "ja-JP" : "en-US", {
+      month: "short",
+      day: "numeric",
     });
-  };
-
-  // Calculate total stats
-  const totalQuestions = questionsData.length;
-  const totalSets = questionSets.length;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
-        <View className="flex-row items-center justify-between mb-4">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 bg-gray-50 rounded-full items-center justify-center"
-          >
-            <Ionicons name="arrow-back" size={22} color="#374151" />
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-gray-900">{t("myLearning.title")}</Text>
-          <View className="w-10 h-10 items-center justify-center">
-            <Ionicons name="stats-chart-outline" size={22} color="#374151" />
-          </View>
-        </View>
-
-        {/* Stats Banner */}
-        <View className="bg-purple-50 rounded-2xl p-4 flex-row items-center justify-around">
-          <View className="items-center">
-            <Text className="text-purple-600 text-2xl font-bold">
-              {totalSets}
-            </Text>
-            <Text className="text-purple-600 text-xs font-medium">
-              {t("myLearning.questionSets")}
-            </Text>
-          </View>
-          <View className="w-px h-8 bg-purple-200" />
-          <View className="items-center">
-            <Text className="text-purple-600 text-2xl font-bold">
-              {totalQuestions}
-            </Text>
-            <Text className="text-purple-600 text-xs font-medium">
-              {t("myLearning.questions")}
-            </Text>
-          </View>
-          <View className="w-px h-8 bg-purple-200" />
-          <View className="items-center">
-            <Text className="text-purple-600 text-2xl font-bold">45</Text>
-            <Text className="text-purple-600 text-xs font-medium">
-              {t("myLearning.completed")}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Content */}
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
+      <LinearGradient
+        colors={["#6d28d9", "#7c3aed", "#a855f7"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        <Text className="text-gray-900 font-bold text-lg mb-4">
-          {t("myLearning.practiceQuestionSets")}
-        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.headerDecor1} />
+        <View style={styles.headerDecor2} />
 
-        <View className="gap-3">
-          {questionSets.map((set) => {
-            const questionCount = getSetQuestionCount(set.id);
-
-            return (
-              <View
-                key={set.id}
-                className="bg-white rounded-2xl overflow-hidden border border-gray-100"
-                style={{
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.05,
-                  shadowRadius: 8,
-                  elevation: 2,
-                }}
-              >
-                <View className="p-4">
-                  <View className="flex-row items-start justify-between mb-3">
-                    <View className="flex-1">
-                      <View className="flex-row items-center mb-2">
-                        <View
-                          className="w-12 h-12 rounded-xl items-center justify-center mr-3"
-                          style={{ backgroundColor: set.bgColor }}
-                        >
-                          <Ionicons
-                            name={set.icon as any}
-                            size={24}
-                            color={set.color}
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-gray-900 font-bold text-base mb-1">
-                            {set.title}
-                          </Text>
-                          <Text className="text-gray-500 text-xs">
-                            {set.category}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View className="flex-row items-center gap-3 mb-3">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="help-circle-outline"
-                            size={14}
-                            color="#6b7280"
-                          />
-                          <Text className="text-gray-600 text-xs ml-1">
-                            {questionCount} {t("myLearning.questionsCount")}
-                          </Text>
-                        </View>
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="time-outline"
-                            size={14}
-                            color="#6b7280"
-                          />
-                          <Text className="text-gray-600 text-xs ml-1">
-                            {set.estimatedTime}
-                          </Text>
-                        </View>
-                        <View
-                          className="px-2 py-1 rounded-md"
-                          style={{
-                            backgroundColor:
-                              getDifficultyColor(set.difficulty) + "15",
-                          }}
-                        >
-                          <Text
-                            className="text-xs font-bold"
-                            style={{
-                              color: getDifficultyColor(set.difficulty),
-                            }}
-                          >
-                            {set.difficulty}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Action Button */}
-                  <TouchableOpacity
-                    onPress={() => startQuestionSetQuiz(set.id)}
-                    className="py-3 rounded-xl flex-row items-center justify-center"
-                    style={{ backgroundColor: set.color }}
-                    disabled={questionCount === 0}
-                  >
-                    <Ionicons name="play-circle" size={20} color="white" />
-                    <Text className="text-white font-bold text-sm ml-2">
-                      {questionCount === 0 ? t("myLearning.noQuestions") : t("myLearning.startQuiz")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
+        <View style={styles.iconWrap}>
+          <LinearGradient
+            colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.1)"]}
+            style={styles.iconCircle}
+          >
+            <Ionicons name="ribbon" size={40} color="#fff" />
+          </LinearGradient>
         </View>
+        <Text style={styles.headerTitle}>{t("myLearning.title")}</Text>
+      </LinearGradient>
 
-        {/* Help Section */}
-        <View className="mt-6 bg-blue-50 rounded-2xl p-6 border border-blue-100">
-          <View className="flex-row items-start">
-            <View className="w-12 h-12 bg-blue-100 rounded-full items-center justify-center mr-4">
-              <Ionicons name="information-circle" size={24} color="#2563eb" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-gray-900 font-bold text-base mb-2">
-                {t("myLearning.howItWorks")}
-              </Text>
-              <Text className="text-gray-600 text-sm leading-5">
-                {t("myLearning.howItWorksDesc")}
-              </Text>
-            </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
+      >
+        {!isAuthenticated ? (
+          <View style={[styles.promptCard, { backgroundColor: colors.card }]}>
+            <Ionicons name="lock-closed-outline" size={32} color="#7c3aed" />
+            <Text style={[styles.promptTitle, { color: colors.text }]}>
+              {t("myLearning.loginTitle")}
+            </Text>
+            <Text style={[styles.promptDesc, { color: colors.textSecondary }]}>
+              {t("myLearning.loginDesc")}
+            </Text>
+            <TouchableOpacity
+              style={styles.promptBtn}
+              onPress={() => router.push("/(auth)/login")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.promptBtnText}>{t("sidebar.logIn")}</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </ScrollView>
+        ) : !loading && summary.length === 0 ? (
+          <View style={[styles.promptCard, { backgroundColor: colors.card }]}>
+            <Ionicons name="rocket-outline" size={32} color="#7c3aed" />
+            <Text style={[styles.promptTitle, { color: colors.text }]}>
+              {t("myLearning.emptyTitle")}
+            </Text>
+            <Text style={[styles.promptDesc, { color: colors.textSecondary }]}>
+              {t("myLearning.emptyDesc")}
+            </Text>
+            <TouchableOpacity
+              style={styles.promptBtn}
+              onPress={() => router.push("/(tabs)/quiz")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.promptBtnText}>{t("myLearning.browseQuizzes")}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Stats */}
+            <View style={[styles.statsRow, { backgroundColor: colors.card }]}>
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{summary.length}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  {t("myLearning.setsPracticed")}
+                </Text>
+              </View>
+              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{totalAttempts}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  {t("myLearning.totalAttempts")}
+                </Text>
+              </View>
+              <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.statBox}>
+                <Text style={styles.statValue}>{avgScore}%</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                  {t("myLearning.avgScore")}
+                </Text>
+              </View>
+            </View>
 
+            {/* Achievements — same card/data as Home */}
+            {achievements.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {t("myLearning.yourAchievements")}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ paddingRight: 8, gap: 14 }}
+                >
+                  {achievements.map((a, i) => (
+                    <AchievementCard key={a.id} item={a} index={i} />
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Progress list */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t("myLearning.yourProgress")}
+              </Text>
+              <View style={{ gap: 12 }}>
+                {summary.map((s) => (
+                  <View
+                    key={s.question_set_id}
+                    style={[
+                      styles.setCard,
+                      { backgroundColor: colors.card, borderColor: isDark ? colors.border : "#ede8ff" },
+                    ]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.setName, { color: colors.text }]}>{s.name}</Text>
+                      {s.category_name && (
+                        <Text style={[styles.setCategory, { color: colors.textSecondary }]}>
+                          {s.category_name}
+                        </Text>
+                      )}
+                      <View style={styles.setMetaRow}>
+                        <Text style={[styles.setMeta, { color: colors.textSecondary }]}>
+                          {t("myLearning.bestScore")}: {Math.round(s.best_score_percentage)}%
+                        </Text>
+                        <Text style={[styles.setMeta, { color: colors.textSecondary }]}>
+                          {s.attempts_count} {t("myLearning.attempts")}
+                        </Text>
+                      </View>
+                      <Text style={[styles.setDate, { color: colors.textSecondary }]}>
+                        {t("myLearning.lastAttempt")}: {formatDate(s.last_attempted_at)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.practiceBtn}
+                      onPress={() => router.push("/(tabs)/quiz")}
+                    >
+                      <Ionicons name="play" size={18} color="#7c3aed" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
+      </ScrollView>
       <AppBottomTabBar />
-    </SafeAreaView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  header: {
+    paddingBottom: 28,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  backBtn: {
+    position: "absolute",
+    top: 52,
+    left: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  headerDecor1: {
+    position: "absolute",
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -50,
+    right: -40,
+  },
+  headerDecor2: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    bottom: -20,
+    left: -20,
+  },
+  iconWrap: { marginTop: 16, marginBottom: 12 },
+  iconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  headerTitle: { fontSize: 24, fontWeight: "900", color: "#fff", letterSpacing: -0.5 },
+
+  promptCard: {
+    marginHorizontal: 18,
+    marginTop: 20,
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  promptTitle: { fontSize: 17, fontWeight: "800", marginTop: 14, marginBottom: 6, textAlign: "center" },
+  promptDesc: { fontSize: 13, textAlign: "center", lineHeight: 20, marginBottom: 18 },
+  promptBtn: { backgroundColor: "#7c3aed", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
+  promptBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  statsRow: {
+    flexDirection: "row",
+    marginHorizontal: 18,
+    marginTop: -1,
+    borderRadius: 20,
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    marginBottom: 6,
+  },
+  statBox: { flex: 1, alignItems: "center", paddingVertical: 18 },
+  statValue: { fontSize: 20, fontWeight: "900", color: "#7c3aed", letterSpacing: -0.5 },
+  statLabel: { fontSize: 11, fontWeight: "600", marginTop: 2, textAlign: "center" },
+  statDivider: { width: 1 },
+
+  section: { marginTop: 22, paddingLeft: 18 },
+  sectionTitle: { fontSize: 17, fontWeight: "800", marginBottom: 14, paddingRight: 18 },
+
+  setCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginRight: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  setName: { fontSize: 14, fontWeight: "700", marginBottom: 2 },
+  setCategory: { fontSize: 11, marginBottom: 6 },
+  setMetaRow: { flexDirection: "row", gap: 14, marginBottom: 4 },
+  setMeta: { fontSize: 12, fontWeight: "600" },
+  setDate: { fontSize: 11 },
+  practiceBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f3e8ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+});

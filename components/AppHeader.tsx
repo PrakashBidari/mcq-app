@@ -1,14 +1,12 @@
 // components/AppHeader.tsx
+import Avatar from "@/components/Avatar";
 import { useAuth } from "@/context/AuthContext";
-import { API_URL } from "@/config/constants";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import {
-  Image,
   StatusBar,
   StyleSheet,
   Text,
@@ -17,32 +15,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const AVATAR_COLORS = ["#7c3aed", "#2563eb", "#059669", "#ef4444", "#ea580c", "#0891b2"];
-function getAvatarColor(name: string) {
-  return AVATAR_COLORS[(name?.charCodeAt(0) ?? 0) % AVATAR_COLORS.length];
-}
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
-  const letter = (name ?? "U")[0].toUpperCase();
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: getAvatarColor(name ?? "U"),
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.5)",
-      }}
-    >
-      <Text style={{ color: "#fff", fontSize: size * 0.38, fontWeight: "900" }}>
-        {letter}
-      </Text>
-    </View>
-  );
-}
 
 type Props = {
   title?: string;
@@ -53,31 +25,20 @@ type Props = {
 };
 
 export default function AppHeader({ title, subtitle, searchValue, onSearchChange, searchPlaceholder }: Props) {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { isDark, colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const displayName = user?.name ?? user?.email?.split("@")[0] ?? "Learner";
   const hasSearch = onSearchChange !== undefined;
 
+  // Re-syncs the shared user (profile image included) whenever this tab is
+  // visited, so a photo uploaded elsewhere always shows up here too.
   useFocusEffect(
     useCallback(() => {
-      const fetchProfileImage = async () => {
-        try {
-          const token = await AsyncStorage.getItem("auth_token");
-          if (!token) return;
-          const res = await fetch(`${API_URL}/profile`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          if (data.success && data.data.profile_image)
-            setProfileImage(data.data.profile_image);
-        } catch {}
-      };
-      fetchProfileImage();
-    }, []),
+      refreshUser();
+    }, [refreshUser]),
   );
 
   return (
@@ -102,11 +63,7 @@ export default function AppHeader({ title, subtitle, searchValue, onSearchChange
           </View>
           {user ? (
             <TouchableOpacity onPress={() => router.push("/profile")}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={styles.profileImg} />
-              ) : (
-                <Avatar name={displayName} size={36} />
-              )}
+              <Avatar name={displayName} imageUri={user.profile_image} size={43} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -184,13 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     marginTop: 1,
-  },
-  profileImg: {
-    width: 46,
-    height: 46,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
   },
   loginIconBtn: {
     width: 42,

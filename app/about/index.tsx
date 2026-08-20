@@ -1,9 +1,10 @@
 // app/about/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Linking,
@@ -15,48 +16,72 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Editorial content (text + per-feature icon) is admin-managed — see backend
+// Settings > About App. Colors and section labels stay cosmetic/code-owned.
+type AboutContent = {
+  tagline: string | null;
+  intro_text_1: string | null;
+  intro_text_2: string | null;
+  stat_1_value: string | null;
+  stat_2_value: string | null;
+  stat_3_value: string | null;
+  stat_4_value: string | null;
+  developer_name: string | null;
+  developer_role: string | null;
+  developer_url: string | null;
+  copyright_text: string | null;
+  items: { title: string; content: string; icon?: string }[];
+};
+
+const FEATURE_COLORS = [
+  { color: "#7c3aed", bg: "#f5f3ff" },
+  { color: "#2563eb", bg: "#eff6ff" },
+  { color: "#059669", bg: "#ecfdf5" },
+  { color: "#dc2626", bg: "#fef2f2" },
+] as const;
+
 export default function AboutScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [content, setContent] = useState<AboutContent | null>(null);
 
-  const FEATURES = [
-    {
-      icon: "school-outline",
-      title: t("about.feature1Title"),
-      desc: t("about.feature1Desc"),
-      color: "#7c3aed",
-      bg: "#f5f3ff",
-    },
-    {
-      icon: "book-outline",
-      title: t("about.feature2Title"),
-      desc: t("about.feature2Desc"),
-      color: "#2563eb",
-      bg: "#eff6ff",
-    },
-    {
-      icon: "trophy-outline",
-      title: t("about.feature3Title"),
-      desc: t("about.feature3Desc"),
-      color: "#059669",
-      bg: "#ecfdf5",
-    },
-    {
-      icon: "shield-checkmark-outline",
-      title: t("about.feature4Title"),
-      desc: t("about.feature4Desc"),
-      color: "#dc2626",
-      bg: "#fef2f2",
-    },
-  ];
+  useEffect(() => {
+    fetch(`${API_URL}/app-pages/about-app`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success) setContent(d.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const FEATURES = (
+    content?.items?.length
+      ? content.items
+      : [
+          { title: t("about.feature1Title"), content: t("about.feature1Desc"), icon: "school-outline" },
+          { title: t("about.feature2Title"), content: t("about.feature2Desc"), icon: "book-outline" },
+          { title: t("about.feature3Title"), content: t("about.feature3Desc"), icon: "trophy-outline" },
+          { title: t("about.feature4Title"), content: t("about.feature4Desc"), icon: "shield-checkmark-outline" },
+        ]
+  ).map((f, i) => ({
+    icon: f.icon || "star",
+    title: f.title,
+    desc: f.content,
+    color: FEATURE_COLORS[i % FEATURE_COLORS.length].color,
+    bg: FEATURE_COLORS[i % FEATURE_COLORS.length].bg,
+  }));
 
   const STATS = [
-    { value: "10K+", label: t("about.questionsLabel") },
-    { value: "50+", label: t("about.categoriesLabel") },
-    { value: "5K+", label: t("about.learnersLabel") },
-    { value: "4.8★", label: t("about.ratingLabel") },
+    { value: content?.stat_1_value ?? "10K+", label: t("about.questionsLabel") },
+    { value: content?.stat_2_value ?? "50+", label: t("about.categoriesLabel") },
+    { value: content?.stat_3_value ?? "5K+", label: t("about.learnersLabel") },
+    { value: content?.stat_4_value ?? "4.8★", label: t("about.ratingLabel") },
   ];
+
+  const developerName = content?.developer_name ?? "Ikigai Job Placement";
+  const developerRole = content?.developer_role ?? "Product Team";
+  const developerUrl = content?.developer_url ?? "https://app.ikigaijobplacement.com";
 
   return (
     <View style={styles.root}>
@@ -82,7 +107,7 @@ export default function AboutScreen() {
           </LinearGradient>
         </View>
         <Text style={styles.appName}>MCQ Hub</Text>
-        <Text style={styles.appTagline}>{t("about.appTagline")}</Text>
+        <Text style={styles.appTagline}>{content?.tagline ?? t("about.appTagline")}</Text>
         <View style={styles.versionBadge}>
           <Text style={styles.versionText}>{t("common.version")}</Text>
         </View>
@@ -105,8 +130,8 @@ export default function AboutScreen() {
         {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t("about.aboutTitle")}</Text>
-          <Text style={styles.bodyText}>{t("about.aboutText1")}</Text>
-          <Text style={[styles.bodyText, { marginTop: 10 }]}>{t("about.aboutText2")}</Text>
+          <Text style={styles.bodyText}>{content?.intro_text_1 ?? t("about.aboutText1")}</Text>
+          <Text style={[styles.bodyText, { marginTop: 10 }]}>{content?.intro_text_2 ?? t("about.aboutText2")}</Text>
         </View>
 
         {/* Features */}
@@ -136,14 +161,12 @@ export default function AboutScreen() {
               <Ionicons name="code-slash" size={28} color="#fff" />
             </LinearGradient>
             <View style={styles.devInfo}>
-              <Text style={styles.devName}>Ikigai Job Placement</Text>
-              <Text style={styles.devRole}>Product Team</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL("https://app.ikigaijobplacement.com")
-                }
-              >
-                <Text style={styles.devLink}>app.ikigaijobplacement.com</Text>
+              <Text style={styles.devName}>{developerName}</Text>
+              <Text style={styles.devRole}>{developerRole}</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(developerUrl)}>
+                <Text style={styles.devLink}>
+                  {developerUrl.replace(/^https?:\/\//, "")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -170,7 +193,7 @@ export default function AboutScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.copyright}>{t("about.copyright")}</Text>
+        <Text style={styles.copyright}>{content?.copyright_text ?? t("about.copyright")}</Text>
       </ScrollView>
       <AppBottomTabBar />
     </View>

@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { token, logout } = useAuth();
+  const { token, logout, refreshUser } = useAuth();
   const { setSidebarVisible } = useSidebar();
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,6 +173,9 @@ export default function ProfileScreen() {
       if (data.success) {
         Alert.alert(t("common.success"), t("profile.successImageUpdate"));
         fetchProfile();
+        // Keeps Home/header/sidebar avatars in sync immediately, without
+        // waiting for them to independently refetch on next focus.
+        refreshUser();
       } else {
         Alert.alert(t("common.error"), data.message || t("profile.errorImageUpload"));
       }

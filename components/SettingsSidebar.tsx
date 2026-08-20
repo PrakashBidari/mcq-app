@@ -1,4 +1,5 @@
 // components/SettingsSidebar.tsx
+import Avatar from "@/components/Avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import ThemeManager from "@/utils/ThemeManager";
@@ -43,7 +44,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const [isDark, setIsDark] = useState(ThemeManager.getIsDark());
 
-  const { logout, user, isAuthenticated } = useAuth();
+  const { logout, user, isAuthenticated, refreshUser } = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -65,6 +66,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   useEffect(() => {
     if (visible) {
+      // Re-syncs the shared user (profile image included) every time the
+      // sidebar opens, regardless of which screen it was opened from.
+      refreshUser();
       // Reset to off-screen before making the Modal visible so onShow
       // always starts the animation from the correct position.
       slideAnim.setValue(-SIDEBAR_WIDTH);
@@ -214,8 +218,20 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
             {/* Profile Section */}
             <View style={styles.profileSection}>
-              <Text style={styles.userName}>{t("sidebar.appName")}</Text>
-              <Text style={styles.userEmail}>{t("sidebar.tagline")}</Text>
+              {isAuthenticated && user ? (
+                <>
+                  <View style={styles.avatarContainer}>
+                    <Avatar name={user.name} imageUri={user.profile_image} size={72} />
+                  </View>
+                  <Text style={styles.userName}>{user.name}</Text>
+                  <Text style={styles.userEmail}>{user.email}</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.userName}>{t("sidebar.appName")}</Text>
+                  <Text style={styles.userEmail}>{t("sidebar.tagline")}</Text>
+                </>
+              )}
             </View>
 
             {/* Decorative Circles */}

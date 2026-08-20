@@ -4,6 +4,7 @@ import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { formatYen } from "@/utils/currency";
+import { retryPendingPurchases } from "@/utils/purchases";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -78,6 +79,10 @@ export default function MyPurchasesScreen() {
 
   const handleRecheck = async () => {
     setIsLoading(true);
+    // Replay any purchases the store still has as unfinished (e.g. a previous purchase
+    // never made it through verification) before re-fetching, so this button is a real
+    // recovery action and not just a refetch.
+    await retryPendingPurchases();
     const succeeded = await fetchPurchases();
     Alert.alert("", succeeded ? t("purchases.recheckSuccess") : t("purchases.recheckFailed"));
   };

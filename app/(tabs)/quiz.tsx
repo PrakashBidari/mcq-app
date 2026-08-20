@@ -446,6 +446,9 @@ export default function QuizScreen() {
       const data = await response.json();
       if (data.success && data.data.length > 0) {
         quizStore.setQuestions(data.data);
+        quizStore.setQuestionSetId(null);
+        quizStore.setCategoryId(selectedCategory.id);
+        quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
           params: { total: data.data.length },
@@ -494,6 +497,9 @@ export default function QuizScreen() {
 
       if (data.success && data.data.questions.length > 0) {
         quizStore.setQuestions(data.data.questions);
+        quizStore.setQuestionSetId(setId);
+        quizStore.setCategoryId(selectedCategory?.id ?? null);
+        quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
           params: {
@@ -560,9 +566,13 @@ export default function QuizScreen() {
         iosProductId: payTarget.ios_product_id,
         androidProductId: payTarget.android_product_id,
       });
-    } catch {
+    } catch (error) {
       setPurchasingId(null);
-      Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
+      const message =
+        error instanceof Error && error.message === "purchase_already_pending"
+          ? t("quiz.purchaseAlreadyPending")
+          : t("quiz.purchaseFailed");
+      Alert.alert(t("common.error"), message);
     }
   };
 
