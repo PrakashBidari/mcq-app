@@ -179,7 +179,14 @@ async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
   }
 }
 
-function handlePurchaseError(error: PurchaseError) {
+// A failed/cancelled purchase (wrong sandbox setup, user backs out, StoreKit/Play Billing
+// rejects it outright, etc.) must clear its pending intent here - otherwise the next tap on
+// the same price tier hits savePendingIntent's already-pending guard forever, with no way to
+// retry short of clearing app storage.
+async function handlePurchaseError(error: PurchaseError) {
+  if (error.productId) {
+    await removePendingIntent(error.productId);
+  }
   failureListeners.forEach((listener) => listener(error.productId ?? "", error.code));
 }
 
@@ -198,9 +205,10 @@ export async function initGlobalPurchaseHandling() {
   try {
     await iap.initConnection();
     connected = true;
-  } catch {
+  } catch (error) {
     // billing unavailable (e.g. simulator, or store not reachable) - purchase buttons
     // will surface an error when actually tapped
+    console.error("[IAP] initConnection failed:", error);
   }
 }
 
@@ -247,6 +255,11 @@ export async function buyItem(params: {
   if (!iap) {
     throw new Error("iap_unavailable");
   }
+  if (!connected) {
+    // requestPurchase is event-based and can otherwise hang forever with no prompt and
+    // no error if the store connection never came up - fail fast instead.
+    throw new Error("iap_not_connected");
+  }
 
   const productId = Platform.OS === "ios" ? params.iosProductId : params.androidProductId;
   if (!productId) {
@@ -260,13 +273,24 @@ export async function buyItem(params: {
     priceTier: params.priceTier,
   });
 
-  await iap.requestPurchase({
-    type: "in-app",
-    request: {
-      apple: { sku: productId },
-      google: { skus: [productId] },
-    },
-  });
+  try {
+    console.log("[IAP] requestPurchase starting for", productId);
+    await iap.requestPurchase({
+      type: "in-app",
+      request: {
+        apple: { sku: productId },
+        google: { skus: [productId] },
+      },
+    });
+    console.log("[IAP] requestPurchase call returned (native flow initiated) for", productId);
+  } catch (error) {
+    // requestPurchase can reject directly (e.g. StoreKit/Play Billing refuses the request
+    // before any native sheet appears) instead of only going through purchaseErrorListener -
+    // clear the intent here too so the same tier isn't stuck "pending" forever.
+    console.error("[IAP] requestPurchase failed for", productId, error);
+    await removePendingIntent(productId);
+    throw error;
+  }
 }
 
 // Thin wrapper kept for existing call sites - buys a single question set outright.
