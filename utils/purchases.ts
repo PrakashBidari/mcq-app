@@ -170,34 +170,70 @@ async function verifyWithBackend(
   }
 }
 
-async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
-  const intents = await getPendingIntents();
-  const intent = intents.find((i) => i.productId === purchase.productId);
-  if (!intent) {
-    console.warn(
-      "[IAP] purchase event with no matching pending intent for",
-      purchase.productId,
-      "- known intents:",
-      intents.map((i) => i.productId),
-    );
-    return; // not one of our tracked purchases
-  }
+// StoreKit / Play Billing re-deliver an unfinished transaction repeatedly (on every
+// connection, and StoreKit 2 streams updates continuously), and deliveries can arrive
+// concurrently. finishTransaction doesn't always take effect immediately against a local
+// StoreKit config either. Without a guard, every redelivery runs verify again and fires
+// another onPurchaseUnlocked - and each stacked "Purchase successful / Start Quiz" prompt
+// the user taps through consumes one paid attempt. Track each transaction so it unlocks
+// exactly once per app session.
+const settledTransactions = new Set<string>();
+const inFlightTransactions = new Set<string>();
 
-  const unlocked = await verifyWithBackend(iap, intent, purchase);
-  console.log("[IAP] verifyWithBackend ->", unlocked, "for", purchase.productId);
+function transactionKey(purchase: Purchase): string {
+  return `${purchase.productId}::${purchase.transactionId || purchase.purchaseToken || ""}`;
+}
 
-  if (unlocked) {
+async function finishSilently(iap: IapModule, purchase: Purchase) {
+  try {
     await iap.finishTransaction({ purchase, isConsumable: true });
+  } catch (error) {
+    console.warn("[IAP] finishTransaction failed:", error);
+  }
+}
+
+async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
+  const key = transactionKey(purchase);
+
+  // Already unlocked this exact transaction (or a concurrent delivery of it is mid-flight):
+  // just make sure the store stops replaying it, and don't fire another unlock.
+  if (settledTransactions.has(key) || inFlightTransactions.has(key)) {
+    await finishSilently(iap, purchase);
+    return;
+  }
+  inFlightTransactions.add(key);
+
+  try {
+    const intents = await getPendingIntents();
+    const intent = intents.find((i) => i.productId === purchase.productId);
+    if (!intent) {
+      // No local intent for this product - e.g. a leftover transaction from a previous
+      // install, or one we already fully handled. Finish it so it stops replaying.
+      console.warn("[IAP] purchase event with no matching pending intent for", purchase.productId);
+      await finishSilently(iap, purchase);
+      return;
+    }
+
+    const unlocked = await verifyWithBackend(iap, intent, purchase);
+    console.log("[IAP] verifyWithBackend ->", unlocked, "for", purchase.productId);
+
+    if (!unlocked) {
+      // Leave the intent and the unfinished transaction in place - it will be replayed
+      // and retried the next time the store connection is (re)established.
+      failureListeners.forEach((listener) =>
+        listener(purchase.productId, "purchase_verification_failed"),
+      );
+      return;
+    }
+
+    settledTransactions.add(key);
+    await finishSilently(iap, purchase);
     await removePendingIntent(purchase.productId);
     unlockListeners.forEach((listener) =>
       listener({ purchaseType: intent.purchaseType, targetId: intent.targetId }),
     );
-  } else {
-    // Leave the intent and the unfinished transaction in place - it will be replayed
-    // and retried the next time the store connection is (re)established.
-    failureListeners.forEach((listener) =>
-      listener(purchase.productId, "purchase_verification_failed"),
-    );
+  } finally {
+    inFlightTransactions.delete(key);
   }
 }
 

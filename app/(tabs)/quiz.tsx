@@ -179,6 +179,11 @@ export default function QuizScreen() {
   const questionSetsRequestId = useRef(0);
   const packagesRequestId = useRef(0);
 
+  // Blocks a second quiz-start while one is already in flight - the post-purchase
+  // "Start Quiz" prompt, the card's own onPress, and a fast double-tap can otherwise
+  // all fire startQuestionSetQuiz at once.
+  const startingQuizRef = useRef(false);
+
   // is_owned/trial_available are baked into the cached responses per-user - drop
   // them on login/logout so a different (or now-anonymous) user never briefly sees
   // someone else's ownership/trial state from cache.
@@ -464,6 +469,8 @@ export default function QuizScreen() {
   };
 
   const startQuestionSetQuiz = async (setId: number) => {
+    if (startingQuizRef.current) return;
+    startingQuizRef.current = true;
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/question-set/${setId}`, {
@@ -514,6 +521,7 @@ export default function QuizScreen() {
       Alert.alert(t("common.error"), t("quiz.errorLoadSet"));
     } finally {
       setIsLoading(false);
+      startingQuizRef.current = false;
     }
   };
 

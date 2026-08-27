@@ -615,7 +615,9 @@ export default function Index() {
   const startQuestionSetQuiz = async (setId: number) => {
     setQuizLoading(true);
     try {
-      const res = await fetch(`${API_URL}/question-set/${setId}`);
+      const res = await fetch(`${API_URL}/question-set/${setId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json();
       if (data.success && data.data.questions.length > 0) {
         closeSearch();
