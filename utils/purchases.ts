@@ -132,7 +132,10 @@ async function verifyWithBackend(
     }
   }
 
-  if (!receiptOrToken) return false;
+  if (!receiptOrToken) {
+    console.warn("[IAP] verify skipped: no receipt/JWS token on purchase", purchase.productId);
+    return false;
+  }
 
   try {
     const response = await fetch(`${API_URL}/purchases/verify`, {
@@ -151,8 +154,18 @@ async function verifyWithBackend(
       }),
     });
     const data = await response.json();
+    if (!data.success) {
+      // The backend explains exactly why in `errors` (e.g. bad signature, Xcode env not
+      // allowed, product/bundle mismatch, transaction already used) - surface it so a
+      // failed verify isn't just a silent generic "purchase failed".
+      console.warn(
+        `[IAP] verify rejected (${response.status}):`,
+        JSON.stringify(data),
+      );
+    }
     return !!data.success;
-  } catch {
+  } catch (error) {
+    console.error("[IAP] verify request failed:", error);
     return false;
   }
 }
@@ -160,9 +173,18 @@ async function verifyWithBackend(
 async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
   const intents = await getPendingIntents();
   const intent = intents.find((i) => i.productId === purchase.productId);
-  if (!intent) return; // not one of our tracked purchases
+  if (!intent) {
+    console.warn(
+      "[IAP] purchase event with no matching pending intent for",
+      purchase.productId,
+      "- known intents:",
+      intents.map((i) => i.productId),
+    );
+    return; // not one of our tracked purchases
+  }
 
   const unlocked = await verifyWithBackend(iap, intent, purchase);
+  console.log("[IAP] verifyWithBackend ->", unlocked, "for", purchase.productId);
 
   if (unlocked) {
     await iap.finishTransaction({ purchase, isConsumable: true });
