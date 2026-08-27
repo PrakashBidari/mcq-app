@@ -116,8 +116,21 @@ async function verifyWithBackend(
   if (!token) return false;
 
   const platform = Platform.OS === "ios" ? "ios" : "android";
-  const receiptOrToken =
-    platform === "ios" ? await iap.getReceiptIOS() : (purchase.purchaseToken ?? "");
+
+  // react-native-iap v15 exposes a single unified token on the purchase object: on iOS
+  // it's the StoreKit 2 JWS-signed transaction, on Android it's the Play purchase token.
+  // The legacy getReceiptIOS() (Apple's old base64 app receipt) is NOT produced when a
+  // build runs against a local StoreKit configuration file, so we never rely on it -
+  // getTransactionJwsIOS(productId) is only a fallback for the rare case purchaseToken
+  // isn't populated on the event.
+  let receiptOrToken = purchase.purchaseToken ?? "";
+  if (!receiptOrToken && platform === "ios") {
+    try {
+      receiptOrToken = (await iap.getTransactionJwsIOS(purchase.productId)) ?? "";
+    } catch {
+      // fall through to the empty-token guard below
+    }
+  }
 
   if (!receiptOrToken) return false;
 
