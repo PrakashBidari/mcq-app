@@ -1,3 +1,4 @@
+import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,6 +27,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { Recaptcha, getToken } = useRecaptcha();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -53,6 +55,18 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
 
+    let recaptchaToken: string;
+    try {
+      recaptchaToken = await getToken();
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.recaptchaFailed"),
+      );
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: "POST",
@@ -63,6 +77,7 @@ export default function RegisterScreen() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password: password,
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -104,6 +119,7 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

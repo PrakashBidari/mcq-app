@@ -1,5 +1,6 @@
 // app/contact-us/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -39,6 +40,7 @@ export default function ContactUsScreen() {
   const [isFetching, setIsFetching] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [settings, setSettings] = useState<ContactSettings | null>(null);
+  const { Recaptcha, getToken } = useRecaptcha();
 
   useEffect(() => {
     fetchSettings();
@@ -129,6 +131,18 @@ export default function ContactUsScreen() {
 
     setIsLoading(true);
 
+    let recaptchaToken: string;
+    try {
+      recaptchaToken = await getToken();
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.recaptchaFailed"),
+      );
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/contact/submit`, {
         method: "POST",
@@ -139,6 +153,7 @@ export default function ContactUsScreen() {
           name: name.trim(),
           email: email.trim(),
           message: message.trim(),
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -200,6 +215,7 @@ export default function ContactUsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
+      {Recaptcha}
       {/* Header */}
       <View className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
         <View className="flex-row items-center justify-between">

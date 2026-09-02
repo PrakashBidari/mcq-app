@@ -1,4 +1,5 @@
 // app/(auth)/login.tsx
+import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,6 +29,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login: saveAuth } = useAuth();
+  const { Recaptcha, getToken } = useRecaptcha();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +49,18 @@ export default function LoginScreen() {
 
     setIsLoading(true);
 
+    let recaptchaToken: string;
+    try {
+      recaptchaToken = await getToken();
+    } catch (e) {
+      setIsLoading(false);
+      Alert.alert(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.recaptchaFailed"),
+      );
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
@@ -56,6 +70,7 @@ export default function LoginScreen() {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password: password,
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -82,6 +97,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}
