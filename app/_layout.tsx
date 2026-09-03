@@ -7,6 +7,7 @@ import { useTheme } from "@/hooks/useTheme";
 import ThemeManager from "@/utils/ThemeManager";
 import { initGlobalPurchaseHandling } from "@/utils/purchases";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import { RecaptchaProvider } from "@/context/RecaptchaContext";
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { Platform, StatusBar, StyleSheet } from "react-native";
@@ -22,7 +23,8 @@ const ScreenGuardModule =
 // In Expo Go the native module can never exist (no native rebuild is possible there) -
 // calling initSettings() logs its own noisy diagnostic error even when we catch the
 // resulting rejection, so skip calling it entirely rather than just catching it.
-const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 function AppShell() {
   const { isDark } = useTheme();
@@ -63,7 +65,9 @@ export default function RootLayout() {
     <AuthProvider>
       <LanguageProvider>
         <SidebarProvider>
-          <AppShell />
+          <RecaptchaProvider>
+            <AppShell />
+          </RecaptchaProvider>
         </SidebarProvider>
       </LanguageProvider>
     </AuthProvider>

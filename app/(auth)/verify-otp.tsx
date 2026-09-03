@@ -1,5 +1,6 @@
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -30,6 +31,7 @@ export default function VerifyOtpScreen() {
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const { login: saveAuth } = useAuth();
+  const { getToken } = useRecaptchaToken();
 
   const [timeLeft, setTimeLeft] = useState(600);
   const [isExpired, setIsExpired] = useState(false);
@@ -89,11 +91,8 @@ export default function VerifyOtpScreen() {
 
         if (data.success) {
           await saveAuth(data.data.user, data.data.token);
-          Alert.alert(
-            t("common.success"),
-            t("auth.verifyOtp.verifiedSuccess"),
-            [{ text: t("common.ok"), onPress: () => router.replace("/(tabs)") }],
-          );
+          router.replace("/(tabs)");
+          Alert.alert(t("common.success"), t("auth.verifyOtp.verifiedSuccess"));
         } else {
           Alert.alert(t("common.error"), data.message || t("auth.verifyOtp.invalidOtp"));
           setOtp(["", "", "", "", "", ""]);
@@ -164,10 +163,12 @@ export default function VerifyOtpScreen() {
     if (resendCooldown > 0) return;
     setIsResending(true);
     try {
+      const recaptchaToken = await getToken();
+
       const response = await fetch(`${API_URL}/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, recaptcha_token: recaptchaToken }),
       });
 
       const data = await response.json();
@@ -182,8 +183,9 @@ export default function VerifyOtpScreen() {
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.verifyOtp.failedResend"));
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.somethingWrong"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      Alert.alert(t("common.error"), message || t("common.somethingWrong"));
     } finally {
       setIsResending(false);
     }

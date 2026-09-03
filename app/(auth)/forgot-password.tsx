@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -23,6 +24,7 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { getToken } = useRecaptchaToken();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -39,11 +41,14 @@ export default function ForgotPasswordScreen() {
     setIsLoading(true);
 
     try {
+      const recaptchaToken = await getToken();
+
       const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -63,8 +68,9 @@ export default function ForgotPasswordScreen() {
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.forgotPassword.failedToSend"));
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.somethingWrong"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      Alert.alert(t("common.error"), message || t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }

@@ -11,6 +11,9 @@
     "somethingWrong": "Something went wrong. Please try again."
   },
   "auth": {
+    "recaptcha": {
+      "verifying": "Verifying…"
+    },
     "login": {
       "title": "Welcome Back!",
       "subtitle": "Sign in to continue your learning journey",

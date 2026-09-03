@@ -1,4 +1,5 @@
 import { API_URL } from "@/config/constants";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -26,6 +27,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { getToken } = useRecaptchaToken();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -54,6 +56,8 @@ export default function RegisterScreen() {
     setIsLoading(true);
 
     try {
+      const recaptchaToken = await getToken();
+
       const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
@@ -63,6 +67,7 @@ export default function RegisterScreen() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password: password,
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -95,8 +100,9 @@ export default function RegisterScreen() {
           Alert.alert(t("common.error"), data.message || t("auth.register.registrationFailed"));
         }
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.somethingWrong"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      Alert.alert(t("common.error"), message || t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }

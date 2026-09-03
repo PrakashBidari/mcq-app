@@ -1,5 +1,6 @@
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,6 +26,7 @@ export default function VerifyResetOtpScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const { setPendingResetOtp } = useAuth();
+  const { getToken } = useRecaptchaToken();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -159,10 +161,12 @@ export default function VerifyResetOtpScreen() {
     if (resendCooldown > 0) return;
     setIsResending(true);
     try {
+      const recaptchaToken = await getToken();
+
       const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, recaptcha_token: recaptchaToken }),
       });
 
       const data = await response.json();
@@ -177,8 +181,9 @@ export default function VerifyResetOtpScreen() {
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.verifyResetOtp.failedResend"));
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.somethingWrong"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      Alert.alert(t("common.error"), message || t("common.somethingWrong"));
     } finally {
       setIsResending(false);
     }

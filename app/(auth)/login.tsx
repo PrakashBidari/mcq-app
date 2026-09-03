@@ -1,6 +1,7 @@
 // app/(auth)/login.tsx
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -28,6 +29,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login: saveAuth } = useAuth();
+  const { getToken } = useRecaptchaToken();
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -48,6 +50,8 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
+      const recaptchaToken = await getToken();
+
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
@@ -56,6 +60,7 @@ export default function LoginScreen() {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password: password,
+          recaptcha_token: recaptchaToken,
         }),
       });
 
@@ -73,8 +78,9 @@ export default function LoginScreen() {
       } else {
         Alert.alert(t("common.error"), data.message || t("auth.login.loginFailed"));
       }
-    } catch {
-      Alert.alert(t("common.error"), t("common.somethingWrong"));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : undefined;
+      Alert.alert(t("common.error"), message || t("common.somethingWrong"));
     } finally {
       setIsLoading(false);
     }
