@@ -219,36 +219,54 @@ export default function QuizScreen() {
       .catch(() => {});
   }, []);
 
-  // Immediately reflect a just-verified purchase in the visible list and the
-  // session-lifetime caches, so the card shows "Start" instead of "Pay ¥X" even
-  // before the follow-up refetch lands (and after navigating away and back).
-  const markOwnedLocally = (purchaseType: "question_set" | "package", targetId: number) => {
-    if (purchaseType === "package") {
-      setPackages((prev) =>
-        prev.map((p) =>
-          p.id === targetId ? { ...p, is_owned: true, trial_available: false } : p,
-        ),
-      );
+  // Items bought during this app session. The server is the source of truth for
+  // ownership, but there's a short window right after a purchase where a list
+  // refetch can still come back "not owned" (auth token / DB timing). Anything in
+  // this set is force-shown as owned until the app restarts, OR until an actual
+  // play attempt is rejected with purchase_required (attempts used up / access
+  // window expired), which removes it again. Keyed "question_set:<id>" / "package:<id>".
+  const sessionOwnedRef = useRef<Set<string>>(new Set());
+  const ownKey = (type: "question_set" | "package", id: number) => `${type}:${id}`;
+
+  // Re-assert this-session purchases over a freshly fetched list (server response
+  // is untyped JSON, so this stays `any` like the call sites it feeds).
+  const mergeSessionOwned = (list: any[], type: "question_set" | "package"): any[] =>
+    list.map((x) =>
+      sessionOwnedRef.current.has(ownKey(type, x.id))
+        ? { ...x, is_owned: true, trial_available: false }
+        : x,
+    );
+
+  // Flip a set/package between owned and not-owned everywhere it's held - the
+  // visible list, the session-lifetime cache, and the session-owned set - so the
+  // card shows the right button immediately and stays consistent across
+  // navigation and category switches.
+  const setOwnershipLocally = (
+    type: "question_set" | "package",
+    id: number,
+    owned: boolean,
+  ) => {
+    if (owned) sessionOwnedRef.current.add(ownKey(type, id));
+    else sessionOwnedRef.current.delete(ownKey(type, id));
+
+    const patch = owned
+      ? { is_owned: true, trial_available: false }
+      : { is_owned: false };
+
+    if (type === "package") {
+      setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
       packagesCache.forEach((list, catId) => {
         packagesCache.set(
           catId,
-          list.map((p) =>
-            p.id === targetId ? { ...p, is_owned: true, trial_available: false } : p,
-          ),
+          list.map((p) => (p.id === id ? { ...p, ...patch } : p)),
         );
       });
     } else {
-      setQuestionSets((prev) =>
-        prev.map((s) =>
-          s.id === targetId ? { ...s, is_owned: true, trial_available: false } : s,
-        ),
-      );
+      setQuestionSets((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
       questionSetsCache.forEach((entry, catId) => {
         questionSetsCache.set(catId, {
           ...entry,
-          sets: entry.sets.map((s) =>
-            s.id === targetId ? { ...s, is_owned: true, trial_available: false } : s,
-          ),
+          sets: entry.sets.map((s) => (s.id === id ? { ...s, ...patch } : s)),
         });
       });
     }
@@ -271,10 +289,10 @@ export default function QuizScreen() {
       // This screen only ever initiates question_set / package buys; attempt-pack
       // and subscription unlocks are handled on the wallet screen.
       if (purchaseType !== "question_set" && purchaseType !== "package") return;
-      // Flip the card from "Pay ¥X" to owned/Start immediately (and in the session
-      // cache) so going into the quiz and pressing back doesn't show the pay
-      // button again. The refetch below reconciles with the server.
-      markOwnedLocally(purchaseType, targetId);
+      // Payment is already verified by the time we get here - the user owns this
+      // now. Flip the card from "Pay ¥X" to Play immediately and keep it that way
+      // for the rest of the session; the refetch below just reconciles counts.
+      setOwnershipLocally(purchaseType, targetId, true);
       if (selectedCategory) {
         fetchQuestionSets(selectedCategory.id);
         fetchPackages(selectedCategory.id);
@@ -291,8 +309,12 @@ export default function QuizScreen() {
       unsubUnlock();
       unsubFail();
     };
+    // Re-subscribe when the auth token loads too, so the post-purchase refetch
+    // inside the listener always runs with valid auth (otherwise a listener
+    // captured before login sends an unauthenticated request and the server
+    // reports the just-bought item as "not owned").
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory]);
+  }, [selectedCategory, token]);
 
   useEffect(() => {
     fetchCategories();
@@ -366,8 +388,9 @@ export default function QuizScreen() {
       if (packagesRequestId.current !== requestId) return; // superseded
 
       if (data.success) {
-        packagesCache.set(categoryId, data.data.packages);
-        setPackages(data.data.packages);
+        const pkgs = mergeSessionOwned(data.data.packages, "package");
+        packagesCache.set(categoryId, pkgs);
+        setPackages(pkgs);
       }
     } catch {
       // non-fatal - the Package tab will just show empty
@@ -382,7 +405,8 @@ export default function QuizScreen() {
       });
       const data = await response.json();
       if (data.success) {
-        setSelectedPackage(data.data.package);
+        const [pkg] = mergeSessionOwned([data.data.package], "package");
+        setSelectedPackage(pkg);
         setPackageQuestionSets(data.data.question_sets);
       } else {
         Alert.alert(t("common.error"), t("quiz.errorSomethingWrong"));
@@ -419,7 +443,7 @@ export default function QuizScreen() {
       if (questionSetsRequestId.current !== requestId) return; // superseded by a newer category selection
 
       if (data.success) {
-        const sets = data.data.question_sets;
+        const sets = mergeSessionOwned(data.data.question_sets, "question_set");
         const total = sets.reduce(
           (sum: number, set: QuestionSet) => sum + set.questions_count,
           0,
@@ -535,6 +559,11 @@ export default function QuizScreen() {
 
       if (response.status === 403 && data.reason === "purchase_required") {
         const set = questionSets.find((s) => s.id === setId);
+        // The server just refused access - either this was never owned, or a
+        // previous purchase's attempts / time have run out. Clear any optimistic
+        // "owned" flag so the pay button correctly comes back.
+        setOwnershipLocally("question_set", setId, false);
+        if (selectedPackage) setOwnershipLocally("package", selectedPackage.id, false);
         const tier = data.data?.price_tier;
         if (!tier) {
           // No direct price tier (e.g. packaged/wallet-only content) - direct the
@@ -1550,11 +1579,8 @@ export default function QuizScreen() {
                   : t("quiz.playNow")}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={closePurchaseSuccess} style={styles.successLaterBtn}>
-              <Text style={[styles.successLaterText, { color: colors.textSecondary }]}>
-                {t("quiz.maybeLater")}
-              </Text>
-            </TouchableOpacity>
+            {/* No "later" button - closing with X keeps the purchase; the card is
+                already unlocked and shows Play, so the user can start any time. */}
           </View>
         </View>
       </Modal>
@@ -2362,17 +2388,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
-  },
-  successLaterBtn: {
-    paddingVertical: 12,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  successLaterText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#94a3b8",
   },
 
   // ── Remove Bookmark Modal ──
