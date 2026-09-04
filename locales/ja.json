@@ -229,6 +229,9 @@
     "purchaseRequiredMessage": "この問題セットを解放するための一回限りの購入",
     "purchaseSuccessTitle": "購入が完了しました！",
     "purchaseSuccess": "この問題セットが解放されました。",
+    "purchaseSuccessPackage": "このパッケージが解放されました。",
+    "playNow": "今すぐ始める",
+    "maybeLater": "後で",
     "purchaseFailed": "購入に失敗しました。もう一度お試しください。",
     "purchaseUnavailable": "この商品は現在購入できません。後でもう一度お試しください。",
     "loginRequiredForPurchase": "ログインが必要です",
@@ -335,7 +338,12 @@
     "submitShowResult": "提出して結果を表示",
     "previous": "前の問題",
     "finishQuiz": "クイズを終了",
-    "nextQuestion": "次の問題"
+    "nextQuestion": "次の問題",
+    "attemptOf": "{{total}}回中{{current}}回目",
+    "attemptsLeft": "残り{{count}}回",
+    "daysLeft": "残り{{count}}日",
+    "expiresToday": "本日期限切れ",
+    "accessSubscription": "サブスク有効"
   },
   "quizResults": {
     "quizCompleted": "クイズ完了！",

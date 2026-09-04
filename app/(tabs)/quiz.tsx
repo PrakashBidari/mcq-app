@@ -166,6 +166,16 @@ export default function QuizScreen() {
   // Purchase flow state - purchasingId is a question_set id OR a package id depending on payTarget.purchaseType
   const [payTarget, setPayTarget] = useState<PayTarget | null>(null);
   const [purchasingId, setPurchasingId] = useState<number | null>(null);
+  // Shown after a purchase verifies - lets the user start playing now OR just
+  // close (X / "Maybe later") and come back later.
+  const [purchaseSuccess, setPurchaseSuccess] = useState<{
+    purchaseType: "question_set" | "package";
+    targetId: number;
+    name?: string;
+  } | null>(null);
+  // payTarget is nulled the moment a purchase starts, so stash its name here for
+  // the success modal that appears once verification comes back.
+  const purchaseNameRef = useRef<string | undefined>(undefined);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [priceTiers, setPriceTiers] = useState<
     Record<string, { ios_product_id: string; android_product_id: string }>
@@ -209,23 +219,67 @@ export default function QuizScreen() {
       .catch(() => {});
   }, []);
 
+  // Immediately reflect a just-verified purchase in the visible list and the
+  // session-lifetime caches, so the card shows "Start" instead of "Pay ¥X" even
+  // before the follow-up refetch lands (and after navigating away and back).
+  const markOwnedLocally = (purchaseType: "question_set" | "package", targetId: number) => {
+    if (purchaseType === "package") {
+      setPackages((prev) =>
+        prev.map((p) =>
+          p.id === targetId ? { ...p, is_owned: true, trial_available: false } : p,
+        ),
+      );
+      packagesCache.forEach((list, catId) => {
+        packagesCache.set(
+          catId,
+          list.map((p) =>
+            p.id === targetId ? { ...p, is_owned: true, trial_available: false } : p,
+          ),
+        );
+      });
+    } else {
+      setQuestionSets((prev) =>
+        prev.map((s) =>
+          s.id === targetId ? { ...s, is_owned: true, trial_available: false } : s,
+        ),
+      );
+      questionSetsCache.forEach((entry, catId) => {
+        questionSetsCache.set(catId, {
+          ...entry,
+          sets: entry.sets.map((s) =>
+            s.id === targetId ? { ...s, is_owned: true, trial_available: false } : s,
+          ),
+        });
+      });
+    }
+  };
+
+  const closePurchaseSuccess = () => setPurchaseSuccess(null);
+
+  const playAfterPurchase = () => {
+    const target = purchaseSuccess;
+    setPurchaseSuccess(null);
+    if (!target) return;
+    if (target.purchaseType === "package") openPackage(target.targetId);
+    else startQuestionSetQuiz(target.targetId);
+  };
+
   useEffect(() => {
     const unsubUnlock = onPurchaseUnlocked(({ purchaseType, targetId }) => {
       setPurchasingId(null);
       setPayTarget(null);
+      // This screen only ever initiates question_set / package buys; attempt-pack
+      // and subscription unlocks are handled on the wallet screen.
+      if (purchaseType !== "question_set" && purchaseType !== "package") return;
+      // Flip the card from "Pay ¥X" to owned/Start immediately (and in the session
+      // cache) so going into the quiz and pressing back doesn't show the pay
+      // button again. The refetch below reconciles with the server.
+      markOwnedLocally(purchaseType, targetId);
       if (selectedCategory) {
         fetchQuestionSets(selectedCategory.id);
         fetchPackages(selectedCategory.id);
       }
-      if (purchaseType === "package") {
-        Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
-          { text: "OK", onPress: () => openPackage(targetId) },
-        ]);
-      } else {
-        Alert.alert(t("quiz.purchaseSuccessTitle"), t("quiz.purchaseSuccess"), [
-          { text: t("quiz.startQuiz"), onPress: () => startQuestionSetQuiz(targetId) },
-        ]);
-      }
+      setPurchaseSuccess({ purchaseType, targetId, name: purchaseNameRef.current });
     });
     const unsubFail = onPurchaseFailed((_productId, code) => {
       setPurchasingId(null);
@@ -453,6 +507,7 @@ export default function QuizScreen() {
         quizStore.setQuestions(data.data);
         quizStore.setQuestionSetId(null);
         quizStore.setCategoryId(selectedCategory.id);
+        quizStore.setAccess(null);
         quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
@@ -506,6 +561,7 @@ export default function QuizScreen() {
         quizStore.setQuestions(data.data.questions);
         quizStore.setQuestionSetId(setId);
         quizStore.setCategoryId(selectedCategory?.id ?? null);
+        quizStore.setAccess(data.data.set?.access ?? null);
         quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
@@ -566,6 +622,7 @@ export default function QuizScreen() {
       return;
     }
     setPurchasingId(payTarget.targetId);
+    purchaseNameRef.current = payTarget.name;
     try {
       await buyItem({
         purchaseType: payTarget.purchaseType,
@@ -1447,6 +1504,61 @@ export default function QuizScreen() {
         </View>
       </Modal>
 
+      {/* ─── Purchase Success Modal ─── */}
+      <Modal
+        visible={!!purchaseSuccess}
+        transparent
+        animationType="fade"
+        onRequestClose={closePurchaseSuccess}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.successModalSheet, { backgroundColor: colors.card }]}>
+            <TouchableOpacity
+              onPress={closePurchaseSuccess}
+              style={styles.successCloseBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={styles.successIconWrap}>
+              <Ionicons name="checkmark-circle" size={44} color="#10b981" />
+            </View>
+            <Text style={[styles.successTitle, { color: colors.text }]}>
+              {t("quiz.purchaseSuccessTitle")}
+            </Text>
+            {!!purchaseSuccess?.name && (
+              <Text style={[styles.successItemName, { color: colors.text }]} numberOfLines={2}>
+                {purchaseSuccess.name}
+              </Text>
+            )}
+            <Text style={[styles.successMsg, { color: colors.textSecondary }]}>
+              {purchaseSuccess?.purchaseType === "package"
+                ? t("quiz.purchaseSuccessPackage")
+                : t("quiz.purchaseSuccess")}
+            </Text>
+
+            <TouchableOpacity onPress={playAfterPurchase} style={styles.successPlayBtn}>
+              <Ionicons
+                name={purchaseSuccess?.purchaseType === "package" ? "folder-open-outline" : "play-circle"}
+                size={18}
+                color="#fff"
+              />
+              <Text style={styles.successPlayText}>
+                {purchaseSuccess?.purchaseType === "package"
+                  ? t("quiz.viewPackage")
+                  : t("quiz.playNow")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={closePurchaseSuccess} style={styles.successLaterBtn}>
+              <Text style={[styles.successLaterText, { color: colors.textSecondary }]}>
+                {t("quiz.maybeLater")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* ─── Login Required Modal ─── */}
       <Modal
         visible={showLoginPrompt}
@@ -2186,6 +2298,81 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#94a3b8",
     fontWeight: "500",
+  },
+
+  // ── Purchase Success Modal ──
+  successModalSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 28,
+    paddingTop: 32,
+    width: "100%",
+    alignItems: "center",
+  },
+  successCloseBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#ecfdf5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+    textAlign: "center",
+  },
+  successItemName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  successMsg: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 21,
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  successPlayBtn: {
+    backgroundColor: "#7c3aed",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: "100%",
+    gap: 8,
+  },
+  successPlayText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  successLaterBtn: {
+    paddingVertical: 12,
+    width: "100%",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  successLaterText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#94a3b8",
   },
 
   // ── Remove Bookmark Modal ──

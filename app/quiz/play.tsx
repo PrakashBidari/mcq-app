@@ -1,6 +1,6 @@
 // app/quiz/play.tsx
 import FuriganaText from "@/components/FuriganaText";
-import { quizStore } from "@/utils/quizStore";
+import { quizStore, type QuizAccessSummary } from "@/utils/quizStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
@@ -43,10 +43,69 @@ const TimerBadge = React.memo(
   },
 );
 
+// Builds the "how much access is left" pill content (attempts / days). Returns
+// null for free content, unlimited/legacy purchases - nothing worth showing.
+function accessChipContent(
+  a: QuizAccessSummary | null,
+  t: (k: string, o?: any) => string,
+): { icon: string; label: string } | null {
+  if (!a) return null;
+  switch (a.kind) {
+    case "attempts":
+    case "trial_attempts":
+      if (typeof a.attempts_total === "number" && a.attempts_total > 0) {
+        return {
+          icon: "ticket-outline",
+          label: t("quizPlay.attemptOf", {
+            current: (a.attempts_used ?? 0) + 1,
+            total: a.attempts_total,
+          }),
+        };
+      }
+      return {
+        icon: "ticket-outline",
+        label: t("quizPlay.attemptsLeft", { count: a.attempts_remaining ?? 0 }),
+      };
+    case "wallet":
+      return {
+        icon: "wallet-outline",
+        label: t("quizPlay.attemptsLeft", { count: a.attempts_remaining ?? 0 }),
+      };
+    case "days":
+    case "trial_days": {
+      const d = a.days_remaining ?? 0;
+      return {
+        icon: "calendar-outline",
+        label: d <= 0 ? t("quizPlay.expiresToday") : t("quizPlay.daysLeft", { count: d }),
+      };
+    }
+    case "subscription":
+      return { icon: "infinite-outline", label: t("quizPlay.accessSubscription") };
+    default:
+      return null;
+  }
+}
+
+const AccessChip = React.memo(
+  ({ info }: { info: { icon: string; label: string } | null }) => {
+    if (!info) return null;
+    return (
+      <View style={styles.accessChip}>
+        <Ionicons name={info.icon as any} size={12} color="#fff" />
+        <Text style={styles.accessChipTxt}>{info.label}</Text>
+      </View>
+    );
+  },
+);
+AccessChip.displayName = "AccessChip";
+
 export default function QuizPlay() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+
+  const access = useMemo(() => quizStore.getAccess(), []);
+  const accessInfo = useMemo(() => accessChipContent(access, t), [access, t]);
 
   // Read from store — no JSON.parse cost
   const allQuestions = useMemo<any[] | null>(() => {
@@ -179,8 +238,9 @@ export default function QuizPlay() {
           colors={["#667eea", "#764ba2"]}
           style={[styles.finishHeader, { paddingTop: insets.top + 20 }]}
         >
-          {hasTimer && (
+          {(hasTimer || accessInfo) && (
             <View style={styles.finishTimerRow}>
+              {accessInfo && <AccessChip info={accessInfo} />}
               <TimerBadge hasTimer={hasTimer} timeLeft={timeLeft} timeLimitSeconds={timeLimitSeconds} />
             </View>
           )}
@@ -384,6 +444,11 @@ export default function QuizPlay() {
             ]}
           />
         </View>
+        {accessInfo && (
+          <View style={styles.accessRow}>
+            <AccessChip info={accessInfo} />
+          </View>
+        )}
       </LinearGradient>
 
       <ScrollView
@@ -719,7 +784,26 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
   },
-  finishTimerRow: { alignSelf: "flex-end", marginBottom: 8 },
+  finishTimerRow: {
+    alignSelf: "flex-end",
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
+  accessRow: { alignItems: "center", marginTop: 10 },
+  accessChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  accessChipTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
   finishEmoji: { fontSize: 52, marginBottom: 12 },
   finishTitle: { color: "#fff", fontSize: 26, fontWeight: "900", marginBottom: 6 },
   finishSub: { color: "rgba(255,255,255,0.8)", fontSize: 16 },

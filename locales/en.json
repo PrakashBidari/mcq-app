@@ -229,6 +229,9 @@
     "purchaseRequiredMessage": "One-time purchase to unlock this question set",
     "purchaseSuccessTitle": "Purchase Successful!",
     "purchaseSuccess": "This question set is now unlocked.",
+    "purchaseSuccessPackage": "This package is now unlocked.",
+    "playNow": "Play Now",
+    "maybeLater": "Maybe Later",
     "purchaseFailed": "Purchase failed. Please try again.",
     "purchaseUnavailable": "This item isn't available for purchase yet. Please try again later.",
     "loginRequiredForPurchase": "Login Required",
@@ -335,7 +338,14 @@
     "submitShowResult": "Submit & Show Result",
     "previous": "Previous",
     "finishQuiz": "Finish Quiz",
-    "nextQuestion": "Next Question"
+    "nextQuestion": "Next Question",
+    "attemptOf": "Attempt {{current}} of {{total}}",
+    "attemptsLeft": "{{count}} attempt left",
+    "attemptsLeft_plural": "{{count}} attempts left",
+    "daysLeft": "{{count}} day left",
+    "daysLeft_plural": "{{count}} days left",
+    "expiresToday": "Expires today",
+    "accessSubscription": "Subscription active"
   },
   "quizResults": {
     "quizCompleted": "Quiz Completed!",
