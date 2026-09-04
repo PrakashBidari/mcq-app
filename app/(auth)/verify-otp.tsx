@@ -1,3 +1,4 @@
+import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
@@ -162,6 +163,19 @@ export default function VerifyOtpScreen() {
   const handleResendOtp = async () => {
     if (resendCooldown > 0) return;
     setIsResending(true);
+
+    let recaptchaToken: string;
+    try {
+      recaptchaToken = await getToken();
+    } catch (e) {
+      setIsResending(false);
+      Alert.alert(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.recaptchaFailed"),
+      );
+      return;
+    }
+
     try {
       const recaptchaToken = await getToken();
 
@@ -193,6 +207,7 @@ export default function VerifyOtpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

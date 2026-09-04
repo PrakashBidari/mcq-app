@@ -8,7 +8,8 @@
     "back": "Back",
     "loading": "Loading...",
     "version": "Version 1.0.0",
-    "somethingWrong": "Something went wrong. Please try again."
+    "somethingWrong": "Something went wrong. Please try again.",
+    "recaptchaFailed": "Could not verify you are human. Please try again."
   },
   "auth": {
     "recaptcha": {

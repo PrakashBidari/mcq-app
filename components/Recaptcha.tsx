@@ -23,11 +23,17 @@
 // Each execute() forces a fresh WebView instance (`key`) so the widget is
 // reliably reloaded — Modal doesn't guarantee unmounting the previous one
 // on every platform when it's toggled hidden then shown again.
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from "react";
+import { RECAPTCHA_BASE_URL, RECAPTCHA_SITE_KEY } from "@/config/constants";
+import {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Modal, StyleSheet, Text, View } from "react-native";
 import WebView, { WebViewMessageEvent } from "react-native-webview";
-import { RECAPTCHA_BASE_URL, RECAPTCHA_SITE_KEY } from "@/config/constants";
 
 export type RecaptchaHandle = {
   /** Runs the invisible challenge and resolves with a verification token. */
@@ -92,14 +98,17 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
     timeout: ReturnType<typeof setTimeout>;
   } | null>(null);
 
-  const settlePending = useCallback((run: (pending: NonNullable<typeof pendingRef.current>) => void) => {
-    const pending = pendingRef.current;
-    if (!pending) return;
-    clearTimeout(pending.timeout);
-    pendingRef.current = null;
-    setVisible(false);
-    run(pending);
-  }, []);
+  const settlePending = useCallback(
+    (run: (pending: NonNullable<typeof pendingRef.current>) => void) => {
+      const pending = pendingRef.current;
+      if (!pending) return;
+      clearTimeout(pending.timeout);
+      pendingRef.current = null;
+      setVisible(false);
+      run(pending);
+    },
+    [],
+  );
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
@@ -114,11 +123,13 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
         settlePending((pending) => pending.resolve(data.token!));
       } else if (data.type === "error" || data.type === "expired") {
         settlePending((pending) =>
-          pending.reject(new Error("reCAPTCHA verification failed. Please try again."))
+          pending.reject(
+            new Error("reCAPTCHA verification failed. Please try again."),
+          ),
         );
       }
     },
-    [settlePending]
+    [settlePending],
   );
 
   useImperativeHandle(
@@ -133,7 +144,9 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
 
           const timeout = setTimeout(() => {
             settlePending((pending) =>
-              pending.reject(new Error("reCAPTCHA timed out. Please try again."))
+              pending.reject(
+                new Error("reCAPTCHA timed out. Please try again."),
+              ),
             );
           }, EXECUTE_TIMEOUT_MS);
 
@@ -142,7 +155,7 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
           setVisible(true);
         }),
     }),
-    [settlePending]
+    [settlePending],
   );
 
   // Nothing rendered at all while idle (the common state) — guaranteed zero
@@ -150,7 +163,13 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
   if (!visible) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={() => {}} statusBarTranslucent>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={() => {}}
+      statusBarTranslucent
+    >
       <View style={styles.backdrop} pointerEvents="box-none">
         <View style={styles.card}>
           {/* Behind the WebView (mounted after, so it draws on top) — the
@@ -158,11 +177,16 @@ const Recaptcha = forwardRef<RecaptchaHandle>((_props, ref) => {
               content (or a real challenge) renders inside the WebView. */}
           <View style={styles.loadingOverlay} pointerEvents="none">
             <ActivityIndicator color="#7c3aed" />
-            <Text style={styles.loadingText}>{t("auth.recaptcha.verifying")}</Text>
+            <Text style={styles.loadingText}>
+              {t("auth.recaptcha.verifying")}
+            </Text>
           </View>
           <WebView
             key={runIdRef.current}
-            source={{ html: buildHtml(RECAPTCHA_SITE_KEY), baseUrl: RECAPTCHA_BASE_URL }}
+            source={{
+              html: buildHtml(RECAPTCHA_SITE_KEY),
+              baseUrl: RECAPTCHA_BASE_URL,
+            }}
             onMessage={handleMessage}
             style={styles.webview}
             javaScriptEnabled
