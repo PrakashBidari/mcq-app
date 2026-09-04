@@ -552,9 +552,14 @@ export default function QuizScreen() {
     startingQuizRef.current = true;
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/question-set/${setId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      // Per-start id: the server charges one paid attempt when it hands over the
+      // questions, but treats a repeat of THIS key (retry / double request) as the
+      // same start so it isn't charged twice. A genuinely new start makes a new key.
+      const attemptKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const response = await fetch(
+        `${API_URL}/question-set/${setId}?attempt_key=${attemptKey}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
+      );
       const data = await response.json();
 
       if (response.status === 403 && data.reason === "purchase_required") {
