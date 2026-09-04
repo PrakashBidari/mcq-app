@@ -45,6 +45,13 @@ export const PURCHASE_CANCELLED_CODE = "user-cancelled";
 
 const PENDING_INTENTS_KEY = "pending_purchase_intents";
 
+// A pending intent should only ever live for the few seconds between tapping
+// "buy" and the store's success/error callback firing. Anything older than this
+// is a leftover from a purchase whose callback never arrived (app killed
+// mid-sheet, or a StoreKit 2 error event with no productId that our error
+// handler couldn't match) - it must not block a fresh attempt on the same tier.
+const PENDING_INTENT_TTL_MS = 10 * 60 * 1000;
+
 export type PurchaseType = "question_set" | "package" | "attempt_pack" | "subscription";
 
 export interface PurchaseIntent {
@@ -52,6 +59,7 @@ export interface PurchaseIntent {
   purchaseType: PurchaseType;
   targetId: number; // question_set_id | package_id | attempt_pack_id | subscription_plan_id
   priceTier: string; // the tier/product key used for the backend verify() call
+  createdAt: number; // epoch ms - used to expire stale/orphaned intents (see TTL above)
 }
 
 // Backend field name for the target id varies by purchase type.
@@ -64,20 +72,30 @@ const TARGET_ID_FIELD: Record<PurchaseType, string> = {
 
 async function getPendingIntents(): Promise<PurchaseIntent[]> {
   const raw = await AsyncStorage.getItem(PENDING_INTENTS_KEY);
-  return raw ? JSON.parse(raw) : [];
+  if (!raw) return [];
+  const all: PurchaseIntent[] = JSON.parse(raw);
+
+  // Drop anything past its TTL (and anything from before createdAt existed) so a
+  // stuck/orphaned intent can never permanently block re-purchasing that tier.
+  const now = Date.now();
+  const fresh = all.filter((i) => i.createdAt && now - i.createdAt < PENDING_INTENT_TTL_MS);
+  if (fresh.length !== all.length) {
+    await AsyncStorage.setItem(PENDING_INTENTS_KEY, JSON.stringify(fresh));
+  }
+  return fresh;
 }
 
-// Throws if a purchase for this exact product (price tier) is already in flight. The
-// same tier SKU is reused across many different question sets/packages, so if we let a
-// second purchase silently overwrite the first's pending intent here, the first
-// purchase's money would end up applied to the wrong target once its store callback
-// fires and looks up this productId.
-async function savePendingIntent(intent: PurchaseIntent) {
-  const all = await getPendingIntents();
-  if (all.some((i) => i.productId === intent.productId)) {
-    throw new Error("purchase_already_pending");
-  }
-  await AsyncStorage.setItem(PENDING_INTENTS_KEY, JSON.stringify([...all, intent]));
+// Records the intent for the purchase about to be started, replacing any earlier
+// intent for the same product id. The same tier SKU is reused across many
+// question sets/packages, so an earlier intent for this SKU that's still around
+// means a previous purchase never reported back. `buyItem` reconciles that case
+// against the store first (a genuine unconsumed transaction is replayed, not
+// discarded); by the time we get here a leftover intent for this SKU is an
+// orphan and it's safe - and necessary, so the user isn't blocked - to overwrite.
+async function savePendingIntent(intent: Omit<PurchaseIntent, "createdAt">) {
+  const others = (await getPendingIntents()).filter((i) => i.productId !== intent.productId);
+  const stamped: PurchaseIntent = { ...intent, createdAt: Date.now() };
+  await AsyncStorage.setItem(PENDING_INTENTS_KEY, JSON.stringify([...others, stamped]));
 }
 
 async function removePendingIntent(productId: string) {
@@ -244,6 +262,14 @@ async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
 async function handlePurchaseError(error: PurchaseError) {
   if (error.productId) {
     await removePendingIntent(error.productId);
+  } else {
+    // react-native-iap v15 / StoreKit 2 routinely reports a cancelled or failed
+    // purchase with no productId on the error object. The app only ever has one
+    // purchase in flight at a time (the UI blocks concurrent taps), so clearing
+    // every pending intent here is safe - and without it the intent is orphaned
+    // and savePendingIntent's guard blocks that price tier until app storage is
+    // wiped.
+    await AsyncStorage.removeItem(PENDING_INTENTS_KEY);
   }
   failureListeners.forEach((listener) => listener(error.productId ?? "", error.code));
 }
@@ -322,6 +348,28 @@ export async function buyItem(params: {
   const productId = Platform.OS === "ios" ? params.iosProductId : params.androidProductId;
   if (!productId) {
     throw new Error("no_product_id_for_platform");
+  }
+
+  // If an earlier intent for this SKU is still around (a previous purchase whose
+  // store callback never arrived - the common iOS case), decide what it is before
+  // starting a new one:
+  //   - the store still has a matching unconsumed transaction -> that purchase is
+  //     real; finish handling it instead of charging again, then stop here.
+  //   - the store has nothing -> it's an orphan; drop it and start a fresh
+  //     purchase. Never surface a blocking "already in progress" error.
+  const hasStaleIntent = (await getPendingIntents()).some((i) => i.productId === productId);
+  if (hasStaleIntent) {
+    try {
+      const available = await iap.getAvailablePurchases();
+      const unconsumed = available.find((p) => p.productId === productId);
+      if (unconsumed) {
+        await handlePurchaseUpdate(iap, unconsumed);
+        return;
+      }
+    } catch {
+      // store lookup failed - treat the leftover intent as an orphan
+    }
+    await removePendingIntent(productId);
   }
 
   await savePendingIntent({

@@ -229,7 +229,6 @@
     "purchaseSuccessTitle": "Purchase Successful!",
     "purchaseSuccess": "This question set is now unlocked.",
     "purchaseFailed": "Purchase failed. Please try again.",
-    "purchaseAlreadyPending": "A purchase for this item is already in progress. Please wait a moment and try again.",
     "purchaseUnavailable": "This item isn't available for purchase yet. Please try again later.",
     "loginRequiredForPurchase": "Login Required",
     "loginRequiredForPurchaseMessage": "Please sign in to purchase this question set.",

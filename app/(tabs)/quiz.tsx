@@ -576,11 +576,13 @@ export default function QuizScreen() {
       });
     } catch (error) {
       setPurchasingId(null);
-      const message =
-        error instanceof Error && error.message === "purchase_already_pending"
-          ? t("quiz.purchaseAlreadyPending")
-          : t("quiz.purchaseFailed");
-      Alert.alert(t("common.error"), message);
+      // A cancelled / already-handled purchase must just let the user try again
+      // with no scary alert. Only surface a real, unexpected failure.
+      const code = error instanceof Error ? error.message : "";
+      if (code === "purchase_already_pending" || code === PURCHASE_CANCELLED_CODE) {
+        return;
+      }
+      Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
     }
   };
 

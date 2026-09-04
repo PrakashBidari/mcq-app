@@ -6,7 +6,8 @@ export const GOOGLE_WEB_CLIENT_ID =
 export const API_URL = "https://app.ikigaijobplacement.com/api";
 
 export const RECAPTCHA_SITE_KEY =
-  process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY ?? "6Lc2AaUtAAAAAHyokRlTQKVse91Ee0kK4lPiqh5h";
+  process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY ??
+  "6Lc2AaUtAAAAAHyokRlTQKVse91Ee0kK4lPiqh5h";
 // Must match a domain registered against the site key above in the Google
 // reCAPTCHA admin console — the WebView reports this as its origin.
-export const RECAPTCHA_BASE_URL = "https://ikigaicompanyjpn.com";
+export const RECAPTCHA_BASE_URL = "https://ikigaijobplacement.com";

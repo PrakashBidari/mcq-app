@@ -229,7 +229,6 @@
     "purchaseSuccessTitle": "購入が完了しました！",
     "purchaseSuccess": "この問題セットが解放されました。",
     "purchaseFailed": "購入に失敗しました。もう一度お試しください。",
-    "purchaseAlreadyPending": "この商品の購入手続きが進行中です。しばらくしてからもう一度お試しください。",
     "purchaseUnavailable": "この商品は現在購入できません。後でもう一度お試しください。",
     "loginRequiredForPurchase": "ログインが必要です",
     "loginRequiredForPurchaseMessage": "この問題セットを購入するにはログインしてください。",
