@@ -1,4 +1,3 @@
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
@@ -177,8 +176,6 @@ export default function VerifyOtpScreen() {
     }
 
     try {
-      const recaptchaToken = await getToken();
-
       const response = await fetch(`${API_URL}/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,7 +204,6 @@ export default function VerifyOtpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

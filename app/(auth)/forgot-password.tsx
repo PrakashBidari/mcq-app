@@ -1,4 +1,3 @@
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -54,8 +53,6 @@ export default function ForgotPasswordScreen() {
     }
 
     try {
-      const recaptchaToken = await getToken();
-
       const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,7 +88,6 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

@@ -1,5 +1,4 @@
 // app/(auth)/login.tsx
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
@@ -63,8 +62,6 @@ export default function LoginScreen() {
     }
 
     try {
-      const recaptchaToken = await getToken();
-
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
@@ -101,7 +98,6 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

@@ -1,4 +1,3 @@
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
@@ -69,8 +68,6 @@ export default function RegisterScreen() {
     }
 
     try {
-      const recaptchaToken = await getToken();
-
       const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
@@ -123,7 +120,6 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

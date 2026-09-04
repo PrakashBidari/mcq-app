@@ -1,4 +1,3 @@
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
 import { useRecaptchaToken } from "@/context/RecaptchaContext";
@@ -36,7 +35,6 @@ export default function VerifyResetOtpScreen() {
   const [isExpired, setIsExpired] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const isExpiredRef = useRef(false);
-  const { Recaptcha, getToken } = useRecaptcha();
 
   // Sync isExpired to ref (stale closure fix)
   useEffect(() => {
@@ -176,8 +174,6 @@ export default function VerifyResetOtpScreen() {
     }
 
     try {
-      const recaptchaToken = await getToken();
-
       const response = await fetch(`${API_URL}/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -206,7 +202,6 @@ export default function VerifyResetOtpScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {Recaptcha}
       <LinearGradient
         colors={["#7c3aed", "#a855f7", "#ec4899"]}
         start={{ x: 0, y: 0 }}

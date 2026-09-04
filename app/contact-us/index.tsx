@@ -1,7 +1,7 @@
 // app/contact-us/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
-import { useRecaptcha } from "@/components/Recaptcha";
 import { API_URL } from "@/config/constants";
+import { useRecaptchaToken } from "@/context/RecaptchaContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -40,7 +40,7 @@ export default function ContactUsScreen() {
   const [isFetching, setIsFetching] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [settings, setSettings] = useState<ContactSettings | null>(null);
-  const { Recaptcha, getToken } = useRecaptcha();
+  const { getToken } = useRecaptchaToken();
 
   useEffect(() => {
     fetchSettings();
@@ -215,7 +215,6 @@ export default function ContactUsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      {Recaptcha}
       {/* Header */}
       <View className="bg-white px-6 pt-4 pb-4 border-b border-gray-100">
         <View className="flex-row items-center justify-between">
