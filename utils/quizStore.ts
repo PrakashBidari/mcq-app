@@ -26,6 +26,11 @@ export interface QuizAccessSummary {
 
 let _access: QuizAccessSummary | null = null;
 
+// Per-start id generated when a paid quiz is started. Sent to POST /quiz/save-attempt
+// so the backend charges exactly one attempt/trial/wallet unit for this play, and
+// treats a resent save call for the same play as free.
+let _attemptKey: string | null = null;
+
 export const quizStore = {
   setQuestions(q: any[]) { _questions = q; },
   getQuestions(): any[] | null { return _questions; },
@@ -39,6 +44,8 @@ export const quizStore = {
   getCategoryId(): number | null { return _categoryId; },
   setAccess(a: QuizAccessSummary | null) { _access = a; },
   getAccess(): QuizAccessSummary | null { return _access; },
+  setAttemptKey(k: string | null) { _attemptKey = k; },
+  getAttemptKey(): string | null { return _attemptKey; },
   clear() {
     _questions = null;
     _answers = null;
@@ -46,5 +53,6 @@ export const quizStore = {
     _questionSetId = null;
     _categoryId = null;
     _access = null;
+    _attemptKey = null;
   },
 };

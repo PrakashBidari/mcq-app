@@ -131,6 +131,9 @@ export default function QuizResults() {
         total_questions: total,
         answers: userAnswers,
         time_taken_seconds: timeTakenSeconds,
+        // Lets the server charge exactly one paid attempt for this play (and no more
+        // if this call is retried). null for free content / full-category quizzes.
+        attempt_key: quizStore.getAttemptKey(),
       }),
     }).catch(() => {});
   }, [questions.length, token]);

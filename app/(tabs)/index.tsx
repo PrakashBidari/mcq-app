@@ -624,6 +624,8 @@ export default function Index() {
         quizStore.setQuestions(data.data.questions);
         quizStore.setQuestionSetId(setId);
         quizStore.setCategoryId(data.data.set?.category_id ?? null);
+        quizStore.setAccess(data.data.set?.access ?? null);
+        quizStore.setAttemptKey(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
         quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",

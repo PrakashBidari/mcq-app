@@ -532,6 +532,7 @@ export default function QuizScreen() {
         quizStore.setQuestionSetId(null);
         quizStore.setCategoryId(selectedCategory.id);
         quizStore.setAccess(null);
+        quizStore.setAttemptKey(null);
         quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
@@ -552,21 +553,22 @@ export default function QuizScreen() {
     startingQuizRef.current = true;
     setIsLoading(true);
     try {
-      // Per-start id: the server charges one paid attempt when it hands over the
-      // questions, but treats a repeat of THIS key (retry / double request) as the
-      // same start so it isn't charged twice. A genuinely new start makes a new key.
+      // Per-play id, generated now and stashed for the save-attempt call. The server
+      // charges exactly one paid attempt for this play when the quiz is submitted, and
+      // treats a resent save with the same key as free. Fetching the questions here
+      // has no side effect, so a re-render / retry / back-and-replay never burns one.
       const attemptKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const response = await fetch(
-        `${API_URL}/question-set/${setId}?attempt_key=${attemptKey}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
-      );
+      quizStore.setAttemptKey(attemptKey);
+      const response = await fetch(`${API_URL}/question-set/${setId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await response.json();
 
       if (response.status === 403 && data.reason === "purchase_required") {
         const set = questionSets.find((s) => s.id === setId);
-        // The server just refused access - either this was never owned, or a
-        // previous purchase's attempts / time have run out. Clear any optimistic
-        // "owned" flag so the pay button correctly comes back.
+        // The server refused access - this was never owned, or a previous purchase's
+        // attempts / time ran out. Reflect that on the card, but don't ambush the user
+        // by silently swapping the button and popping the pay sheet - ask first.
         setOwnershipLocally("question_set", setId, false);
         if (selectedPackage) setOwnershipLocally("package", selectedPackage.id, false);
         const tier = data.data?.price_tier;
@@ -579,15 +581,22 @@ export default function QuizScreen() {
           ]);
           return;
         }
-        setPayTarget({
-          purchaseType: "question_set",
-          targetId: setId,
-          name: set?.name,
-          price: tier.amount,
-          price_tier: tier.tier_key,
-          ios_product_id: tier.ios_product_id,
-          android_product_id: tier.android_product_id,
-        });
+        Alert.alert(t("quiz.accessEndedTitle"), t("quiz.accessEndedMessage"), [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("quiz.buyAgain"),
+            onPress: () =>
+              setPayTarget({
+                purchaseType: "question_set",
+                targetId: setId,
+                name: set?.name,
+                price: tier.amount,
+                price_tier: tier.tier_key,
+                ios_product_id: tier.ios_product_id,
+                android_product_id: tier.android_product_id,
+              }),
+          },
+        ]);
         return;
       }
 
