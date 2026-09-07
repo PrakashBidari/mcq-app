@@ -13,6 +13,8 @@ export interface QuizAccessSummary {
     | "attempts"
     | "trial_attempts"
     | "days"
+    | "hours"
+    | "minutes"
     | "trial_days"
     | "subscription"
     | "unlimited"
@@ -22,6 +24,9 @@ export interface QuizAccessSummary {
   attempts_remaining?: number;
   expires_at?: string;
   days_remaining?: number;
+  hours_remaining?: number;
+  minutes_remaining?: number;
+  seconds_remaining?: number;
 }
 
 let _access: QuizAccessSummary | null = null;

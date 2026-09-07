@@ -581,20 +581,33 @@ export default function QuizScreen() {
           ]);
           return;
         }
+        // A set opened from inside a package is gated by the package, so the grant
+        // that ran out is the package's - re-buy must target the package (and the
+        // paywall tier the server returned is the package's tier), not the set.
+        const rebuyTarget: PayTarget = selectedPackage
+          ? {
+              purchaseType: "package",
+              targetId: selectedPackage.id,
+              name: selectedPackage.name,
+              price: tier.amount,
+              price_tier: tier.tier_key,
+              ios_product_id: tier.ios_product_id,
+              android_product_id: tier.android_product_id,
+            }
+          : {
+              purchaseType: "question_set",
+              targetId: setId,
+              name: set?.name,
+              price: tier.amount,
+              price_tier: tier.tier_key,
+              ios_product_id: tier.ios_product_id,
+              android_product_id: tier.android_product_id,
+            };
         Alert.alert(t("quiz.accessEndedTitle"), t("quiz.accessEndedMessage"), [
           { text: t("common.cancel"), style: "cancel" },
           {
             text: t("quiz.buyAgain"),
-            onPress: () =>
-              setPayTarget({
-                purchaseType: "question_set",
-                targetId: setId,
-                name: set?.name,
-                price: tier.amount,
-                price_tier: tier.tier_key,
-                ios_product_id: tier.ios_product_id,
-                android_product_id: tier.android_product_id,
-              }),
+            onPress: () => setPayTarget(rebuyTarget),
           },
         ]);
         return;

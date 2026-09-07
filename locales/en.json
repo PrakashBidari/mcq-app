@@ -346,7 +346,12 @@
     "attemptsLeft_plural": "{{count}} attempts left",
     "daysLeft": "{{count}} day left",
     "daysLeft_plural": "{{count}} days left",
+    "hoursLeft": "{{count}} hour left",
+    "hoursLeft_plural": "{{count}} hours left",
+    "minutesLeft": "{{count}} minute left",
+    "minutesLeft_plural": "{{count}} minutes left",
     "expiresToday": "Expires today",
+    "expiresSoon": "Expiring now",
     "accessSubscription": "Subscription active"
   },
   "quizResults": {

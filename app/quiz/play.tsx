@@ -43,8 +43,9 @@ const TimerBadge = React.memo(
   },
 );
 
-// Builds the "how much access is left" pill content (attempts / days). Returns
-// null for free content, unlimited/legacy purchases - nothing worth showing.
+// Builds the "how much access is left" pill content (attempts / days / hours /
+// minutes). Returns null for free content, unlimited/legacy purchases - nothing
+// worth showing.
 function accessChipContent(
   a: QuizAccessSummary | null,
   t: (k: string, o?: any) => string,
@@ -77,6 +78,20 @@ function accessChipContent(
       return {
         icon: "calendar-outline",
         label: d <= 0 ? t("quizPlay.expiresToday") : t("quizPlay.daysLeft", { count: d }),
+      };
+    }
+    case "hours": {
+      const h = a.hours_remaining ?? 0;
+      return {
+        icon: "time-outline",
+        label: h <= 0 ? t("quizPlay.expiresSoon") : t("quizPlay.hoursLeft", { count: h }),
+      };
+    }
+    case "minutes": {
+      const m = a.minutes_remaining ?? 0;
+      return {
+        icon: "time-outline",
+        label: m <= 0 ? t("quizPlay.expiresSoon") : t("quizPlay.minutesLeft", { count: m }),
       };
     }
     case "subscription":

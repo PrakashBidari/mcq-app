@@ -344,7 +344,10 @@
     "attemptOf": "{{total}}回中{{current}}回目",
     "attemptsLeft": "残り{{count}}回",
     "daysLeft": "残り{{count}}日",
+    "hoursLeft": "残り{{count}}時間",
+    "minutesLeft": "残り{{count}}分",
     "expiresToday": "本日期限切れ",
+    "expiresSoon": "まもなく期限切れ",
     "accessSubscription": "サブスク有効"
   },
   "quizResults": {
