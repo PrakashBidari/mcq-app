@@ -243,7 +243,15 @@
     "packagesSection": "Packages",
     "noPackages": "No packages available in this category yet.",
     "viewPackage": "View Package",
-    "backToPackages": "Back to Packages"
+    "backToPackages": "Back to Packages",
+    "accessAttemptsLeft": "{{count}} attempt left",
+    "accessAttemptsLeft_plural": "{{count}} attempts left",
+    "accessTimeLeft": "{{time}} left",
+    "accessExpired": "Expired",
+    "timeUnitDay": "d",
+    "timeUnitHour": "h",
+    "timeUnitMinute": "m",
+    "timeUnitSecond": "s"
   },
   "study": {
     "title": "Study Library",

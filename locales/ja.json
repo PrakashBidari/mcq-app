@@ -243,7 +243,14 @@
     "packagesSection": "パッケージ",
     "noPackages": "このカテゴリーにはまだパッケージがありません。",
     "viewPackage": "パッケージを見る",
-    "backToPackages": "パッケージへ戻る"
+    "backToPackages": "パッケージへ戻る",
+    "accessAttemptsLeft": "残り{{count}}回",
+    "accessTimeLeft": "残り{{time}}",
+    "accessExpired": "期限切れ",
+    "timeUnitDay": "日",
+    "timeUnitHour": "時間",
+    "timeUnitMinute": "分",
+    "timeUnitSecond": "秒"
   },
   "study": {
     "title": "スタディライブラリ",

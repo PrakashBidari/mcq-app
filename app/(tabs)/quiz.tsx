@@ -2,7 +2,8 @@
 import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
 import { useAuth } from "@/context/AuthContext";
-import { quizStore } from "@/utils/quizStore";
+import { quizStore, type QuizAccessSummary } from "@/utils/quizStore";
+import AccessRemainingBadge from "@/components/AccessRemainingBadge";
 import { formatYen } from "@/utils/currency";
 import {
   buyItem,
@@ -60,6 +61,7 @@ interface QuestionSet {
   trial_value?: number | null;
   is_owned?: boolean;
   trial_available?: boolean;
+  access?: QuizAccessSummary | null;
 }
 
 interface QuestionSetPackage {
@@ -75,6 +77,7 @@ interface QuestionSetPackage {
   question_sets_count: number;
   is_owned: boolean;
   trial_available?: boolean;
+  access?: QuizAccessSummary | null;
 }
 
 interface PackageQuestionSet {
@@ -391,6 +394,13 @@ export default function QuizScreen() {
         const pkgs = mergeSessionOwned(data.data.packages, "package");
         packagesCache.set(categoryId, pkgs);
         setPackages(pkgs);
+        // Keep the open package detail's badge (attempts left / expiry) in sync
+        // with the freshly fetched list without reloading its question sets.
+        setSelectedPackage((cur) => {
+          if (!cur) return cur;
+          const fresh = pkgs.find((p) => p.id === cur.id);
+          return fresh ? { ...cur, ...fresh } : cur;
+        });
       }
     } catch {
       // non-fatal - the Package tab will just show empty
@@ -466,6 +476,20 @@ export default function QuizScreen() {
       if (questionSetsRequestId.current === requestId) setIsLoading(false);
     }
   };
+
+  // Coming back from a quiz play should refresh the "attempts left" / expiry
+  // badges. Time badges tick on their own; attempt counts only move when a quiz
+  // is completed, so re-pull the lists (stale-while-revalidate - no visible
+  // reload) whenever this screen regains focus with a category open.
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedCategory) {
+        fetchQuestionSets(selectedCategory.id);
+        fetchPackages(selectedCategory.id);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedCategory]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -1063,6 +1087,11 @@ export default function QuizScreen() {
                 </Text>
               </TouchableOpacity>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>{selectedPackage.name}</Text>
+              {selectedPackage.is_owned && selectedPackage.access && (
+                <View style={styles.packageAccessRow}>
+                  <AccessRemainingBadge access={selectedPackage.access} />
+                </View>
+              )}
               {selectedPackage.description && (
                 <Text style={[styles.setDesc, { color: colors.textSecondary, marginBottom: 16 }]}>
                   {selectedPackage.description}
@@ -1147,6 +1176,11 @@ export default function QuizScreen() {
                             </View>
                           )}
                         </View>
+                        {pkg.is_paid && pkg.is_owned && pkg.access && (
+                          <View style={styles.accessBadgeRow}>
+                            <AccessRemainingBadge access={pkg.access} style={styles.accessBadgeAlign} />
+                          </View>
+                        )}
                         {pkg.description && (
                           <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{pkg.description}</Text>
                         )}
@@ -1236,6 +1270,11 @@ export default function QuizScreen() {
                     </View>
                   )}
                 </View>
+                {set.is_paid && set.is_owned && set.access && (
+                  <View style={styles.accessBadgeRow}>
+                    <AccessRemainingBadge access={set.access} style={styles.accessBadgeAlign} />
+                  </View>
+                )}
                 {set.description && (
                   <Text style={[styles.setDesc, { color: colors.textSecondary }]}>{set.description}</Text>
                 )}
@@ -1977,6 +2016,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     marginLeft: 4,
+  },
+  // "3 attempts left" / "5h 12m left" pill sitting directly under the Owned tag
+  accessBadgeRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: -2,
+    marginBottom: 8,
+  },
+  accessBadgeAlign: {
+    alignSelf: "flex-end",
+  },
+  packageAccessRow: {
+    flexDirection: "row",
+    marginTop: 6,
+    marginBottom: 10,
   },
 
   setNameRow: {
