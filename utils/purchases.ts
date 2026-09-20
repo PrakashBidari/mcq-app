@@ -43,6 +43,31 @@ function loadIap(): IapModule | null {
 
 export const PURCHASE_CANCELLED_CODE = "user-cancelled";
 
+// Release builds don't forward JS console output to the device log, so console.log alone
+// can't diagnose a production-only purchase failure. Every IAP failure is therefore also
+// turned into a short code (see describeIapError) that the UI shows in the alert.
+//
+// Best-effort device-log visibility: React Native's release-build log threshold is
+// "error", so console.log/warn are dropped before reaching the system log while
+// console.error is forwarded. IAP diagnostics are therefore emitted via console.error
+// (they are trace lines, not necessarily errors) so they can show up in Console.app /
+// Xcode > Devices > Open Console when a real device is connected.
+function iapLog(message: string, ...details: unknown[]) {
+  console.error(`[IAP] ${message}`, ...details);
+}
+
+// Builds a short "code: message" string from whatever the store/native layer threw, e.g.
+// "item-unavailable: Product not found". Capped so it fits in an alert.
+export function describeIapError(error: unknown): string {
+  if (!error) return "unknown";
+  if (typeof error === "string") return error.slice(0, 160);
+  const e = error as { code?: unknown; message?: unknown };
+  const code = typeof e.code === "string" || typeof e.code === "number" ? String(e.code) : "";
+  const message = typeof e.message === "string" ? e.message : "";
+  const text = code && message && code !== message ? `${code}: ${message}` : code || message;
+  return (text || "unknown").slice(0, 160);
+}
+
 const PENDING_INTENTS_KEY = "pending_purchase_intents";
 
 // A pending intent should only ever live for the few seconds between tapping
@@ -108,6 +133,10 @@ async function removePendingIntent(productId: string) {
 
 let connected = false;
 let listenersStarted = false;
+// Why the last initConnection / backend verify failed, so the user-facing error can say
+// so instead of a generic "purchase failed".
+let lastConnectError = "";
+let lastVerifyError = "";
 
 type UnlockListener = (unlock: { purchaseType: PurchaseType; targetId: number }) => void;
 type FailureListener = (productId: string, message: string) => void;
@@ -130,8 +159,12 @@ async function verifyWithBackend(
   intent: PurchaseIntent,
   purchase: Purchase,
 ): Promise<boolean> {
+  lastVerifyError = "";
   const token = await SecureStore.getItemAsync("auth_token");
-  if (!token) return false;
+  if (!token) {
+    lastVerifyError = "not_logged_in";
+    return false;
+  }
 
   const platform = Platform.OS === "ios" ? "ios" : "android";
 
@@ -151,7 +184,8 @@ async function verifyWithBackend(
   }
 
   if (!receiptOrToken) {
-    console.warn("[IAP] verify skipped: no receipt/JWS token on purchase", purchase.productId);
+    iapLog("verify skipped: no receipt/JWS token on purchase", purchase.productId);
+    lastVerifyError = "no_receipt_token";
     return false;
   }
 
@@ -176,14 +210,14 @@ async function verifyWithBackend(
       // The backend explains exactly why in `errors` (e.g. bad signature, Xcode env not
       // allowed, product/bundle mismatch, transaction already used) - surface it so a
       // failed verify isn't just a silent generic "purchase failed".
-      console.warn(
-        `[IAP] verify rejected (${response.status}):`,
-        JSON.stringify(data),
-      );
+      iapLog(`verify rejected (${response.status}):`, JSON.stringify(data));
+      const reason = data?.errors ? JSON.stringify(data.errors) : (data?.message ?? "");
+      lastVerifyError = `http_${response.status}${reason ? ` ${reason}` : ""}`.slice(0, 160);
     }
     return !!data.success;
   } catch (error) {
     console.error("[IAP] verify request failed:", error);
+    lastVerifyError = `verify_request_failed: ${describeIapError(error)}`;
     return false;
   }
 }
@@ -206,7 +240,7 @@ async function finishSilently(iap: IapModule, purchase: Purchase) {
   try {
     await iap.finishTransaction({ purchase, isConsumable: true });
   } catch (error) {
-    console.warn("[IAP] finishTransaction failed:", error);
+    iapLog("finishTransaction failed:", describeIapError(error));
   }
 }
 
@@ -227,19 +261,19 @@ async function handlePurchaseUpdate(iap: IapModule, purchase: Purchase) {
     if (!intent) {
       // No local intent for this product - e.g. a leftover transaction from a previous
       // install, or one we already fully handled. Finish it so it stops replaying.
-      console.warn("[IAP] purchase event with no matching pending intent for", purchase.productId);
+      iapLog("purchase event with no matching pending intent for", purchase.productId);
       await finishSilently(iap, purchase);
       return;
     }
 
     const unlocked = await verifyWithBackend(iap, intent, purchase);
-    console.log("[IAP] verifyWithBackend ->", unlocked, "for", purchase.productId);
+    iapLog("verifyWithBackend ->", unlocked, "for", purchase.productId);
 
     if (!unlocked) {
       // Leave the intent and the unfinished transaction in place - it will be replayed
       // and retried the next time the store connection is (re)established.
       failureListeners.forEach((listener) =>
-        listener(purchase.productId, "purchase_verification_failed"),
+        listener(purchase.productId, `purchase_verification_failed: ${lastVerifyError}`),
       );
       return;
     }
@@ -271,7 +305,12 @@ async function handlePurchaseError(error: PurchaseError) {
     // wiped.
     await AsyncStorage.removeItem(PENDING_INTENTS_KEY);
   }
-  failureListeners.forEach((listener) => listener(error.productId ?? "", error.code));
+  iapLog("purchase error event:", error.code, error.message, error.productId);
+  // Keep the bare code for cancellations (the UI compares against it); add the native
+  // message for everything else so the alert shows the real reason.
+  const description =
+    error.code === PURCHASE_CANCELLED_CODE ? error.code : describeIapError(error);
+  failureListeners.forEach((listener) => listener(error.productId ?? "", description));
 }
 
 // Subscribes to store purchase events BEFORE connecting, so any purchase left unfinished
@@ -289,9 +328,12 @@ export async function initGlobalPurchaseHandling() {
   try {
     await iap.initConnection();
     connected = true;
+    lastConnectError = "";
+    iapLog("initConnection ok");
   } catch (error) {
     // billing unavailable (e.g. simulator, or store not reachable) - purchase buttons
     // will surface an error when actually tapped
+    lastConnectError = describeIapError(error);
     console.error("[IAP] initConnection failed:", error);
   }
 }
@@ -340,14 +382,42 @@ export async function buyItem(params: {
     throw new Error("iap_unavailable");
   }
   if (!connected) {
+    // The startup connection may have failed transiently - try once more before giving up.
+    try {
+      await iap.initConnection();
+      connected = true;
+      lastConnectError = "";
+      iapLog("initConnection ok (retry from buyItem)");
+    } catch (error) {
+      lastConnectError = describeIapError(error);
+      console.error("[IAP] initConnection retry failed:", error);
+    }
+  }
+  if (!connected) {
     // requestPurchase is event-based and can otherwise hang forever with no prompt and
     // no error if the store connection never came up - fail fast instead.
-    throw new Error("iap_not_connected");
+    throw new Error(`iap_not_connected: ${lastConnectError || "unknown"}`);
   }
 
   const productId = Platform.OS === "ios" ? params.iosProductId : params.androidProductId;
   if (!productId) {
-    throw new Error("no_product_id_for_platform");
+    throw new Error(`no_product_id_for_platform: ${Platform.OS} tier=${params.priceTier}`);
+  }
+
+  // Confirm the store actually serves this product before starting the purchase. A product
+  // that isn't approved/live in production (or whose id doesn't match the store console)
+  // is otherwise a silent failure - no payment sheet, just a generic error.
+  try {
+    const products = await iap.fetchProducts({ skus: [productId], type: "all" });
+    iapLog("fetchProducts", productId, "->", products?.length ?? 0, "product(s)");
+    if (!products || products.length === 0) {
+      throw new Error(`product_not_found: ${productId}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("product_not_found")) throw error;
+    // The lookup itself failed (network, etc.) - not proof the product is missing, so
+    // log it and let requestPurchase report the definitive result.
+    iapLog("fetchProducts failed:", describeIapError(error));
   }
 
   // If an earlier intent for this SKU is still around (a previous purchase whose
@@ -380,7 +450,7 @@ export async function buyItem(params: {
   });
 
   try {
-    console.log("[IAP] requestPurchase starting for", productId);
+    iapLog("requestPurchase starting for", productId);
     await iap.requestPurchase({
       type: "in-app",
       request: {
@@ -388,14 +458,16 @@ export async function buyItem(params: {
         google: { skus: [productId] },
       },
     });
-    console.log("[IAP] requestPurchase call returned (native flow initiated) for", productId);
+    iapLog("requestPurchase call returned (native flow initiated) for", productId);
   } catch (error) {
     // requestPurchase can reject directly (e.g. StoreKit/Play Billing refuses the request
     // before any native sheet appears) instead of only going through purchaseErrorListener -
     // clear the intent here too so the same tier isn't stuck "pending" forever.
     console.error("[IAP] requestPurchase failed for", productId, error);
     await removePendingIntent(productId);
-    throw error;
+    const code = (error as { code?: string } | null)?.code;
+    if (code === PURCHASE_CANCELLED_CODE) throw new Error(PURCHASE_CANCELLED_CODE);
+    throw new Error(`requestPurchase_failed: ${describeIapError(error)}`);
   }
 }
 

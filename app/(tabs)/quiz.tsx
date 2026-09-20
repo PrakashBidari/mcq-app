@@ -305,7 +305,9 @@ export default function QuizScreen() {
     const unsubFail = onPurchaseFailed((_productId, code) => {
       setPurchasingId(null);
       if (code !== PURCHASE_CANCELLED_CODE) {
-        Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
+        // Append the underlying reason so a production-only failure can be diagnosed
+        // from a screenshot (release builds don't expose JS logs).
+        Alert.alert(t("common.error"), `${t("quiz.purchaseFailed")}\n\n(${code || "unknown"})`);
       }
     });
     return () => {
@@ -719,7 +721,7 @@ export default function QuizScreen() {
       if (code === "purchase_already_pending" || code === PURCHASE_CANCELLED_CODE) {
         return;
       }
-      Alert.alert(t("common.error"), t("quiz.purchaseFailed"));
+      Alert.alert(t("common.error"), `${t("quiz.purchaseFailed")}\n\n(${code || "unknown"})`);
     }
   };
 
