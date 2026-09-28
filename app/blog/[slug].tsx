@@ -1,10 +1,16 @@
 // app/blog/[slug].tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
+import { useEditorFonts } from "@/utils/editorFonts";
+import { normalizeEditorLineHeights } from "@/utils/editorHtml";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Share,
@@ -21,17 +27,79 @@ export default function BlogDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { width } = useWindowDimensions();
+  const { token } = useAuth();
 
   // Parse blog from params
-  let blog = null;
-
-  if (params.blog) {
+  const blog = useMemo(() => {
+    if (!params.blog) return null;
     try {
-      blog = JSON.parse(params.blog as string);
+      return JSON.parse(params.blog as string);
     } catch {
-      // blog stays null — error state rendered below
+      return null; // error state rendered below
     }
-  }
+  }, [params.blog]);
+
+  const [stats, setStats] = useState({
+    likes: Number(blog?.likes ?? 0),
+    views: Number(blog?.views ?? 0),
+    liked: false,
+  });
+  const [liking, setLiking] = useState(false);
+  const contentHtml = useMemo(
+    () =>
+      normalizeEditorLineHeights(blog?.content ?? "", {
+        fontSize: 16,
+        lineHeight: 28,
+        tagFontSizes: { h1: 24, h2: 20, h3: 18 },
+      }),
+    [blog?.content],
+  );
+  const { html: contentHtmlWithFonts, systemFonts } = useEditorFonts(contentHtml);
+  const viewCounted = useRef<number | null>(null);
+
+  // Count one view per opening of the blog; also tells us if this user already liked it.
+  useEffect(() => {
+    if (!blog?.id || viewCounted.current === blog.id) return;
+    viewCounted.current = blog.id;
+    fetch(`${API_URL}/blogs/${blog.id}/view`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+      .then((res) => res.json())
+      .then((json) => { if (json?.success) setStats(json.data); })
+      .catch(() => {});
+  }, [blog?.id, token]);
+
+  const toggleLike = async () => {
+    if (!blog?.id || liking) return;
+    if (!token) {
+      Alert.alert(t("blog.loginToLike"), t("blog.loginToLikeMessage"), [
+        { text: t("quiz.cancel"), style: "cancel" },
+        { text: t("auth.login.signIn"), onPress: () => router.push("/(auth)/login") },
+      ]);
+      return;
+    }
+    // Optimistic update, rolled back if the request fails.
+    const prev = stats;
+    setStats({ ...prev, liked: !prev.liked, likes: Math.max(0, prev.likes + (prev.liked ? -1 : 1)) });
+    setLiking(true);
+    try {
+      const res = await fetch(`${API_URL}/blogs/${blog.id}/like`, {
+        method: "POST",
+        headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) throw new Error();
+      setStats(json.data);
+    } catch {
+      setStats(prev);
+    } finally {
+      setLiking(false);
+    }
+  };
 
   if (!blog) {
     return (
@@ -85,11 +153,13 @@ export default function BlogDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
       >
         {/* Cover Image */}
-        <Image
-          source={{ uri: blog.image }}
-          className="w-full h-64"
-          resizeMode="cover"
-        />
+        {!!blog.image && (
+          <Image
+            source={{ uri: blog.image }}
+            className="w-full h-64 bg-gray-100"
+            resizeMode="contain"
+          />
+        )}
 
         {/* Content */}
         <View className="px-6 py-6">
@@ -132,13 +202,28 @@ export default function BlogDetailScreen() {
             </View>
 
             <View className="flex-row items-center gap-4">
-              <View className="flex-row items-center">
-                <Ionicons name="heart-outline" size={18} color="#9ca3af" />
-                <Text className="text-gray-500 text-sm ml-1">{blog.likes}</Text>
-              </View>
+              <TouchableOpacity
+                onPress={toggleLike}
+                disabled={liking}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                className="flex-row items-center"
+              >
+                {liking ? (
+                  <ActivityIndicator size="small" color="#ef4444" />
+                ) : (
+                  <Ionicons
+                    name={stats.liked ? "heart" : "heart-outline"}
+                    size={18}
+                    color={stats.liked ? "#ef4444" : "#9ca3af"}
+                  />
+                )}
+                <Text className={`text-sm ml-1 ${stats.liked ? "text-red-500 font-bold" : "text-gray-500"}`}>
+                  {stats.likes}
+                </Text>
+              </TouchableOpacity>
               <View className="flex-row items-center">
                 <Ionicons name="eye-outline" size={18} color="#9ca3af" />
-                <Text className="text-gray-500 text-sm ml-1">{blog.views}</Text>
+                <Text className="text-gray-500 text-sm ml-1">{stats.views}</Text>
               </View>
             </View>
           </View>
@@ -151,7 +236,12 @@ export default function BlogDetailScreen() {
           {/* HTML Content */}
           <RenderHtml
             contentWidth={width - 48}
-            source={{ html: blog.content }}
+            // React 19 ignores render-html's defaultProps, so these must be set here or
+            // the editor's inline styles (align, size, color, font...) are dropped.
+            enableCSSInlineProcessing
+            enableUserAgentStyles
+            source={{ html: contentHtmlWithFonts }}
+            systemFonts={systemFonts}
             baseStyle={{
               fontSize: 16,
               lineHeight: 28,

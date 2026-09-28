@@ -1,8 +1,10 @@
 // app/reader/[bookId].tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { useEditorFonts } from "@/utils/editorFonts";
+import { normalizeEditorLineHeights } from "@/utils/editorHtml";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ScrollView,
@@ -35,6 +37,16 @@ export default function Reader() {
   }
 
   const [fontSize, setFontSize] = useState(16);
+  const descriptionHtml = useMemo(
+    () =>
+      normalizeEditorLineHeights(book?.description ?? "", {
+        fontSize,
+        lineHeight: fontSize * 1.75,
+        tagFontSizes: { h1: fontSize + 8, h2: fontSize + 4, h3: fontSize + 2 },
+      }),
+    [book?.description, fontSize],
+  );
+  const { html: descriptionHtmlWithFonts, systemFonts } = useEditorFonts(descriptionHtml);
 
   if (!book) {
     return (
@@ -101,7 +113,12 @@ export default function Reader() {
           {book.description ? (
             <RenderHtml
               contentWidth={width - 48}
-              source={{ html: book.description }}
+              // React 19 ignores render-html's defaultProps, so these must be set here or
+              // the editor's inline styles (align, size, color, font...) are dropped.
+              enableCSSInlineProcessing
+              enableUserAgentStyles
+              source={{ html: descriptionHtmlWithFonts }}
+              systemFonts={systemFonts}
               ignoredDomTags={["script", "iframe", "form", "input", "button", "style"]}
               baseStyle={{
                 fontSize: fontSize,
@@ -136,14 +153,12 @@ export default function Reader() {
                 },
                 strong: {
                   fontWeight: "bold",
-                  color: "#1f2937",
                 },
                 em: {
                   fontStyle: "italic",
                 },
                 b: {
                   fontWeight: "bold",
-                  color: "#1f2937",
                 },
                 i: {
                   fontStyle: "italic",

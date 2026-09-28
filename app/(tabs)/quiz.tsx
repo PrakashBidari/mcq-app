@@ -53,6 +53,7 @@ interface QuestionSet {
   name: string;
   description: string;
   questions_count: number;
+  paragraphs_count?: number;
   is_paid?: boolean;
   price?: number | null;
   price_tier?: string | null;
@@ -85,6 +86,7 @@ interface PackageQuestionSet {
   name: string;
   description: string | null;
   questions_count: number;
+  paragraphs_count?: number;
 }
 
 // Generalized paywall target - either a standalone question set or a package.
@@ -1118,6 +1120,14 @@ export default function QuizScreen() {
                         <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
                           {qs.questions_count} questions
                         </Text>
+                        {!!qs.paragraphs_count && (
+                          <>
+                            <Ionicons name="document-text-outline" size={14} color={isDark ? "#64748b" : "#6b7280"} style={styles.setMetaIconGap} />
+                            <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
+                              {t("quiz.paragraphsCount", { count: qs.paragraphs_count })}
+                            </Text>
+                          </>
+                        )}
                       </View>
                       <TouchableOpacity
                         onPress={() => startQuestionSetQuiz(qs.id)}
@@ -1289,6 +1299,14 @@ export default function QuizScreen() {
                   <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
                     {set.questions_count} questions
                   </Text>
+                  {!!set.paragraphs_count && (
+                    <>
+                      <Ionicons name="document-text-outline" size={14} color={isDark ? "#64748b" : "#6b7280"} style={styles.setMetaIconGap} />
+                      <Text style={[styles.setMetaText, { color: colors.textSecondary }]}>
+                        {t("quiz.paragraphsCount", { count: set.paragraphs_count })}
+                      </Text>
+                    </>
+                  )}
                 </View>
 
                 <View style={styles.setCardActions}>
@@ -2056,6 +2074,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  setMetaIconGap: { marginLeft: 12 },
   setMetaText: {
     color: "#4b5563",
     fontSize: 12,

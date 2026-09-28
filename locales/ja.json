@@ -250,7 +250,9 @@
     "timeUnitDay": "日",
     "timeUnitHour": "時間",
     "timeUnitMinute": "分",
-    "timeUnitSecond": "秒"
+    "timeUnitSecond": "秒",
+    "paragraphsCount": "本文 {{count}}件",
+    "paragraphsCount_plural": "本文 {{count}}件"
   },
   "study": {
     "title": "スタディライブラリ",
@@ -355,7 +357,9 @@
     "minutesLeft": "残り{{count}}分",
     "expiresToday": "本日期限切れ",
     "expiresSoon": "まもなく期限切れ",
-    "accessSubscription": "サブスク有効"
+    "accessSubscription": "サブスク有効",
+    "paragraph": "本文",
+    "questions": "問題"
   },
   "quizResults": {
     "quizCompleted": "クイズ完了！",
@@ -379,7 +383,8 @@
     "notAnswered": "未回答",
     "correct": "正解：",
     "tryAnother": "別のクイズを試す",
-    "backToHome": "ホームへ戻る"
+    "backToHome": "ホームへ戻る",
+    "optionLabel": "選択肢 {{label}}"
   },
   "contact": {
     "title": "お問い合わせ",
@@ -439,7 +444,9 @@
     "relatedArticles": "関連記事がここに表示されます",
     "blogNotFound": "ブログが見つかりませんでした",
     "unableToLoad": "ブログコンテンツを読み込めません",
-    "goBack": "戻る"
+    "goBack": "戻る",
+    "loginToLike": "ログインが必要です",
+    "loginToLikeMessage": "この記事に「いいね」するにはログインしてください。"
   },
   "about": {
     "appTagline": "学ぶ・練習する・成功する",

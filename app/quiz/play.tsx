@@ -1,5 +1,7 @@
 // app/quiz/play.tsx
 import FuriganaText from "@/components/FuriganaText";
+import ParagraphContent from "@/components/ParagraphContent";
+import QuizImage from "@/components/QuizImage";
 import { quizStore, type QuizAccessSummary } from "@/utils/quizStore";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -114,6 +116,80 @@ const AccessChip = React.memo(
 );
 AccessChip.displayName = "AccessChip";
 
+// Pulls questions of the same reading paragraph together (at the first one's spot) and
+// splits the list into pages: one page per paragraph, one page per other question.
+// Scoring is unchanged — every question is still scored on its own.
+function groupByParagraph(sorted: any[]): { allQuestions: any[]; pages: number[][] } {
+  const groups: any[][] = [];
+  const byParagraph = new Map<number, any[]>();
+  for (const q of sorted) {
+    const pid = q.paragraph?.id;
+    if (pid == null) {
+      groups.push([q]);
+    } else if (byParagraph.has(pid)) {
+      byParagraph.get(pid)!.push(q);
+    } else {
+      const group = [q];
+      byParagraph.set(pid, group);
+      groups.push(group);
+    }
+  }
+  const allQuestions: any[] = [];
+  const pages: number[][] = [];
+  for (const group of groups) {
+    // Paragraph questions keep the order they were written in (creation order).
+    if (group.length > 1) group.sort((a, b) => a.id - b.id);
+    pages.push(group.map((_, i) => allQuestions.length + i));
+    allQuestions.push(...group);
+  }
+  return { allQuestions, pages };
+}
+
+const ParagraphCard = React.memo(
+  ({ paragraph, label, style }: { paragraph: any; label: string; style?: any }) => (
+    <View style={[styles.paragraphCard, style]}>
+      <View style={styles.paragraphLabelRow}>
+        <Ionicons name="document-text-outline" size={14} color="#7c3aed" />
+        <Text style={styles.paragraphLabel}>{label}</Text>
+      </View>
+      {!!paragraph.title && (
+        <FuriganaText
+          text={paragraph.title}
+          style={styles.paragraphTitle}
+          furiganaStyle={styles.furiganaMain}
+        />
+      )}
+      <ParagraphContent
+        content={paragraph.content}
+        style={styles.paragraphText}
+        furiganaStyle={styles.furiganaMain}
+      />
+      <QuizImage uri={paragraph.image} style={{ marginTop: 12 }} />
+    </View>
+  ),
+);
+ParagraphCard.displayName = "ParagraphCard";
+
+// Answer option content: text, image, or both (either may be missing).
+const OptionBody = ({
+  text,
+  image,
+  textStyle,
+  furiganaStyle,
+}: {
+  text: string;
+  image?: string | null;
+  textStyle: any;
+  furiganaStyle: any;
+}) => (
+  <View style={styles.optBody}>
+    {!!text && (
+      <FuriganaText text={text} style={textStyle} furiganaStyle={furiganaStyle} />
+    )}
+    <QuizImage uri={image} maxHeight={160} />
+  </View>
+);
+
 export default function QuizPlay() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
@@ -122,25 +198,29 @@ export default function QuizPlay() {
   const access = useMemo(() => quizStore.getAccess(), []);
   const accessInfo = useMemo(() => accessChipContent(access, t), [access, t]);
 
-  // Read from store — no JSON.parse cost
-  const allQuestions = useMemo<any[] | null>(() => {
+  // Read from store — no JSON.parse cost.
+  // Questions that share a reading paragraph are pulled together (at the first one's
+  // spot) and shown on one page; every other question is a page of its own.
+  const { allQuestions, pages } = useMemo<{ allQuestions: any[] | null; pages: number[][] }>(() => {
     const raw = quizStore.getQuestions();
-    if (!raw || raw.length === 0) return null;
-    return [...raw].sort((a: any, b: any) => {
+    if (!raw || raw.length === 0) return { allQuestions: null, pages: [] };
+    const sorted = [...raw].sort((a: any, b: any) => {
       const posA = a.position ?? Number.MAX_SAFE_INTEGER;
       const posB = b.position ?? Number.MAX_SAFE_INTEGER;
       if (posA !== posB) return posA - posB;
       return b.id - a.id;
     });
+    return groupByParagraph(sorted);
   }, []);
 
   const totalQuestions = allQuestions?.length ?? 0;
+  const totalPages = pages.length;
   const timeLimitMinutes = parseInt(params.timeLimit as string) || 0;
   const timeLimitSeconds = timeLimitMinutes * 60;
   const hasTimer = timeLimitSeconds > 0;
 
   // ── All state / refs before any early return ──
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
   const [userAnswers, setUserAnswers] = useState<(number | undefined)[]>(() =>
     new Array(totalQuestions).fill(undefined),
   );
@@ -168,6 +248,8 @@ export default function QuizPlay() {
       (s: number, q: any, i: number) => (answers[i] === q.correctAnswer ? s + 1 : s),
       0,
     );
+    // Results screen reads answers by index — store questions in the same (grouped) order.
+    quizStore.setQuestions(qs);
     quizStore.setAnswers(answers.map((a) => (a === undefined ? -1 : (a as number))));
 
     const startedAt = quizStore.getStartedAt();
@@ -187,14 +269,14 @@ export default function QuizPlay() {
     });
   }, [allQuestions]);
 
-  const handleSelect = useCallback((optIdx: number) => {
+  const handleSelect = useCallback((qIdx: number, optIdx: number) => {
     setUserAnswers((prev) => {
       const next = [...prev];
-      next[currentIndex] = optIdx;
+      next[qIdx] = optIdx;
       return next;
     });
     setShowExplanation(false);
-  }, [currentIndex]);
+  }, []);
 
   const handleReviewChange = useCallback((qIdx: number, optIdx: number) => {
     setUserAnswers((prev) => {
@@ -206,14 +288,14 @@ export default function QuizPlay() {
 
   const handleNext = useCallback(() => {
     setShowExplanation(false);
-    if (currentIndex < totalQuestions - 1) setCurrentIndex(currentIndex + 1);
+    if (currentPage < totalPages - 1) setCurrentPage(currentPage + 1);
     else setIsFinished(true);
-  }, [currentIndex, totalQuestions]);
+  }, [currentPage, totalPages]);
 
   const handlePrev = useCallback(() => {
     setShowExplanation(false);
-    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
-  }, [currentIndex]);
+    if (currentPage > 0) setCurrentPage(currentPage - 1);
+  }, [currentPage]);
 
   useEffect(() => {
     if (!hasTimer) return;
@@ -233,9 +315,12 @@ export default function QuizPlay() {
   // ── Guard after all hooks ──
   if (allQuestions === null) return null;
 
-  const currentQuestion = allQuestions[currentIndex];
-  const selectedAnswer = userAnswers[currentIndex];
-  const isAnswered = selectedAnswer !== undefined;
+  const pageIndexes = pages[currentPage];
+  const firstIndex = pageIndexes[0];
+  const lastIndex = pageIndexes[pageIndexes.length - 1];
+  const pageParagraph = allQuestions[firstIndex].paragraph;
+  const isLastPage = currentPage === totalPages - 1;
+  const isAnswered = pageIndexes.every((qi) => userAnswers[qi] !== undefined);
   const answeredCount = userAnswers.filter((a) => a !== undefined).length;
 
   const p = hasTimer ? timeLeft / timeLimitSeconds : 1;
@@ -343,8 +428,14 @@ export default function QuizPlay() {
         >
           {allQuestions.map((q: any, qi: number) => {
             const sel = userAnswers[qi];
+            const startsParagraph =
+              !!q.paragraph && allQuestions[qi - 1]?.paragraph?.id !== q.paragraph.id;
             return (
-              <View key={qi} style={styles.reviewCard}>
+              <React.Fragment key={qi}>
+              {startsParagraph && (
+                <ParagraphCard paragraph={q.paragraph} label={t("quizPlay.paragraph")} style={{ marginBottom: 16 }} />
+              )}
+              <View style={styles.reviewCard}>
                 <View style={styles.reviewCardTop}>
                   <View style={styles.qNumBadge}>
                     <Text style={styles.qNumText}>{qi + 1}</Text>
@@ -373,6 +464,7 @@ export default function QuizPlay() {
                   style={styles.reviewQText}
                   furiganaStyle={styles.furiganaSmall}
                 />
+                <QuizImage uri={q.image} maxHeight={200} style={{ marginBottom: 4 }} />
 
                 {q.options.map((opt: string, oi: number) => {
                   const isSel = sel === oi;
@@ -388,17 +480,18 @@ export default function QuizPlay() {
                           {OPTION_LABELS[oi]}
                         </Text>
                       </View>
-                      <FuriganaText
+                      <OptionBody
                         text={opt}
-                        style={[styles.optText, isSel ? styles.optTextSel : styles.optTextDef]}
+                        image={q.optionImages?.[oi]}
+                        textStyle={[styles.optText, isSel ? styles.optTextSel : styles.optTextDef]}
                         furiganaStyle={styles.furiganaSmall}
-                        containerStyle={{ flex: 1 }}
                       />
                       {isSel && <Ionicons name="checkmark-circle" size={18} color="#7c3aed" />}
                     </TouchableOpacity>
                   );
                 })}
               </View>
+              </React.Fragment>
             );
           })}
 
@@ -440,7 +533,9 @@ export default function QuizPlay() {
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: "center" }}>
             <Text style={styles.qCounter}>
-              {t("quizPlay.question")} {currentIndex + 1} / {totalQuestions}
+              {firstIndex === lastIndex
+                ? `${t("quizPlay.question")} ${firstIndex + 1} / ${totalQuestions}`
+                : `${t("quizPlay.questions")} ${firstIndex + 1}–${lastIndex + 1} / ${totalQuestions}`}
             </Text>
           </View>
           {hasTimer ? (
@@ -455,7 +550,7 @@ export default function QuizPlay() {
           <View
             style={[
               styles.progressFill,
-              { width: `${((currentIndex + 1) / totalQuestions) * 100}%` as any },
+              { width: `${((lastIndex + 1) / totalQuestions) * 100}%` as any },
             ]}
           />
         </View>
@@ -472,110 +567,126 @@ export default function QuizPlay() {
         keyboardShouldPersistTaps="handled"
       >
         <Animatable.View
-          key={`q${currentIndex}`}
+          key={`p${currentPage}`}
           animation="fadeInRight"
           duration={220}
           useNativeDriver
-          style={styles.qCard}
+          style={{ gap: 16 }}
         >
-          <View style={styles.qMeta}>
-            <View style={styles.catBadge}>
-              <Text style={styles.catBadgeText}>{currentQuestion.category}</Text>
-            </View>
-            <View style={[styles.diffBadge, { backgroundColor: getDifficultyColor(currentQuestion.difficulty) + "20" }]}>
-              <Text style={[styles.diffText, { color: getDifficultyColor(currentQuestion.difficulty) }]}>
-                {currentQuestion.difficulty}
-              </Text>
-            </View>
-            {currentQuestion.position != null && (
-              <View style={styles.positionBadge}>
-                <Text style={styles.positionText}>#{currentQuestion.position}</Text>
-              </View>
-            )}
-          </View>
+          {pageParagraph && <ParagraphCard paragraph={pageParagraph} label={t("quizPlay.paragraph")} />}
 
-          <FuriganaText
-            text={currentQuestion.question}
-            style={styles.qText}
-            furiganaStyle={styles.furiganaMain}
-            containerStyle={styles.qTextContainer}
-          />
-
-          <View style={{ gap: 10 }}>
-            {currentQuestion.options.map((opt: string, oi: number) => {
-              const isSel = selectedAnswer === oi;
-              const isCorrect = oi === currentQuestion.correctAnswer;
-              const showOk = showExplanation && isCorrect;
-              const showBad = showExplanation && isSel && !isCorrect;
-
-              const rowStyle = showExplanation
-                ? showOk ? styles.optionCorrect : showBad ? styles.optionWrong : styles.optionDefault
-                : isSel ? styles.optionSelected : styles.optionDefault;
-
-              const lblStyle = showExplanation
-                ? showOk ? styles.optLabelOk : showBad ? styles.optLabelBad : isSel ? styles.optLabelSel : styles.optLabelDef
-                : isSel ? styles.optLabelSel : styles.optLabelDef;
-
-              return (
-                <TouchableOpacity
-                  key={oi}
-                  onPress={() => handleSelect(oi)}
-                  activeOpacity={0.7}
-                  style={[styles.optionRow, rowStyle]}
-                >
-                  <View style={[styles.optLabel, lblStyle]}>
-                    <Text style={[styles.optLabelTxt, (isSel || showOk) && styles.optLabelTxtSel]}>
-                      {OPTION_LABELS[oi]}
+          {pageIndexes.map((qi) => {
+            const q = allQuestions[qi];
+            const selectedAnswer = userAnswers[qi];
+            return (
+              <View key={qi} style={styles.qCard}>
+                <View style={styles.qMeta}>
+                  {pageParagraph && (
+                    <View style={styles.qNumBadge}>
+                      <Text style={styles.qNumText}>{qi + 1}</Text>
+                    </View>
+                  )}
+                  <View style={styles.catBadge}>
+                    <Text style={styles.catBadgeText}>{q.category}</Text>
+                  </View>
+                  <View style={[styles.diffBadge, { backgroundColor: getDifficultyColor(q.difficulty) + "20" }]}>
+                    <Text style={[styles.diffText, { color: getDifficultyColor(q.difficulty) }]}>
+                      {q.difficulty}
                     </Text>
                   </View>
-                  <FuriganaText
-                    text={opt}
-                    style={[
-                      styles.optText,
-                      showOk ? styles.optTextOk : showBad ? styles.optTextBad : isSel ? styles.optTextSel : styles.optTextDef,
-                    ]}
-                    furiganaStyle={showOk ? styles.furiganaOk : showBad ? styles.furiganaBad : styles.furiganaMain}
-                    containerStyle={{ flex: 1 }}
-                  />
-                  {showOk && <Ionicons name="checkmark-circle" size={18} color="#22c55e" />}
-                  {showBad && <Ionicons name="close-circle" size={18} color="#ef4444" />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                  {q.position != null && (
+                    <View style={styles.positionBadge}>
+                      <Text style={styles.positionText}>#{q.position}</Text>
+                    </View>
+                  )}
+                </View>
 
-          {/* EXPLANATION — disabled for now, enable in future
-          {isAnswered && !showExplanation && !!currentQuestion.explanation && (
-            <TouchableOpacity onPress={() => setShowExplanation(true)} style={styles.explBtn}>
-              <Ionicons name="information-circle-outline" size={16} color="#1d4ed8" />
-              <Text style={styles.explBtnTxt}>Show Explanation</Text>
-            </TouchableOpacity>
-          )}
-          {showExplanation && (
-            <Animatable.View animation="fadeInUp" duration={260} style={styles.explBox}>
-              <Ionicons name="information-circle" size={18} color="#3b82f6" />
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.explLabel}>Explanation</Text>
                 <FuriganaText
-                  text={currentQuestion.explanation}
-                  style={styles.explBody}
-                  furiganaStyle={styles.furiganaExpl}
+                  text={q.question}
+                  style={styles.qText}
+                  furiganaStyle={styles.furiganaMain}
+                  containerStyle={q.image ? styles.qTextContainerImg : styles.qTextContainer}
                 />
+                <QuizImage uri={q.image} style={styles.qTextContainer} />
+
+                <View style={{ gap: 10 }}>
+                  {q.options.map((opt: string, oi: number) => {
+                    const isSel = selectedAnswer === oi;
+                    const isCorrect = oi === q.correctAnswer;
+                    const showOk = showExplanation && isCorrect;
+                    const showBad = showExplanation && isSel && !isCorrect;
+
+                    const rowStyle = showExplanation
+                      ? showOk ? styles.optionCorrect : showBad ? styles.optionWrong : styles.optionDefault
+                      : isSel ? styles.optionSelected : styles.optionDefault;
+
+                    const lblStyle = showExplanation
+                      ? showOk ? styles.optLabelOk : showBad ? styles.optLabelBad : isSel ? styles.optLabelSel : styles.optLabelDef
+                      : isSel ? styles.optLabelSel : styles.optLabelDef;
+
+                    return (
+                      <TouchableOpacity
+                        key={oi}
+                        onPress={() => handleSelect(qi, oi)}
+                        activeOpacity={0.7}
+                        style={[styles.optionRow, rowStyle]}
+                      >
+                        <View style={[styles.optLabel, lblStyle]}>
+                          <Text style={[styles.optLabelTxt, (isSel || showOk) && styles.optLabelTxtSel]}>
+                            {OPTION_LABELS[oi]}
+                          </Text>
+                        </View>
+                        <OptionBody
+                          text={opt}
+                          image={q.optionImages?.[oi]}
+                          textStyle={[
+                            styles.optText,
+                            showOk ? styles.optTextOk : showBad ? styles.optTextBad : isSel ? styles.optTextSel : styles.optTextDef,
+                          ]}
+                          furiganaStyle={showOk ? styles.furiganaOk : showBad ? styles.furiganaBad : styles.furiganaMain}
+                        />
+                        {showOk && <Ionicons name="checkmark-circle" size={18} color="#22c55e" />}
+                        {showBad && <Ionicons name="close-circle" size={18} color="#ef4444" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* EXPLANATION — disabled for now, enable in future
+                {selectedAnswer !== undefined && !showExplanation && !!q.explanation && (
+                  <TouchableOpacity onPress={() => setShowExplanation(true)} style={styles.explBtn}>
+                    <Ionicons name="information-circle-outline" size={16} color="#1d4ed8" />
+                    <Text style={styles.explBtnTxt}>Show Explanation</Text>
+                  </TouchableOpacity>
+                )}
+                {showExplanation && (
+                  <Animatable.View animation="fadeInUp" duration={260} style={styles.explBox}>
+                    <Ionicons name="information-circle" size={18} color="#3b82f6" />
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={styles.explLabel}>Explanation</Text>
+                      <FuriganaText
+                        text={q.explanation}
+                        style={styles.explBody}
+                        furiganaStyle={styles.furiganaExpl}
+                      />
+                    </View>
+                  </Animatable.View>
+                )}
+                */}
               </View>
-            </Animatable.View>
-          )}
-          */}
+            );
+          })}
         </Animatable.View>
       </ScrollView>
 
       <View style={[styles.navBar, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
           onPress={handlePrev}
-          disabled={currentIndex === 0}
-          style={[styles.prevBtn, currentIndex === 0 ? styles.prevDisabled : styles.prevEnabled]}
+          disabled={currentPage === 0}
+          style={[styles.prevBtn, currentPage === 0 ? styles.prevDisabled : styles.prevEnabled]}
         >
-          <Ionicons name="chevron-back" size={20} color={currentIndex === 0 ? "#9CA3AF" : "#667eea"} />
-          <Text style={[styles.prevTxt, currentIndex === 0 ? styles.prevTxtDis : styles.prevTxtEn]}>
+          <Ionicons name="chevron-back" size={20} color={currentPage === 0 ? "#9CA3AF" : "#667eea"} />
+          <Text style={[styles.prevTxt, currentPage === 0 ? styles.prevTxtDis : styles.prevTxtEn]}>
             {t("quizPlay.previous")}
           </Text>
         </TouchableOpacity>
@@ -585,7 +696,7 @@ export default function QuizPlay() {
             colors={
               !isAnswered
                 ? ["#D1D5DB", "#9CA3AF"]
-                : currentIndex === totalQuestions - 1
+                : isLastPage
                   ? ["#10b981", "#059669"]
                   : ["#667eea", "#764ba2"]
             }
@@ -594,10 +705,10 @@ export default function QuizPlay() {
             style={[styles.nextGrad, { elevation: isAnswered ? 6 : 0 }]}
           >
             <Text style={styles.nextTxt}>
-              {currentIndex === totalQuestions - 1 ? t("quizPlay.finishQuiz") : t("quizPlay.nextQuestion")}
+              {isLastPage ? t("quizPlay.finishQuiz") : t("quizPlay.nextQuestion")}
             </Text>
             <Ionicons
-              name={currentIndex === totalQuestions - 1 ? "checkmark-circle" : "chevron-forward"}
+              name={isLastPage ? "checkmark-circle" : "chevron-forward"}
               size={20}
               color="white"
             />
@@ -688,6 +799,26 @@ const styles = StyleSheet.create({
   positionText: { color: "#6b7280", fontWeight: "700", fontSize: 11 },
 
   qTextContainer: { marginBottom: 20 },
+  qTextContainerImg: { marginBottom: 12 },
+
+  paragraphCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: "#7c3aed",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  paragraphLabelRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
+  paragraphLabel: { color: "#7c3aed", fontWeight: "800", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
+  paragraphTitle: { color: "#1f2937", fontSize: 16, fontWeight: "800", lineHeight: 24, marginBottom: 8 },
+  paragraphText: { color: "#374151", fontSize: 15, lineHeight: 26 },
+
+  optBody: { flex: 1, gap: 8 },
   qText: { color: "#1f2937", fontSize: 17, fontWeight: "700", lineHeight: 28 },
 
   furiganaMain: { fontSize: 9, color: "#6b7280", lineHeight: 11 },
