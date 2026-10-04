@@ -161,8 +161,7 @@ export default function QuizResults() {
     if (percentage >= 90) return { grade: "A+", color: "#10b981", message: t("quizResults.outstanding") };
     if (percentage >= 80) return { grade: "A", color: "#10b981", message: t("quizResults.excellent") };
     if (percentage >= 70) return { grade: "B", color: "#3b82f6", message: t("quizResults.goodJob") };
-    if (percentage >= 60) return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
-    return { grade: "F", color: "#ef4444", message: t("quizResults.keepPracticing") };
+    return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
   };
 
   const gradeInfo = getGrade();
