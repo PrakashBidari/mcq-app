@@ -36,6 +36,11 @@ let _access: QuizAccessSummary | null = null;
 // treats a resent save call for the same play as free.
 let _attemptKey: string | null = null;
 
+// Score (%) needed to pass the set being played, as set by the admin on the
+// question set. null when the set has none (or for a full-category quiz) - the
+// results screen then falls back to its default pass mark.
+let _passPercentage: number | null = null;
+
 export const quizStore = {
   setQuestions(q: any[]) { _questions = q; },
   getQuestions(): any[] | null { return _questions; },
@@ -51,6 +56,8 @@ export const quizStore = {
   getAccess(): QuizAccessSummary | null { return _access; },
   setAttemptKey(k: string | null) { _attemptKey = k; },
   getAttemptKey(): string | null { return _attemptKey; },
+  setPassPercentage(p: number | null) { _passPercentage = p; },
+  getPassPercentage(): number | null { return _passPercentage; },
   clear() {
     _questions = null;
     _answers = null;
@@ -59,5 +66,6 @@ export const quizStore = {
     _categoryId = null;
     _access = null;
     _attemptKey = null;
+    _passPercentage = null;
   },
 };

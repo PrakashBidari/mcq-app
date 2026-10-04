@@ -1,5 +1,6 @@
 // app/about/index.tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import BrandLogo from "@/components/BrandLogo";
 import { API_URL } from "@/config/constants";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -99,14 +100,9 @@ export default function AboutScreen() {
         <View style={styles.headerDecor2} />
 
         <View style={styles.logoWrap}>
-          <LinearGradient
-            colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.1)"]}
-            style={styles.logoCircle}
-          >
-            <Ionicons name="school" size={44} color="#fff" />
-          </LinearGradient>
+          <BrandLogo size={90} style={styles.logoFrame} />
         </View>
-        <Text style={styles.appName}>MCQ Hub</Text>
+        <Text style={styles.appName}>Ikigai Connect</Text>
         <Text style={styles.appTagline}>{content?.tagline ?? t("about.appTagline")}</Text>
         <View style={styles.versionBadge}>
           <Text style={styles.versionText}>{t("common.version")}</Text>
@@ -240,12 +236,7 @@ const styles = StyleSheet.create({
     left: -20,
   },
   logoWrap: { marginTop: 16, marginBottom: 14 },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    alignItems: "center",
-    justifyContent: "center",
+  logoFrame: {
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.3)",
   },

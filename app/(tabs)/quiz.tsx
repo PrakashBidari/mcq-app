@@ -147,9 +147,13 @@ export default function QuizScreen() {
     null,
   );
 
-  // Subcategory drill-down (only shown for categories with has_children=true)
-  const [viewingSubcategoriesOf, setViewingSubcategoriesOf] = useState<Category | null>(null);
+  // Subcategory drill-down, any number of levels deep. categoryPath is the chain of
+  // has_children=true categories opened so far (top-level first); subcategories are
+  // the children of the last one. A category without children is a leaf and becomes
+  // selectedCategory instead.
+  const [categoryPath, setCategoryPath] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
+  const currentParent = categoryPath.length > 0 ? categoryPath[categoryPath.length - 1] : null;
 
   const [questionSets, setQuestionSets] = useState<QuestionSet[]>([]);
   const [browseTab, setBrowseTab] = useState<"single" | "package">("single");
@@ -498,17 +502,19 @@ export default function QuizScreen() {
     if (selectedCategory) {
       await fetchQuestionSets(selectedCategory.id);
       await fetchPackages(selectedCategory.id);
-    } else if (viewingSubcategoriesOf) {
-      await fetchSubcategories(viewingSubcategoriesOf.id);
+    } else if (currentParent) {
+      await fetchSubcategories(currentParent.id);
     } else {
       await fetchCategories();
     }
     setRefreshing(false);
   };
 
+  // Used at every level of the tree: a category with children opens one level
+  // deeper, a leaf opens its question sets / packages.
   const handleCategorySelect = async (category: Category) => {
     if (category.has_children) {
-      setViewingSubcategoriesOf(category);
+      setCategoryPath((prev) => [...prev, category]);
       await fetchSubcategories(category.id);
       return;
     }
@@ -520,13 +526,14 @@ export default function QuizScreen() {
     await fetchPackages(category.id);
   };
 
-  const handleSubcategorySelect = async (subcategory: Category) => {
-    setBrowseTab("single");
-    setSelectedPackage(null);
-    setPackageQuestionSets([]);
-    setSelectedCategory(subcategory);
-    await fetchQuestionSets(subcategory.id);
-    await fetchPackages(subcategory.id);
+  // Back from a subcategory list: up one level (to the top-level list when the
+  // path empties).
+  const goUpOneLevel = () => {
+    const parentPath = categoryPath.slice(0, -1);
+    setCategoryPath(parentPath);
+    if (parentPath.length > 0) {
+      fetchSubcategories(parentPath[parentPath.length - 1].id);
+    }
   };
 
   const openFullCategoryModal = () => {
@@ -558,6 +565,7 @@ export default function QuizScreen() {
         quizStore.setQuestionSetId(null);
         quizStore.setCategoryId(selectedCategory.id);
         quizStore.setAccess(null);
+        quizStore.setPassPercentage(null);
         quizStore.setAttemptKey(null);
         quizStore.setStartedAt(Date.now());
         router.push({
@@ -644,6 +652,7 @@ export default function QuizScreen() {
         quizStore.setQuestionSetId(setId);
         quizStore.setCategoryId(selectedCategory?.id ?? null);
         quizStore.setAccess(data.data.set?.access ?? null);
+        quizStore.setPassPercentage(data.data.set?.pass_percentage ?? null);
         quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
@@ -736,7 +745,7 @@ export default function QuizScreen() {
   }
 
   // ─── Category List ───
-  if (!selectedCategory && !viewingSubcategoriesOf) {
+  if (!selectedCategory && !currentParent) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader
@@ -847,9 +856,10 @@ export default function QuizScreen() {
     );
   }
 
-  // ─── Subcategory List (only for categories with has_children=true) ───
-  if (!selectedCategory && viewingSubcategoriesOf) {
-    const parent = viewingSubcategoriesOf;
+  // ─── Subcategory List (for categories with has_children=true, at any depth) ───
+  if (!selectedCategory && currentParent) {
+    const parent = currentParent;
+    const grandparent = categoryPath.length > 1 ? categoryPath[categoryPath.length - 2] : null;
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" />
@@ -859,10 +869,20 @@ export default function QuizScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.gradientHeader}
         >
-          <TouchableOpacity onPress={() => setViewingSubcategoriesOf(null)} style={styles.backButton}>
+          <TouchableOpacity onPress={goUpOneLevel} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="white" />
-            <Text style={styles.backButtonText}>{t("quiz.backToCategories")}</Text>
+            <Text style={styles.backButtonText}>
+              {grandparent
+                ? t("quiz.backToParent", { name: grandparent.name })
+                : t("quiz.backToCategories")}
+            </Text>
           </TouchableOpacity>
+          {/* Breadcrumb: the levels above this one (e.g. JLPT › N5) */}
+          {grandparent && (
+            <Text style={styles.gradientBreadcrumb}>
+              {categoryPath.slice(0, -1).map((c) => c.name).join(" › ")}
+            </Text>
+          )}
           <View style={styles.gradientCategoryRow}>
             <View style={styles.gradientCategoryIcon}>
               <Ionicons name={getCatIcon(parent.name, parent.icon) as any} size={24} color="white" />
@@ -888,7 +908,7 @@ export default function QuizScreen() {
                 <TouchableOpacity
                   key={sub.id}
                   activeOpacity={0.8}
-                  onPress={() => handleSubcategorySelect(sub)}
+                  onPress={() => handleCategorySelect(sub)}
                   style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border, borderLeftColor: sub.color, borderLeftWidth: 4 }]}
                 >
                   <View style={styles.categoryCardRow}>
@@ -912,6 +932,10 @@ export default function QuizScreen() {
                         </View>
                       )}
                     </View>
+                    {/* More levels below this one */}
+                    {sub.has_children && (
+                      <Ionicons name="chevron-forward" size={22} color={isDark ? "#64748b" : "#9ca3af"} />
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -942,16 +966,18 @@ export default function QuizScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="white" />
           <Text style={styles.backButtonText}>
-            {viewingSubcategoriesOf
-              ? t("quiz.backToParent", { name: viewingSubcategoriesOf.name })
+            {currentParent
+              ? t("quiz.backToParent", { name: currentParent.name })
               : t("quiz.backToCategories")}
           </Text>
         </TouchableOpacity>
 
-        {/* Breadcrumb: show the parent category (e.g. JLPT) above the subcategory
-            title (e.g. Design) so it's clear which top-level category this belongs to. */}
-        {viewingSubcategoriesOf && (
-          <Text style={styles.gradientBreadcrumb}>{viewingSubcategoriesOf.name}</Text>
+        {/* Breadcrumb: show every level above this category (e.g. JLPT › N5) above
+            its title (e.g. Grammar) so it's clear where in the tree this belongs. */}
+        {currentParent && (
+          <Text style={styles.gradientBreadcrumb}>
+            {categoryPath.map((c) => c.name).join(" › ")}
+          </Text>
         )}
 
         <View style={styles.gradientCategoryRow}>

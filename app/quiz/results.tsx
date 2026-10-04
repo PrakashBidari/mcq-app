@@ -19,6 +19,9 @@ import {
 import * as Animatable from "react-native-animatable";
 
 // Memoized review row — only re-renders if its own data changes
+// Pass mark for quizzes whose question set has no pass percentage of its own
+const DEFAULT_PASS_PERCENTAGE = 60;
+
 const ReviewItem = React.memo(
   ({
     question,
@@ -141,15 +144,19 @@ export default function QuizResults() {
   if (questions.length === 0) return null;
 
   const percentage = Math.round((score / total) * 100);
-  const passed = percentage >= 60;
+  // Pass mark set by the admin on this question set; sets without one (and
+  // full-category quizzes) use the default.
+  const setPassPercentage = quizStore.getPassPercentage();
+  const passPercentage = setPassPercentage ?? DEFAULT_PASS_PERCENTAGE;
+  const passed = percentage >= passPercentage;
   const unanswered = userAnswers.filter((a: number) => a === -1).length;
 
   const getGrade = () => {
+    if (!passed) return { grade: "F", color: "#ef4444", message: t("quizResults.keepPracticing") };
     if (percentage >= 90) return { grade: "A+", color: "#10b981", message: t("quizResults.outstanding") };
     if (percentage >= 80) return { grade: "A", color: "#10b981", message: t("quizResults.excellent") };
     if (percentage >= 70) return { grade: "B", color: "#3b82f6", message: t("quizResults.goodJob") };
-    if (percentage >= 60) return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
-    return { grade: "F", color: "#ef4444", message: t("quizResults.keepPracticing") };
+    return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
   };
 
   const gradeInfo = getGrade();
@@ -269,6 +276,16 @@ export default function QuizResults() {
             </Animatable.View>
             <Text style={styles.completedLabel}>{t("quizResults.quizCompleted")}</Text>
             <Text style={styles.gradeMessage}>{gradeInfo.message}</Text>
+            {setPassPercentage !== null && (
+              <View style={styles.passBadge}>
+                <Ionicons name={passed ? "checkmark-circle" : "close-circle"} size={16} color="white" />
+                <Text style={styles.passBadgeText}>
+                  {passed ? t("quizResults.resultPassed") : t("quizResults.resultNotPassed")}
+                  {" • "}
+                  {t("quizResults.passMark", { percent: passPercentage })}
+                </Text>
+              </View>
+            )}
             <Text style={styles.scoreLabel}>
               {t("quizResults.youScored")} {score} {t("quizResults.outOf")} {total}
               {unanswered > 0 && ` • ${unanswered} ${t("quizResults.unanswered")}`}
@@ -337,6 +354,16 @@ const styles = StyleSheet.create({
   completedLabel: { color: "rgba(255,255,255,0.9)", fontSize: 16, fontWeight: "600", marginBottom: 8 },
   gradeMessage: { color: "#ffffff", fontSize: 36, fontWeight: "900", marginBottom: 8 },
   scoreLabel: { color: "rgba(255,255,255,0.8)", fontSize: 16, textAlign: "center" },
+  passBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 8,
+  },
+  passBadgeText: { color: "#ffffff", fontSize: 13, fontWeight: "700", marginLeft: 6 },
 
   scoreCardsRow: { flexDirection: "row", marginTop: 0, marginBottom: 24 },
   scoreCardWrap: { flex: 1 },

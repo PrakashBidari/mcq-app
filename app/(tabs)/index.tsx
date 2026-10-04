@@ -625,6 +625,7 @@ export default function Index() {
         quizStore.setQuestionSetId(setId);
         quizStore.setCategoryId(data.data.set?.category_id ?? null);
         quizStore.setAccess(data.data.set?.access ?? null);
+        quizStore.setPassPercentage(data.data.set?.pass_percentage ?? null);
         quizStore.setAttemptKey(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
         quizStore.setStartedAt(Date.now());
         router.push({
