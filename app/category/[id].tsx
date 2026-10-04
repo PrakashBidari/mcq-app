@@ -281,7 +281,7 @@ export default function CategoryBooks() {
               >
                 {/* Book Cover */}
                 <View className="relative">
-                  <Image source={{ uri: book.cover }} className="w-32 h-48" />
+                  <Image source={{ uri: book.cover || undefined }} className="w-32 h-48 bg-violet-100" />
                   <LinearGradient
                     colors={["transparent", "rgba(0,0,0,0.7)"]}
                     className="absolute inset-0"

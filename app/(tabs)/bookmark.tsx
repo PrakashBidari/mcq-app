@@ -1,8 +1,10 @@
 // app/(tabs)/bookmark.tsx
 import AppHeader from "@/components/AppHeader";
 import { API_URL } from "@/config/constants";
+import { useAuth } from "@/context/AuthContext";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { useTheme } from "@/hooks/useTheme";
+import { quizStore } from "@/utils/quizStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -41,6 +43,7 @@ export default function BookmarkScreen() {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { bookmarks, removeBookmark, reload: reloadBookmarks } = useBookmarks();
+  const { token } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabId>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,13 +95,22 @@ export default function BookmarkScreen() {
   const startQuiz = async (setId: number) => {
     setQuizLoading(true);
     try {
-      const res = await fetch(`${API_URL}/question-set/${setId}`);
+      const res = await fetch(`${API_URL}/question-set/${setId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json();
       if (data.success && data.data.questions.length > 0) {
+        // The play screen reads from quizStore - without this it would replay
+        // whatever quiz was loaded last instead of this set.
+        quizStore.setQuestions(data.data.questions);
+        quizStore.setQuestionSetId(setId);
+        quizStore.setCategoryId(data.data.set?.category_id ?? null);
+        quizStore.setAccess(data.data.set?.access ?? null);
+        quizStore.setAttemptKey(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+        quizStore.setStartedAt(Date.now());
         router.push({
           pathname: "/quiz/play",
           params: {
-            questions: JSON.stringify(data.data.questions),
             total: data.data.questions.length,
             timeLimit: data.data.set?.time_limit ?? 0,
           },

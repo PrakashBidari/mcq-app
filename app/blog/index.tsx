@@ -219,8 +219,8 @@ export default function BlogListScreen() {
                   }}
                 >
                   <Image
-                    source={{ uri: blog.image }}
-                    className="w-full h-32"
+                    source={{ uri: blog.image || undefined }}
+                    className="w-full h-32 bg-violet-100"
                     resizeMode="cover"
                   />
                   <View className="p-3">

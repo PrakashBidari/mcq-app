@@ -251,7 +251,9 @@
     "timeUnitDay": "d",
     "timeUnitHour": "h",
     "timeUnitMinute": "m",
-    "timeUnitSecond": "s"
+    "timeUnitSecond": "s",
+    "paragraphsCount": "{{count}} paragraph",
+    "paragraphsCount_plural": "{{count}} paragraphs"
   },
   "study": {
     "title": "Study Library",
@@ -360,7 +362,9 @@
     "minutesLeft_plural": "{{count}} minutes left",
     "expiresToday": "Expires today",
     "expiresSoon": "Expiring now",
-    "accessSubscription": "Subscription active"
+    "accessSubscription": "Subscription active",
+    "paragraph": "Paragraph",
+    "questions": "Questions"
   },
   "quizResults": {
     "quizCompleted": "Quiz Completed!",
@@ -387,7 +391,8 @@
     "notAnswered": "Not answered",
     "correct": "Correct:",
     "tryAnother": "Try Another Quiz",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "optionLabel": "Option {{label}}"
   },
   "contact": {
     "title": "Contact Us",
@@ -447,7 +452,9 @@
     "relatedArticles": "Related articles will appear here",
     "blogNotFound": "Blog not found",
     "unableToLoad": "Unable to load blog content",
-    "goBack": "Go Back"
+    "goBack": "Go Back",
+    "loginToLike": "Login Required",
+    "loginToLikeMessage": "Please sign in to like this article."
   },
   "about": {
     "appTagline": "Learn · Practice · Succeed",

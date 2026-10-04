@@ -69,7 +69,7 @@ const BookCard = ({ book, index, categories = [], isBookmarked = false, onBookma
         >
           {/* Book Cover */}
           <View className="relative">
-            <Image source={{ uri: book.cover }} className="w-full h-48" />
+            <Image source={{ uri: book.cover || undefined }} className="w-full h-48 bg-violet-100" />
             <LinearGradient colors={["transparent", "rgba(0,0,0,0.8)"]} className="absolute inset-0" />
 
             {/* Category Badge */}

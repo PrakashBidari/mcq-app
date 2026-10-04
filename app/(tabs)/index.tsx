@@ -144,7 +144,7 @@ const BlogCard = React.memo(function BlogCard({
       >
         <View style={styles.blogImgWrap}>
           <Image
-            source={{ uri: blog.image }}
+            source={{ uri: blog.image || undefined }}
             style={styles.blogCardImg}
             resizeMode="cover"
           />
@@ -1831,7 +1831,7 @@ const styles = StyleSheet.create({
     height: 108,
   },
   blogImgWrap: { width: 100, height: 108, position: "relative", flexShrink: 0 },
-  blogCardImg: { width: 100, height: 108 },
+  blogCardImg: { width: 100, height: 108, backgroundColor: "#ede9fe" },
   blogCardBody: {
     flex: 1,
     paddingVertical: 11,

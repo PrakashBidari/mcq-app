@@ -31,6 +31,7 @@ const ReviewItem = React.memo(
     yourAnswerLabel,
     notAnsweredLabel,
     correctLabel,
+    optionLabel,
   }: {
     question: any;
     userAnswer: number;
@@ -39,9 +40,13 @@ const ReviewItem = React.memo(
     yourAnswerLabel: string;
     notAnsweredLabel: string;
     correctLabel: string;
+    optionLabel: string;
   }) => {
     const isUnanswered = userAnswer === -1 || userAnswer === undefined;
     const isCorrect = !isUnanswered && userAnswer === question.correctAnswer;
+    // Image-only options have empty text — fall back to "Option B".
+    const optionText = (i: number) =>
+      question.options[i] || optionLabel.replace("{{label}}", String.fromCharCode(65 + i));
     return (
       <View
         style={[
@@ -79,11 +84,11 @@ const ReviewItem = React.memo(
             ]}
           >
             {yourAnswerLabel}{" "}
-            {isUnanswered ? notAnsweredLabel : question.options[userAnswer]}
+            {isUnanswered ? notAnsweredLabel : optionText(userAnswer)}
           </Text>
           {(!isCorrect || isUnanswered) && (
             <Text style={styles.reviewCorrectAnswer}>
-              {correctLabel} {question.options[question.correctAnswer]}
+              {correctLabel} {optionText(question.correctAnswer)}
             </Text>
           )}
         </View>
@@ -156,7 +161,8 @@ export default function QuizResults() {
     if (percentage >= 90) return { grade: "A+", color: "#10b981", message: t("quizResults.outstanding") };
     if (percentage >= 80) return { grade: "A", color: "#10b981", message: t("quizResults.excellent") };
     if (percentage >= 70) return { grade: "B", color: "#3b82f6", message: t("quizResults.goodJob") };
-    return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
+    if (percentage >= 60) return { grade: "C", color: "#f59e0b", message: t("quizResults.passed") };
+    return { grade: "F", color: "#ef4444", message: t("quizResults.keepPracticing") };
   };
 
   const gradeInfo = getGrade();
@@ -164,6 +170,8 @@ export default function QuizResults() {
   const yourAnswerLabel = t("quizResults.yourAnswer");
   const notAnsweredLabel = t("quizResults.notAnswered");
   const correctLabel = t("quizResults.correct");
+  // Interpolated per option inside ReviewItem — keep the placeholder here.
+  const optionLabel = t("quizResults.optionLabel", { label: "{{label}}", interpolation: { escapeValue: false } });
 
   const ListHeader = (
     <View>
@@ -307,6 +315,7 @@ export default function QuizResults() {
             yourAnswerLabel={yourAnswerLabel}
             notAnsweredLabel={notAnsweredLabel}
             correctLabel={correctLabel}
+            optionLabel={optionLabel}
           />
         )}
         ListHeaderComponent={ListHeader}

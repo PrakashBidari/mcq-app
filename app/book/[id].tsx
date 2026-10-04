@@ -1,10 +1,12 @@
 // app/book/[id].tsx
 import AppBottomTabBar from "@/components/AppBottomTabBar";
+import { useEditorFonts } from "@/utils/editorFonts";
+import { normalizeEditorLineHeights } from "@/utils/editorHtml";
 import { BookmarkItem, useBookmarks } from "@/hooks/useBookmarks";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Image,
@@ -40,6 +42,16 @@ export default function BookReader() {
   const [activeTab, setActiveTab] = useState<"chapters" | "details">(
     "chapters",
   );
+  const descriptionHtml = useMemo(
+    () =>
+      normalizeEditorLineHeights(book?.description ?? "", {
+        fontSize: 14,
+        lineHeight: 24,
+        tagFontSizes: { h1: 18, h2: 16 },
+      }),
+    [book?.description],
+  );
+  const { html: descriptionHtmlWithFonts, systemFonts } = useEditorFonts(descriptionHtml);
 
   if (!book) {
     return (
@@ -117,7 +129,7 @@ export default function BookReader() {
           <View style={styles.bookInfoRow}>
             {/* Book Cover */}
             <View style={styles.coverWrapper}>
-              <Image source={{ uri: book.cover }} style={styles.coverImage} />
+              <Image source={{ uri: book.cover || undefined }} style={styles.coverImage} />
             </View>
 
             {/* Book Details */}
@@ -258,7 +270,12 @@ export default function BookReader() {
                 <Text style={styles.detailsCardTitle}>{t("book.aboutThisBook")}</Text>
                 <RenderHtml
                   contentWidth={width - 88}
-                  source={{ html: book.description }}
+                  // React 19 ignores render-html's defaultProps, so these must be set here or
+                  // the editor's inline styles (align, size, color, font...) are dropped.
+                  enableCSSInlineProcessing
+                  enableUserAgentStyles
+                  source={{ html: descriptionHtmlWithFonts }}
+                  systemFonts={systemFonts}
                   baseStyle={{
                     fontSize: 14,
                     lineHeight: 24,
@@ -379,7 +396,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  coverImage: { width: 128, height: 192 },
+  coverImage: { width: 128, height: 192, backgroundColor: "#ede9fe" },
   bookDetails: { flex: 1, justifyContent: "space-between", paddingVertical: 8 },
   bookTitle: {
     color: "#1f2937",
